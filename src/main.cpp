@@ -1,9 +1,17 @@
+#include "interpreter.h"
 #include "lexer.h"
+#include "parser.h"
 
 int main() {
-  Lexer lexer(" 123  ");
-
+  Lexer lexer(" return 80;  ");
   auto tokens = lexer.lex();
 
-  std::cout << tokens.size() << std::endl;
+  Parser parser(tokens);
+  auto ast = parser.parse();
+
+  Interpreter interpreter(ast);
+
+  int result = interpreter.run();
+
+  std::cout << result << std::endl;
 }

@@ -11,7 +11,13 @@ set_property(TARGET dang PROPERTY CXX_STANDARD 20)
 # Tests
 list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 
-add_executable(tests test/example.cpp src/calc.cpp test/lexer_test.cpp test/parser_test.cpp)
+add_executable(tests
+  test/example.cpp
+  src/calc.cpp
+  test/lexer_test.cpp
+  test/parser_test.cpp
+  test/interpreter_test.cpp
+)
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 set_property(TARGET tests PROPERTY CXX_STANDARD 20)
