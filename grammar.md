@@ -6,7 +6,10 @@ program = { stmt } ;
 stmt = "return" , expr , ";"
      | "let" , identifier , "=" , expr , ";"
      | identifier , "=" , expr , ";"
+     | scope
      ;
+
+scope = "{" , { stmt } , "}" ;
 
 expr     = term | bin_expr ;
 bin_expr = expr , "*" , expr    (* prec = 1 *)

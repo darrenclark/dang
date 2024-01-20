@@ -1,3 +1,4 @@
+#include "ast_printer.h"
 #include "interpreter.h"
 #include "lexer.h"
 #include "parser.h"
@@ -5,10 +6,21 @@
 #include <sstream>
 
 static std::string read_program(const char *path) {
-  std::fstream f(path, std::ios::in);
-  std::stringstream s;
-  s << f.rdbuf();
-  return s.str();
+  if (std::string(path) == "-") {
+    std::stringstream s;
+    s << std::cin.rdbuf();
+    return s.str();
+  } else {
+    std::ifstream f(path);
+    if (!f) {
+      std::cerr << "failed to open file: " << path << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    std::stringstream s;
+    s << f.rdbuf();
+    return s.str();
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -24,6 +36,9 @@ int main(int argc, char *argv[]) {
 
   Parser parser(tokens);
   auto ast = parser.parse();
+
+  // ASTPrinter printer(ast);
+  // std::cerr << printer.print();
 
   Interpreter interpreter(ast);
 

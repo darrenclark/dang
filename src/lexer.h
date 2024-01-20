@@ -16,6 +16,8 @@ enum class TokenType {
   equals,
   open_paren,
   close_paren,
+  open_curly,
+  close_curly,
   minus,
   plus,
   semicolon,
@@ -29,6 +31,40 @@ struct Token {
 
   bool operator==(const Token &) const = default;
 };
+
+inline std::string to_string(TokenType type) {
+  switch (type) {
+
+  case TokenType::integer_literal:
+    return "integer_literal";
+  case TokenType::identifier:
+    return "identifier";
+  case TokenType::kw_return:
+    return "kw_return";
+  case TokenType::kw_let:
+    return "kw_let";
+  case TokenType::equals:
+    return "equals";
+  case TokenType::open_paren:
+    return "open_paren";
+  case TokenType::close_paren:
+    return "close_paren";
+  case TokenType::open_curly:
+    return "open_curly";
+  case TokenType::close_curly:
+    return "close_curly";
+  case TokenType::minus:
+    return "minus";
+  case TokenType::plus:
+    return "plus";
+  case TokenType::semicolon:
+    return "semicolon";
+  case TokenType::slash:
+    return "slash";
+  case TokenType::star:
+    return "star";
+  }
+}
 
 class Lexer {
 public:
@@ -61,6 +97,12 @@ public:
       } else if (*ch == ')') {
         consume();
         tokens.push_back({.type = TokenType::close_paren});
+      } else if (*ch == '{') {
+        consume();
+        tokens.push_back({.type = TokenType::open_curly});
+      } else if (*ch == '}') {
+        consume();
+        tokens.push_back({.type = TokenType::close_curly});
       } else if (*ch == '-') {
         consume();
         tokens.push_back({.type = TokenType::minus});

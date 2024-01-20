@@ -33,6 +33,19 @@ inline std::optional<BinOp> bin_op_for_token(TokenType type) {
   }
 }
 
+inline std::string to_string(BinOp op) {
+  switch (op) {
+  case BinOp::add:
+    return "add";
+  case BinOp::subtract:
+    return "subtract";
+  case BinOp::multiply:
+    return "multiply";
+  case BinOp::divide:
+    return "divide";
+  }
+}
+
 struct ASTNodeIntegerLiteral {
   Token token;
 
@@ -97,10 +110,20 @@ struct ASTNodeAssign {
   bool operator==(const ASTNodeAssign &) const = default;
 };
 
+struct ASTNodeScope;
+
 struct ASTNodeStmt {
-  std::variant<ASTNodeReturn, ASTNodeLet, ASTNodeAssign> child;
+  std::variant<ASTNodeReturn, ASTNodeLet, ASTNodeAssign,
+               valuable::value_ptr<ASTNodeScope>>
+      child;
 
   bool operator==(const ASTNodeStmt &) const = default;
+};
+
+struct ASTNodeScope {
+  std::vector<ASTNodeStmt> body;
+
+  bool operator==(const ASTNodeScope &) const = default;
 };
 
 struct ASTNodeProgram {
@@ -172,9 +195,38 @@ public:
 
       return {
           {.child = (ASTNodeAssign){.identifier = identifier, .expr = *expr}}};
+    } else if (token->type == TokenType::open_curly) {
+      auto scope = parse_scope();
+      if (!scope) {
+        std::cerr << "expected scope" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      return {{.child = *scope}};
     }
 
     return std::nullopt;
+  }
+
+  std::optional<ASTNodeScope> parse_scope() {
+    if (!peek() || peek()->type != TokenType::open_curly) {
+      return std::nullopt;
+    }
+    consume();
+
+    std::vector<ASTNodeStmt> body;
+
+    while (peek() && peek()->type != TokenType::close_curly) {
+      if (auto stmt = parse_stmt()) {
+        body.push_back(*stmt);
+      } else {
+        std::cerr << "expected statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    must_consume(TokenType::close_curly, "expected `}`");
+
+    return {{.body = body}};
   }
 
   std::optional<ASTNodeExpr> parse_expr(int min_prec = 0) {

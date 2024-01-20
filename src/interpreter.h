@@ -5,6 +5,50 @@
 #include <string>
 #include <unordered_map>
 
+using Value = int;
+
+class Vars {
+public:
+  void begin_scope() { values.push_back({}); }
+
+  void end_scope() { values.pop_back(); }
+
+  void define(const std::string &name, Value value) {
+    auto &top = values.at(values.size() - 1);
+
+    if (top.contains(name)) {
+      std::cerr << "error: variable '" << name << "' is already defined"
+                << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    top[name] = value;
+  }
+
+  void assign(const std::string &name, Value newValue) {
+    find_var(name) = newValue;
+  }
+
+  Value get(const std::string &name) { return find_var(name); }
+
+private:
+  std::vector<std::unordered_map<std::string, Value>> values{};
+
+  Value &find_var(const std::string &variable_name) {
+    auto it = std::find_if(values.rbegin(), values.rend(), [&](auto scope) {
+      return scope.contains(variable_name);
+    });
+
+    if (it == values.rend()) {
+      std::cerr << "error: undefined variable '" << variable_name << "'"
+                << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    return it->find(variable_name)->second;
+  }
+};
+
 class Interpreter {
 public:
   Interpreter(ASTNodeProgram program) : program(std::move(program)) {}
@@ -13,9 +57,15 @@ public:
 
   int operator()(const ASTNodeProgram &node) {
     int result = 0;
+
+    vars.begin_scope();
+
     for (const auto &stmt : node.body) {
       result = (*this)(stmt);
     }
+
+    vars.end_scope();
+
     return result;
   }
 
@@ -27,31 +77,28 @@ public:
 
   int operator()(const ASTNodeLet &node) {
     auto val = (*this)(node.expr);
-
-    if (vars.contains(node.identifier.value)) {
-      std::cerr << "error: variable '" << node.identifier.value
-                << "' is already defined" << std::endl;
-      exit(EXIT_FAILURE);
-    }
-
-    vars[node.identifier.value] = val;
-
+    vars.define(node.identifier.value, val);
     return val;
   }
 
   int operator()(const ASTNodeAssign &node) {
     auto val = (*this)(node.expr);
+    vars.assign(node.identifier.value, val);
+    return val;
+  }
 
-    auto it = vars.find(node.identifier.value);
-    if (it == vars.end()) {
-      std::cerr << "error: undefined variable '" << node.identifier.value << "'"
-                << std::endl;
-      exit(EXIT_FAILURE);
+  int operator()(const ASTNodeScope &node) {
+    int result = 0;
+
+    vars.begin_scope();
+
+    for (const auto &stmt : node.body) {
+      result = (*this)(stmt);
     }
 
-    it->second = val;
+    vars.end_scope();
 
-    return val;
+    return result;
   }
 
   int operator()(const ASTNodeExpr &node) {
@@ -83,15 +130,7 @@ public:
   }
 
   int operator()(const ASTNodeIdentifier &node) {
-    auto it = vars.find(node.token.value);
-
-    if (it == vars.end()) {
-      std::cerr << "error: undefined variable '" << node.token.value << "'"
-                << std::endl;
-      exit(EXIT_FAILURE);
-    }
-
-    return it->second;
+    return vars.get(node.token.value);
   }
 
   int operator()(const ASTNodeParenExpr &node) { return (*this)(node.child); }
@@ -102,5 +141,5 @@ public:
 
 private:
   ASTNodeProgram program;
-  std::unordered_map<std::string, int> vars;
+  Vars vars;
 };
