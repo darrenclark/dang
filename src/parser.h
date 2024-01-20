@@ -76,8 +76,14 @@ struct ASTNodeReturn {
   bool operator==(const ASTNodeReturn &) const = default;
 };
 
+struct ASTNodeStmt {
+  ASTNodeReturn child;
+
+  bool operator==(const ASTNodeStmt &) const = default;
+};
+
 struct ASTNodeProgram {
-  ASTNodeReturn body;
+  std::vector<ASTNodeStmt> body;
 
   bool operator==(const ASTNodeProgram &) const = default;
 };
@@ -87,20 +93,35 @@ public:
   Parser(const std::vector<Token> &tokens) : tokens(tokens) {}
 
   ASTNodeProgram parse() {
-    must_consume(TokenType::kw_return, "expected `return`");
-    auto expr = parse_expr();
-    if (!expr) {
-      std::cerr << "expected expression" << std::endl;
-      exit(EXIT_FAILURE);
-    }
-    must_consume(TokenType::semicolon, "expected integer literal");
+    std::vector<ASTNodeStmt> body;
 
-    if (peek()) {
-      std::cerr << "expected EOF" << std::endl;
-      exit(EXIT_FAILURE);
+    while (peek()) {
+      if (auto stmt = parse_stmt()) {
+        body.push_back(*stmt);
+      } else {
+        std::cerr << "expected statement" << std::endl;
+        exit(EXIT_FAILURE);
+      }
     }
 
-    return {.body = {.expr = *expr}};
+    return {.body = body};
+  }
+
+  std::optional<ASTNodeStmt> parse_stmt() {
+    if (peek() && peek()->type == TokenType::kw_return) {
+      consume();
+
+      auto expr = parse_expr();
+      if (!expr) {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      must_consume(TokenType::semicolon, "expected integer literal");
+
+      return {{.child = {.expr = *expr}}};
+    }
+
+    return std::nullopt;
   }
 
   std::optional<ASTNodeExpr> parse_expr(int min_prec = 0) {

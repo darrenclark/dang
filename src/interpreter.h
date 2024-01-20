@@ -10,7 +10,15 @@ public:
 
   int run() { return (*this)(program); }
 
-  int operator()(const ASTNodeProgram &node) { return (*this)(node.body); }
+  int operator()(const ASTNodeProgram &node) {
+    int result = 0;
+    for (const auto &stmt : node.body) {
+      result = (*this)(stmt);
+    }
+    return result;
+  }
+
+  int operator()(const ASTNodeStmt &node) { return (*this)(node.child); }
 
   int operator()(const ASTNodeReturn &node) { return (*this)(node.expr); }
 

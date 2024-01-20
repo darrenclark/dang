@@ -1,7 +1,9 @@
 # Grammar
 
 ```ebnf
-program = "return" , expr , ";" ;
+program = { stmt } ;
+
+stmt = "return" , expr , ";" ;
 
 expr     = term | bin_expr ;
 bin_expr = expr , "*" , expr    (* prec = 1 *)
