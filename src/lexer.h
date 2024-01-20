@@ -8,9 +8,12 @@
 
 enum class TokenType {
   integer_literal,
+  identifier,
   kw_return,
+  kw_let,
 
   // punctuation
+  equals,
   open_paren,
   close_paren,
   minus,
@@ -44,10 +47,14 @@ public:
         auto value = consume_while([](char c) { return std::isalnum(c); });
         if (value == "return") {
           tokens.push_back({.type = TokenType::kw_return});
+        } else if (value == "let") {
+          tokens.push_back({.type = TokenType::kw_let});
         } else {
-          std::cerr << "unexpected word: " << value << std::endl;
-          exit(EXIT_FAILURE);
+          tokens.push_back({.type = TokenType::identifier, .value = value});
         }
+      } else if (*ch == '=') {
+        consume();
+        tokens.push_back({.type = TokenType::equals});
       } else if (*ch == '(') {
         consume();
         tokens.push_back({.type = TokenType::open_paren});

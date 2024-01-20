@@ -3,7 +3,7 @@
 #include "parser.h"
 
 int main() {
-  Lexer lexer(" return (80 + 5) * 2;  ");
+  Lexer lexer(" let x = 10; x = x + 2; return (x + 5) * 2;  ");
   auto tokens = lexer.lex();
 
   Parser parser(tokens);

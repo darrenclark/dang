@@ -39,10 +39,17 @@ struct ASTNodeIntegerLiteral {
   bool operator==(const ASTNodeIntegerLiteral &) const = default;
 };
 
+struct ASTNodeIdentifier {
+  Token token;
+
+  bool operator==(const ASTNodeIdentifier &) const = default;
+};
+
 struct ASTNodeParenExpr;
 
 struct ASTNodeTerm {
-  std::variant<ASTNodeIntegerLiteral, valuable::value_ptr<ASTNodeParenExpr>>
+  std::variant<ASTNodeIntegerLiteral, ASTNodeIdentifier,
+               valuable::value_ptr<ASTNodeParenExpr>>
       child;
 
   bool operator==(const ASTNodeTerm &) const = default;
@@ -76,8 +83,22 @@ struct ASTNodeReturn {
   bool operator==(const ASTNodeReturn &) const = default;
 };
 
+struct ASTNodeLet {
+  Token identifier;
+  ASTNodeExpr expr;
+
+  bool operator==(const ASTNodeLet &) const = default;
+};
+
+struct ASTNodeAssign {
+  Token identifier;
+  ASTNodeExpr expr;
+
+  bool operator==(const ASTNodeAssign &) const = default;
+};
+
 struct ASTNodeStmt {
-  ASTNodeReturn child;
+  std::variant<ASTNodeReturn, ASTNodeLet, ASTNodeAssign> child;
 
   bool operator==(const ASTNodeStmt &) const = default;
 };
@@ -108,7 +129,11 @@ public:
   }
 
   std::optional<ASTNodeStmt> parse_stmt() {
-    if (peek() && peek()->type == TokenType::kw_return) {
+    auto token = peek();
+    if (!token)
+      return std::nullopt;
+
+    if (token->type == TokenType::kw_return) {
       consume();
 
       auto expr = parse_expr();
@@ -116,9 +141,37 @@ public:
         std::cerr << "expected expression" << std::endl;
         exit(EXIT_FAILURE);
       }
-      must_consume(TokenType::semicolon, "expected integer literal");
+      must_consume(TokenType::semicolon, "expected `;`");
 
-      return {{.child = {.expr = *expr}}};
+      return {{.child = (ASTNodeReturn){.expr = *expr}}};
+    } else if (token->type == TokenType::kw_let) {
+      consume();
+
+      auto identifier =
+          must_consume(TokenType::identifier, "expected identifier");
+      must_consume(TokenType::equals, "expected `=`");
+      auto expr = parse_expr();
+      if (!expr) {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      must_consume(TokenType::semicolon, "expected `;`");
+
+      return {{.child = (ASTNodeLet){.identifier = identifier, .expr = *expr}}};
+    } else if (token->type == TokenType::identifier && peek(1) &&
+               peek(1)->type == TokenType::equals) {
+      auto identifier = consume();
+      consume();
+
+      auto expr = parse_expr();
+      if (!expr) {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      must_consume(TokenType::semicolon, "expected `;`");
+
+      return {
+          {.child = (ASTNodeAssign){.identifier = identifier, .expr = *expr}}};
     }
 
     return std::nullopt;
@@ -173,6 +226,8 @@ public:
 
     if (token->type == TokenType::integer_literal) {
       return {{.child = (ASTNodeIntegerLiteral){.token = consume()}}};
+    } else if (token->type == TokenType::identifier) {
+      return {{.child = (ASTNodeIdentifier){.token = consume()}}};
     } else if (token->type == TokenType::open_paren) {
       consume();
       if (auto expr = parse_expr()) {

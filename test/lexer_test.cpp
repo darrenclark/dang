@@ -36,3 +36,17 @@ TEST_CASE("math operators can be lexed", "[lexer]") {
 
   CHECK_THAT(lexer.lex(), RangeEquals(expected));
 }
+
+TEST_CASE("assignment can be lexed", "[lexer]") {
+  Lexer lexer("let x = 567;");
+
+  const std::array<Token, 5> expected{{
+      {.type = TokenType::kw_let},
+      {.type = TokenType::identifier, .value = "x"},
+      {.type = TokenType::equals},
+      {.type = TokenType::integer_literal, .value = "567"},
+      {.type = TokenType::semicolon},
+  }};
+
+  CHECK_THAT(lexer.lex(), RangeEquals(expected));
+}
