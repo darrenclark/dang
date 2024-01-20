@@ -13,4 +13,7 @@ make
 
 # to run tests
 ctest
+
+# to run sample program
+./dang ../sample.dang
 ```

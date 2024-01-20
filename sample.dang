@@ -1,0 +1,4 @@
+let pi = 3;
+let radius = 100;
+let area = pi * (radius * radius);
+return area;
