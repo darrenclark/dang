@@ -5,7 +5,7 @@
 
 using Catch::Matchers::RangeEquals;
 
-TEST_CASE("basic program can be parsed", "[lexer]") {
+TEST_CASE("basic program can be lexed", "[lexer]") {
   Lexer lexer(" return 123; ");
 
   const std::array<Token, 3> expected{{
