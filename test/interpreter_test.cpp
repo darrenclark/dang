@@ -21,3 +21,15 @@ TEST_CASE("math can be done", "[interpreter]") {
 
   REQUIRE(i.run() == 285);
 }
+
+TEST_CASE("can read and write variables in outer scopes", "[interpreter]") {
+  Interpreter i(ast("let x = 5; { x = x + x; } return x;"));
+
+  REQUIRE(i.run() == 10);
+}
+
+TEST_CASE("can shadow variables in outer scopes", "[interpreter]") {
+  Interpreter i(ast("let x = 5; { let x = 2; x = 9; } return x;"));
+
+  REQUIRE(i.run() == 5);
+}
