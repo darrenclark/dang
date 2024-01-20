@@ -17,6 +17,18 @@ TEST_CASE("basic program can be lexed", "[lexer]") {
   CHECK_THAT(lexer.lex(), RangeEquals(expected));
 }
 
+TEST_CASE("keywords can be lexed", "[lexer]") {
+  Lexer lexer(" return let if ");
+
+  const std::array<Token, 3> expected{{
+      {.type = TokenType::kw_return},
+      {.type = TokenType::kw_let},
+      {.type = TokenType::kw_if},
+  }};
+
+  CHECK_THAT(lexer.lex(), RangeEquals(expected));
+}
+
 TEST_CASE("math operators can be lexed", "[lexer]") {
   Lexer lexer("5 * (2 + 3) - 4 / 2");
 

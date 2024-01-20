@@ -101,6 +101,16 @@ public:
     return result;
   }
 
+  int operator()(const ASTNodeIf &node) {
+    auto condition = (*this)(node.condition);
+
+    if (condition) {
+      return (*this)(node.body);
+    } else {
+      return 0;
+    }
+  }
+
   int operator()(const ASTNodeExpr &node) {
     return std::visit(*this, node.child);
   }

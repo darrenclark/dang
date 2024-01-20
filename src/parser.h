@@ -111,10 +111,12 @@ struct ASTNodeAssign {
 };
 
 struct ASTNodeScope;
+struct ASTNodeIf;
 
 struct ASTNodeStmt {
   std::variant<ASTNodeReturn, ASTNodeLet, ASTNodeAssign,
-               valuable::value_ptr<ASTNodeScope>>
+               valuable::value_ptr<ASTNodeScope>,
+               valuable::value_ptr<ASTNodeIf>>
       child;
 
   bool operator==(const ASTNodeStmt &) const = default;
@@ -124,6 +126,13 @@ struct ASTNodeScope {
   std::vector<ASTNodeStmt> body;
 
   bool operator==(const ASTNodeScope &) const = default;
+};
+
+struct ASTNodeIf {
+  ASTNodeExpr condition;
+  ASTNodeScope body;
+
+  bool operator==(const ASTNodeIf &) const = default;
 };
 
 struct ASTNodeProgram {
@@ -202,6 +211,22 @@ public:
         exit(EXIT_FAILURE);
       }
       return {{.child = *scope}};
+    } else if (token->type == TokenType::kw_if) {
+      consume();
+
+      auto condition = parse_expr();
+      if (!condition) {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      auto body = parse_scope();
+      if (!body) {
+        std::cerr << "expected scope for if statement body" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      return {{.child = (ASTNodeIf){.condition = *condition, .body = *body}}};
     }
 
     return std::nullopt;

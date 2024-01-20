@@ -12,6 +12,7 @@ stmt = "return" , expr , ";"
      | "let" , identifier , "=" , expr , ";"
      | identifier , "=" , expr , ";"
      | scope
+     | "if" , expr , scope
      ;
 
 scope = "{" , { stmt } , "}" ;

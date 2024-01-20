@@ -33,3 +33,23 @@ TEST_CASE("can shadow variables in outer scopes", "[interpreter]") {
 
   REQUIRE(i.run() == 5);
 }
+
+TEST_CASE("if statement evaluating to true", "[interpreter]") {
+  std::string program = "let x = 5; "
+                        "if x { x = x * 5; } "
+                        "return x; ";
+
+  Interpreter i(ast(program));
+
+  REQUIRE(i.run() == 25);
+}
+
+TEST_CASE("if statement evaluating to false", "[interpreter]") {
+  std::string program = "let x = 5; "
+                        "if x - 5 { x = x * 5; } "
+                        "return x; ";
+
+  Interpreter i(ast(program));
+
+  REQUIRE(i.run() == 5);
+}

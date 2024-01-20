@@ -11,6 +11,7 @@ enum class TokenType {
   identifier,
   kw_return,
   kw_let,
+  kw_if,
 
   // punctuation
   equals,
@@ -43,6 +44,8 @@ inline std::string to_string(TokenType type) {
     return "kw_return";
   case TokenType::kw_let:
     return "kw_let";
+  case TokenType::kw_if:
+    return "kw_if";
   case TokenType::equals:
     return "equals";
   case TokenType::open_paren:
@@ -103,6 +106,8 @@ public:
           tokens.push_back({.type = TokenType::kw_return});
         } else if (value == "let") {
           tokens.push_back({.type = TokenType::kw_let});
+        } else if (value == "if") {
+          tokens.push_back({.type = TokenType::kw_if});
         } else {
           tokens.push_back({.type = TokenType::identifier, .value = value});
         }

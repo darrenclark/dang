@@ -78,6 +78,20 @@ public:
     end_struct();
   }
 
+  void operator()(const ASTNodeIf &node) {
+    begin_struct("ASTNodeScope");
+
+    begin_field("condition");
+    (*this)(node.condition);
+    end_field();
+
+    begin_field("body");
+    (*this)(node.body);
+    end_field();
+
+    end_struct();
+  }
+
   void operator()(const ASTNodeExpr &node) {
     begin_struct("ASTNodeExpr");
     begin_variant_field("child");
