@@ -8,4 +8,12 @@ let area = pi * (radius * radius);
   area = 1;
 }
 
+if 0 {
+  area = 100;
+} else if 1 {
+  area = 200;
+} else {
+  area = 300;
+}
+
 return area;

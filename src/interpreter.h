@@ -107,9 +107,23 @@ public:
     if (condition) {
       return (*this)(node.body);
     } else {
-      return 0;
+      return std::visit(*this, node.rest);
     }
   }
+
+  int operator()(const ASTNodeElseIf &node) {
+    auto condition = (*this)(node.condition);
+
+    if (condition) {
+      return (*this)(node.body);
+    } else {
+      return std::visit(*this, node.rest);
+    }
+  }
+
+  int operator()(const ASTNodeElse &node) { return (*this)(node.body); }
+
+  int operator()(const std::monostate &node) { return 0; }
 
   int operator()(const ASTNodeExpr &node) {
     return std::visit(*this, node.child);

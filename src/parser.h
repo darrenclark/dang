@@ -128,11 +128,32 @@ struct ASTNodeScope {
   bool operator==(const ASTNodeScope &) const = default;
 };
 
+struct ASTNodeElseIf;
+struct ASTNodeElse;
+
 struct ASTNodeIf {
+  using Rest = std::variant<std::monostate, valuable::value_ptr<ASTNodeElseIf>,
+                            valuable::value_ptr<ASTNodeElse>>;
+
   ASTNodeExpr condition;
   ASTNodeScope body;
+  Rest rest;
 
   bool operator==(const ASTNodeIf &) const = default;
+};
+
+struct ASTNodeElseIf {
+  ASTNodeExpr condition;
+  ASTNodeScope body;
+  ASTNodeIf::Rest rest;
+
+  bool operator==(const ASTNodeElseIf &) const = default;
+};
+
+struct ASTNodeElse {
+  ASTNodeScope body;
+
+  bool operator==(const ASTNodeElse &) const = default;
 };
 
 struct ASTNodeProgram {
@@ -226,7 +247,10 @@ public:
         exit(EXIT_FAILURE);
       }
 
-      return {{.child = (ASTNodeIf){.condition = *condition, .body = *body}}};
+      ASTNodeIf::Rest rest = parse_if_rest();
+
+      return {{.child = (ASTNodeIf){
+                   .condition = *condition, .body = *body, rest = rest}}};
     }
 
     return std::nullopt;
@@ -252,6 +276,42 @@ public:
     must_consume(TokenType::close_curly, "expected `}`");
 
     return {{.body = body}};
+  }
+
+  ASTNodeIf::Rest parse_if_rest() {
+    if (!peek() || peek()->type != TokenType::kw_else) {
+      return std::monostate{};
+    }
+    consume();
+
+    if (peek() && peek()->type == TokenType::kw_if) {
+      consume();
+
+      auto condition = parse_expr();
+      if (!condition) {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      auto body = parse_scope();
+      if (!body) {
+        std::cerr << "expected scope for `else if` body" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      ASTNodeIf::Rest rest = parse_if_rest();
+
+      return {(ASTNodeElseIf){
+          .condition = *condition, .body = *body, .rest = rest}};
+    } else {
+      auto else_body = parse_scope();
+      if (!else_body) {
+        std::cerr << "expected scope for `else` body" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      return {(ASTNodeElse){.body = *else_body}};
+    }
   }
 
   std::optional<ASTNodeExpr> parse_expr(int min_prec = 0) {

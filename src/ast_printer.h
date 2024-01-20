@@ -79,11 +79,51 @@ public:
   }
 
   void operator()(const ASTNodeIf &node) {
-    begin_struct("ASTNodeScope");
+    begin_struct("ASTNodeIf");
 
     begin_field("condition");
     (*this)(node.condition);
     end_field();
+
+    begin_field("body");
+    (*this)(node.body);
+    end_field();
+
+    if (std::holds_alternative<std::monostate>(node.rest)) {
+      output << ".rest = std::monostate{},\n";
+    } else {
+      begin_variant_field("rest");
+      std::visit(*this, node.rest);
+      end_variant_field();
+    }
+
+    end_struct();
+  }
+
+  void operator()(const ASTNodeElseIf &node) {
+    begin_struct("ASTNodeElseIf");
+
+    begin_field("condition");
+    (*this)(node.condition);
+    end_field();
+
+    begin_field("body");
+    (*this)(node.body);
+    end_field();
+
+    if (std::holds_alternative<std::monostate>(node.rest)) {
+      output << ".rest = std::monostate{},\n";
+    } else {
+      begin_variant_field("rest");
+      std::visit(*this, node.rest);
+      end_variant_field();
+    }
+
+    end_struct();
+  }
+
+  void operator()(const ASTNodeElse &node) {
+    begin_struct("ASTNodeElse");
 
     begin_field("body");
     (*this)(node.body);
@@ -143,6 +183,10 @@ public:
     (*this)(node.child);
     end_field();
     end_struct();
+  }
+
+  void operator()(const std::monostate &node) {
+    // printing of monostate handled nicer elsewhere
   }
 
   template <typename T> void operator()(const valuable::value_ptr<T> &ptr) {

@@ -12,10 +12,12 @@ stmt = "return" , expr , ";"
      | "let" , identifier , "=" , expr , ";"
      | identifier , "=" , expr , ";"
      | scope
-     | "if" , expr , scope
+     | "if" , expr , scope , if rest
      ;
 
 scope = "{" , { stmt } , "}" ;
+
+if rest = { "else" , "if" , expr , scope } , [ "else" , scope ]
 
 expr     = term | bin_expr ;
 bin_expr = expr , "*" , expr    (* prec = 1 *)
