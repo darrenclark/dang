@@ -1,3 +1,9 @@
+#include "lexer.h"
+
 int main() {
-  return 69;
+  Lexer lexer(" 123  ");
+
+  auto tokens = lexer.lex();
+
+  std::cout << tokens.size() << std::endl;
 }
