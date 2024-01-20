@@ -15,3 +15,9 @@ TEST_CASE("basic program can be run", "[interpreter]") {
 
   REQUIRE(i.run() == 123);
 }
+
+TEST_CASE("math can be done", "[interpreter]") {
+  Interpreter i(ast("return 100 - 8 * 6 / 2 + 9;"));
+
+  REQUIRE(i.run() == 85);
+}

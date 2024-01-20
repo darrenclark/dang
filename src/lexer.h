@@ -6,7 +6,17 @@
 #include <string>
 #include <vector>
 
-enum class TokenType { integer_literal, semicolon, kw_return };
+enum class TokenType {
+  integer_literal,
+  kw_return,
+
+  // punctuation
+  minus,
+  plus,
+  semicolon,
+  slash,
+  star,
+};
 
 struct Token {
   TokenType type{};
@@ -29,16 +39,28 @@ public:
         auto value = consume_while([](char c) { return std::isdigit(c); });
         tokens.push_back({.type = TokenType::integer_literal, .value = value});
       } else if (std::isalpha(*ch)) {
-        auto value = consume_while([](char c) { return std::isalpha(c); });
+        auto value = consume_while([](char c) { return std::isalnum(c); });
         if (value == "return") {
           tokens.push_back({.type = TokenType::kw_return});
         } else {
           std::cerr << "unexpected word: " << value << std::endl;
           exit(EXIT_FAILURE);
         }
+      } else if (*ch == '-') {
+        consume();
+        tokens.push_back({.type = TokenType::minus});
+      } else if (*ch == '+') {
+        consume();
+        tokens.push_back({.type = TokenType::plus});
       } else if (*ch == ';') {
         consume();
         tokens.push_back({.type = TokenType::semicolon});
+      } else if (*ch == '/') {
+        consume();
+        tokens.push_back({.type = TokenType::slash});
+      } else if (*ch == '*') {
+        consume();
+        tokens.push_back({.type = TokenType::star});
       } else {
         std::cerr << "unexpected character: " << *ch << std::endl;
         exit(EXIT_FAILURE);

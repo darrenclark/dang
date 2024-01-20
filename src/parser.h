@@ -1,9 +1,68 @@
 #pragma once
 
 #include "lexer.h"
+#include "value-ptr.hpp"
+#include <memory>
+#include <variant>
+
+enum class BinOp { add, subtract, multiply, divide };
+
+inline int bin_op_prec(BinOp op) {
+  switch (op) {
+  case BinOp::add:
+  case BinOp::subtract:
+    return 0;
+  case BinOp::multiply:
+  case BinOp::divide:
+    return 1;
+  }
+}
+
+inline std::optional<BinOp> bin_op_for_token(TokenType type) {
+  switch (type) {
+  case TokenType::plus:
+    return BinOp::add;
+  case TokenType::minus:
+    return BinOp::subtract;
+  case TokenType::star:
+    return BinOp::multiply;
+  case TokenType::slash:
+    return BinOp::divide;
+  default:
+    return std::nullopt;
+  }
+}
+
+struct ASTNodeIntegerLiteral {
+  Token token;
+
+  bool operator==(const ASTNodeIntegerLiteral &) const = default;
+};
+
+struct ASTNodeTerm {
+  ASTNodeIntegerLiteral integer_literal;
+
+  bool operator==(const ASTNodeTerm &) const = default;
+};
+
+struct ASTNodeExpr;
+
+struct ASTNodeBinExpr {
+  valuable::value_ptr<ASTNodeExpr> lhs;
+  valuable::value_ptr<ASTNodeExpr> rhs;
+  BinOp op;
+
+  bool operator==(const ASTNodeBinExpr &) const = default;
+};
+
+struct ASTNodeExpr {
+  std::variant<ASTNodeTerm, ASTNodeBinExpr> child;
+
+  bool operator==(const ASTNodeExpr &) const = default;
+};
 
 struct ASTNodeReturn {
-  Token integer_literal;
+  ASTNodeExpr expr;
 
   bool operator==(const ASTNodeReturn &) const = default;
 };
@@ -20,8 +79,11 @@ public:
 
   ASTNodeProgram parse() {
     must_consume(TokenType::kw_return, "expected `return`");
-    auto integer_literal =
-        must_consume(TokenType::integer_literal, "expected integer literal");
+    auto expr = parse_expr();
+    if (!expr) {
+      std::cerr << "expected expression" << std::endl;
+      exit(EXIT_FAILURE);
+    }
     must_consume(TokenType::semicolon, "expected integer literal");
 
     if (peek()) {
@@ -29,7 +91,57 @@ public:
       exit(EXIT_FAILURE);
     }
 
-    return {.body = {.integer_literal = integer_literal}};
+    return {.body = {.expr = *expr}};
+  }
+
+  std::optional<ASTNodeExpr> parse_expr(int min_prec = 0) {
+    // Based on
+    // https://github.com/orosmatthew/hydrogen-cpp/blob/1e2d30d2c0f75313890f8faba78cedecf144b14e/src/parser.hpp#L144
+
+    auto term_lhs = parse_term();
+    if (!term_lhs)
+      return std::nullopt;
+
+    ASTNodeExpr expr_lhs{*term_lhs};
+
+    while (true) {
+      auto current_token = peek();
+      if (!current_token)
+        break;
+
+      auto bin_op = bin_op_for_token(current_token->type);
+      if (!bin_op)
+        break;
+
+      auto prec = bin_op_prec(*bin_op);
+      if (prec < min_prec)
+        break;
+
+      consume();
+
+      int next_min_prec = prec + 1;
+      auto expr_rhs = parse_expr(next_min_prec);
+
+      if (!expr_rhs) {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      ASTNodeBinExpr bin_expr = {
+          .lhs = expr_lhs, .rhs = *expr_rhs, .op = *bin_op};
+
+      expr_lhs = {bin_expr};
+    }
+
+    return expr_lhs;
+  }
+
+  std::optional<ASTNodeTerm> parse_term() {
+    if (peek() && peek()->type == TokenType::integer_literal) {
+      return {{.integer_literal = {.token = consume()}}};
+    }
+    // TODO: Variables/etc.
+    return std::nullopt;
   }
 
 private:

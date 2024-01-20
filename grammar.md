@@ -1,7 +1,15 @@
 # Grammar
 
-TODO: Figure out the proper syntax for writing out a grammar :)
+```ebnf
+program = "return" , expr , ";" ;
 
-```
-program -> return [integer_literal];
+expr     = term | bin_expr ;
+bin_expr = expr , "*" , expr    (* prec = 1 *)
+         | expr , "/" , expr    (* prec = 1 *)
+         | expr , "+" , expr    (* prec = 0 *)
+         | expr , "-" , expr    (* prec = 0 *)
+
+term = integer_literal ;
+
+integer_literal = ? digits ? ;
 ```
