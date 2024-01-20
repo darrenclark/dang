@@ -76,6 +76,24 @@ public:
     while (auto ch = peek()) {
       if (std::isspace(*ch)) {
         consume();
+      } else if (*ch == '/' && peek(1) == '/') {
+        consume();
+        consume();
+        while (peek() != '\n') {
+          consume();
+        }
+      } else if (*ch == '/' && peek(1) == '*') {
+        consume();
+        consume();
+
+        while (peek() && peek() != '*' && peek(1) != '/') {
+          consume();
+        }
+
+        if (peek()) {
+          consume();
+          consume();
+        }
       } else if (std::isdigit(*ch)) {
         auto value = consume_while([](char c) { return std::isdigit(c); });
         tokens.push_back({.type = TokenType::integer_literal, .value = value});

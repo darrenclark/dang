@@ -3,6 +3,7 @@ let radius = 100;
 let area = pi * (radius * radius);
 
 {
+  // test scope
   let area = 2;
   area = 1;
 }

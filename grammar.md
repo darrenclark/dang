@@ -1,5 +1,10 @@
 # Grammar
 
+- Whitespace is not significant (and is not described below)
+- C style comments are supported (not described below)
+    - `// comment here`
+    - `/* comment here */`
+
 ```ebnf
 program = { stmt } ;
 
