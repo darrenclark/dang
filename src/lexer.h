@@ -11,6 +11,8 @@ enum class TokenType {
   kw_return,
 
   // punctuation
+  open_paren,
+  close_paren,
   minus,
   plus,
   semicolon,
@@ -46,6 +48,12 @@ public:
           std::cerr << "unexpected word: " << value << std::endl;
           exit(EXIT_FAILURE);
         }
+      } else if (*ch == '(') {
+        consume();
+        tokens.push_back({.type = TokenType::open_paren});
+      } else if (*ch == ')') {
+        consume();
+        tokens.push_back({.type = TokenType::close_paren});
       } else if (*ch == '-') {
         consume();
         tokens.push_back({.type = TokenType::minus});

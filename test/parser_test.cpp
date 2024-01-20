@@ -13,10 +13,10 @@ TEST_CASE("basic program can be parsed", "[parser]") {
   Parser p(tokens("return 123;"));
 
   ASTNodeProgram expected = {
-      .body = {
-          .expr = {(ASTNodeTerm){
-              .integer_literal = {.token = {.type = TokenType::integer_literal,
-                                            .value = "123"}}}}}};
+      .body = {.expr = {(ASTNodeTerm){
+                   .child = (ASTNodeIntegerLiteral){
+                       .token = {.type = TokenType::integer_literal,
+                                 .value = "123"}}}}}};
 
   REQUIRE(p.parse() == expected);
 }

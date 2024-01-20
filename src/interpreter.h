@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parser.h"
+#include "value-ptr.hpp"
 #include <string>
 
 class Interpreter {
@@ -18,7 +19,7 @@ public:
   }
 
   int operator()(const ASTNodeTerm &node) {
-    return (*this)(node.integer_literal);
+    return std::visit(*this, node.child);
   }
 
   int operator()(const ASTNodeBinExpr &node) {
@@ -39,6 +40,12 @@ public:
 
   int operator()(const ASTNodeIntegerLiteral &node) {
     return std::stoi(node.token.value);
+  }
+
+  int operator()(const ASTNodeParenExpr &node) { return (*this)(node.child); }
+
+  template <typename T> int operator()(const valuable::value_ptr<T> &ptr) {
+    return (*this)(*ptr);
   }
 
 private:

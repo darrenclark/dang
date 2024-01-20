@@ -39,13 +39,22 @@ struct ASTNodeIntegerLiteral {
   bool operator==(const ASTNodeIntegerLiteral &) const = default;
 };
 
+struct ASTNodeParenExpr;
+
 struct ASTNodeTerm {
-  ASTNodeIntegerLiteral integer_literal;
+  std::variant<ASTNodeIntegerLiteral, valuable::value_ptr<ASTNodeParenExpr>>
+      child;
 
   bool operator==(const ASTNodeTerm &) const = default;
 };
 
 struct ASTNodeExpr;
+
+struct ASTNodeParenExpr {
+  valuable::value_ptr<ASTNodeExpr> child;
+
+  bool operator==(const ASTNodeParenExpr &) const = default;
+};
 
 struct ASTNodeBinExpr {
   valuable::value_ptr<ASTNodeExpr> lhs;
@@ -137,8 +146,21 @@ public:
   }
 
   std::optional<ASTNodeTerm> parse_term() {
-    if (peek() && peek()->type == TokenType::integer_literal) {
-      return {{.integer_literal = {.token = consume()}}};
+    auto token = peek();
+    if (!token)
+      return std::nullopt;
+
+    if (token->type == TokenType::integer_literal) {
+      return {{.child = (ASTNodeIntegerLiteral){.token = consume()}}};
+    } else if (token->type == TokenType::open_paren) {
+      consume();
+      if (auto expr = parse_expr()) {
+        must_consume(TokenType::close_paren, "expected `)`");
+        return {{.child = (ASTNodeParenExpr){.child = *expr}}};
+      } else {
+        std::cerr << "expected expression" << std::endl;
+        exit(EXIT_FAILURE);
+      }
     }
     // TODO: Variables/etc.
     return std::nullopt;

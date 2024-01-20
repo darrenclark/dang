@@ -18,14 +18,16 @@ TEST_CASE("basic program can be lexed", "[lexer]") {
 }
 
 TEST_CASE("math operators can be lexed", "[lexer]") {
-  Lexer lexer("5 * 2 + 3 - 4 / 2");
+  Lexer lexer("5 * (2 + 3) - 4 / 2");
 
-  const std::array<Token, 9> expected{{
+  const std::array<Token, 11> expected{{
       {.type = TokenType::integer_literal, .value = "5"},
       {.type = TokenType::star},
+      {.type = TokenType::open_paren},
       {.type = TokenType::integer_literal, .value = "2"},
       {.type = TokenType::plus},
       {.type = TokenType::integer_literal, .value = "3"},
+      {.type = TokenType::close_paren},
       {.type = TokenType::minus},
       {.type = TokenType::integer_literal, .value = "4"},
       {.type = TokenType::slash},
