@@ -122,6 +122,19 @@ public:
     end_struct();
   }
 
+  void operator()(const ASTNodeFunctionDef &node) {
+    begin_struct("ASTNodeFunctionDef");
+
+    field("name", node.name);
+    field("arg_names", node.arg_names);
+
+    begin_field("body");
+    (*this)(node.body);
+    end_field();
+
+    end_struct();
+  }
+
   void operator()(const ASTNodeElse &node) {
     begin_struct("ASTNodeElse");
 
@@ -182,6 +195,23 @@ public:
     begin_field("child");
     (*this)(node.child);
     end_field();
+    end_struct();
+  }
+
+  void operator()(const ASTNodeFunctionCall &node) {
+    begin_struct("ASTNodeFunctionCall");
+    field("name", node.name);
+
+    begin_vector_field("body");
+
+    for (const auto &argument : node.arguments) {
+      (*this)(argument);
+      put_indent();
+      output << ",\n";
+    }
+
+    end_vector_field();
+
     end_struct();
   }
 
@@ -258,6 +288,31 @@ private:
       output << ", .value = \"" << token.value << "\"";
     }
     output << "},\n";
+  }
+
+  void field(const std::string &name, const std::vector<Token> &tokens) {
+    if (tokens.size() > 0) {
+      put_indent();
+      output << "." << name << " = {\n";
+
+      indent += 1;
+
+      for (auto &token : tokens) {
+        put_indent();
+        output << " (Token){.type = TokenType::" << to_string(token.type);
+        if (!token.value.empty()) {
+          output << ", .value = \"" << token.value << "\"";
+        }
+        output << "},\n";
+      }
+
+      indent -= 1;
+
+      put_indent();
+      output << "},\n";
+    } else {
+      output << "." << name << " = {},\n";
+    }
   }
 
   void put_indent() {

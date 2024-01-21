@@ -1,0 +1,28 @@
+# TODO
+
+- [ ] Logic operators
+    - [ ] `!`
+    - [ ] `&&`
+    - [ ] `||`
+- [ ] Basic types
+    - [ ] Int
+    - [ ] String
+    - [ ] Nil
+    - [ ] Boolean
+    - [ ] Float
+- [ ] Complex types
+    - [ ] Arrays
+    - [ ] Dictionaries
+    - [ ] Records
+- [ ] Type conversion / casting
+- [ ] Big Ints
+- [ ] Loops
+    - [ ] For
+    - [ ] While
+    - [ ] Do while (?)
+- [ ] Functions
+    - [ ] Closures / capturing
+    - [ ] Anonymous
+- [ ] Exceptions/errors
+    - [ ] Try/catch (?)
+- [ ] Immutability - let vs var

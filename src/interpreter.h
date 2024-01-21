@@ -125,6 +125,11 @@ public:
 
   int operator()(const std::monostate &node) { return 0; }
 
+  int operator()(const ASTNodeFunctionDef &node) {
+    // TODO: Implement
+    return 0;
+  }
+
   int operator()(const ASTNodeExpr &node) {
     return std::visit(*this, node.child);
   }
@@ -158,6 +163,11 @@ public:
   }
 
   int operator()(const ASTNodeParenExpr &node) { return (*this)(node.child); }
+
+  int operator()(const ASTNodeFunctionCall &node) {
+    // TODO: Implement
+    return 0;
+  }
 
   template <typename T> int operator()(const valuable::value_ptr<T> &ptr) {
     return (*this)(*ptr);

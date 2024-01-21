@@ -59,10 +59,12 @@ struct ASTNodeIdentifier {
 };
 
 struct ASTNodeParenExpr;
+struct ASTNodeFunctionCall;
 
 struct ASTNodeTerm {
   std::variant<ASTNodeIntegerLiteral, ASTNodeIdentifier,
-               valuable::value_ptr<ASTNodeParenExpr>>
+               valuable::value_ptr<ASTNodeParenExpr>,
+               valuable::value_ptr<ASTNodeFunctionCall>>
       child;
 
   bool operator==(const ASTNodeTerm &) const = default;
@@ -74,6 +76,13 @@ struct ASTNodeParenExpr {
   valuable::value_ptr<ASTNodeExpr> child;
 
   bool operator==(const ASTNodeParenExpr &) const = default;
+};
+
+struct ASTNodeFunctionCall {
+  Token name;
+  std::vector<ASTNodeExpr> arguments;
+
+  bool operator==(const ASTNodeFunctionCall &) const = default;
 };
 
 struct ASTNodeBinExpr {
@@ -112,11 +121,13 @@ struct ASTNodeAssign {
 
 struct ASTNodeScope;
 struct ASTNodeIf;
+struct ASTNodeFunctionDef;
 
 struct ASTNodeStmt {
   std::variant<ASTNodeReturn, ASTNodeLet, ASTNodeAssign,
                valuable::value_ptr<ASTNodeScope>,
-               valuable::value_ptr<ASTNodeIf>>
+               valuable::value_ptr<ASTNodeIf>,
+               valuable::value_ptr<ASTNodeFunctionDef>>
       child;
 
   bool operator==(const ASTNodeStmt &) const = default;
@@ -154,6 +165,12 @@ struct ASTNodeElse {
   ASTNodeScope body;
 
   bool operator==(const ASTNodeElse &) const = default;
+};
+
+struct ASTNodeFunctionDef {
+  Token name;
+  std::vector<Token> arg_names;
+  ASTNodeScope body;
 };
 
 struct ASTNodeProgram {
@@ -251,6 +268,37 @@ public:
 
       return {{.child = (ASTNodeIf){
                    .condition = *condition, .body = *body, rest = rest}}};
+    } else if (token->type == TokenType::kw_fn) {
+      consume();
+
+      auto identifier =
+          must_consume(TokenType::identifier, "expected function name");
+      must_consume(TokenType::open_paren, "expected `(`");
+
+      std::vector<Token> arguments{};
+
+      auto first_arg = maybe_consume(TokenType::identifier);
+      if (first_arg) {
+        arguments.push_back(*first_arg);
+
+        while (maybe_consume(TokenType::comma)) {
+          auto arg =
+              must_consume(TokenType::identifier, "expected argument name");
+          arguments.push_back(arg);
+        }
+      }
+
+      must_consume(TokenType::close_paren, "expected argument name or `)`");
+
+      auto scope = parse_scope();
+      if (!scope) {
+        std::cerr << "expected scope for function body" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      return {{.child = (ASTNodeFunctionDef){.name = identifier,
+                                             .arg_names = arguments,
+                                             .body = *scope}}};
     }
 
     return std::nullopt;
@@ -363,6 +411,38 @@ public:
 
     if (token->type == TokenType::integer_literal) {
       return {{.child = (ASTNodeIntegerLiteral){.token = consume()}}};
+    } else if (token->type == TokenType::identifier && peek(1) &&
+               peek(1)->type == TokenType::open_paren) {
+      auto name = consume();
+      must_consume(TokenType::open_paren, "expected `(`");
+
+      std::vector<ASTNodeExpr> args;
+
+      if (peek() && peek()->type != TokenType::close_paren) {
+        auto first_arg = parse_expr();
+        if (!first_arg) {
+          std::cerr << "expected expression" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+
+        args.push_back(*first_arg);
+
+        while (peek() && peek()->type == TokenType::comma) {
+          consume();
+
+          auto arg = parse_expr();
+          if (!arg) {
+            std::cerr << "expected expression" << std::endl;
+            exit(EXIT_FAILURE);
+          }
+          args.push_back(*arg);
+        }
+      }
+
+      must_consume(TokenType::close_paren, "expected `)`");
+
+      return {
+          {.child = (ASTNodeFunctionCall){.name = name, .arguments = args}}};
     } else if (token->type == TokenType::identifier) {
       return {{.child = (ASTNodeIdentifier){.token = consume()}}};
     } else if (token->type == TokenType::open_paren) {
@@ -398,6 +478,14 @@ private:
     } else {
       std::cerr << error_message << std::endl;
       exit(EXIT_FAILURE);
+    }
+  }
+
+  std::optional<Token> maybe_consume(TokenType type) {
+    if (peek() && peek()->type == type) {
+      return consume();
+    } else {
+      return std::nullopt;
     }
   }
 

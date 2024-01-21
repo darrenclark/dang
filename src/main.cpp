@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
   Parser parser(tokens);
   auto ast = parser.parse();
 
-  // ASTPrinter printer(ast);
-  // std::cerr << printer.print();
+  ASTPrinter printer(ast);
+  std::cerr << printer.print();
 
   Interpreter interpreter(ast);
 

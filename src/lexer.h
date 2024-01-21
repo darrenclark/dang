@@ -13,6 +13,7 @@ enum class TokenType {
   kw_let,
   kw_if,
   kw_else,
+  kw_fn,
 
   // punctuation
   equals,
@@ -20,6 +21,7 @@ enum class TokenType {
   close_paren,
   open_curly,
   close_curly,
+  comma,
   minus,
   plus,
   semicolon,
@@ -49,6 +51,8 @@ inline std::string to_string(TokenType type) {
     return "kw_if";
   case TokenType::kw_else:
     return "kw_else";
+  case TokenType::kw_fn:
+    return "kw_fn";
   case TokenType::equals:
     return "equals";
   case TokenType::open_paren:
@@ -59,6 +63,8 @@ inline std::string to_string(TokenType type) {
     return "open_curly";
   case TokenType::close_curly:
     return "close_curly";
+  case TokenType::comma:
+    return "comma";
   case TokenType::minus:
     return "minus";
   case TokenType::plus:
@@ -113,6 +119,8 @@ public:
           tokens.push_back({.type = TokenType::kw_if});
         } else if (value == "else") {
           tokens.push_back({.type = TokenType::kw_else});
+        } else if (value == "fn") {
+          tokens.push_back({.type = TokenType::kw_fn});
         } else {
           tokens.push_back({.type = TokenType::identifier, .value = value});
         }
@@ -131,6 +139,9 @@ public:
       } else if (*ch == '}') {
         consume();
         tokens.push_back({.type = TokenType::close_curly});
+      } else if (*ch == ',') {
+        consume();
+        tokens.push_back({.type = TokenType::comma});
       } else if (*ch == '-') {
         consume();
         tokens.push_back({.type = TokenType::minus});
