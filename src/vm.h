@@ -52,7 +52,7 @@ inline int op_n_args(Op op) {
 
 class VM {
 public:
-  VM(int *code)
+  VM(const int *code)
       : code(code), ip(code), stack(new int[1024]), fp(stack), sp(stack) {}
   ~VM() { delete[] stack; }
 
@@ -111,8 +111,8 @@ private:
     std::cerr << std::endl;
   }
 
-  int *code;
-  int *ip;
+  const int *code;
+  const int *ip;
 
   int *stack;
   int *fp, *sp;
