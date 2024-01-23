@@ -2,18 +2,19 @@ let pi = 3;
 let radius = 100;
 let area = pi * (radius * radius);
 
-{
-  // test scope
-  let area = 2;
-  area = 1;
-}
-
-if 0 {
-  area = 100;
-} else if 1 {
-  area = 200;
-} else {
-  area = 300;
-}
-
 return area;
+
+/*
+
+CONST_INT   3;    [pi = slot 0]
+CONST_INT   100;  [radius = slot 1]
+
+GET_LOCAL   1;
+GET_LOCAL   1;
+MULTIPLY;
+GET_LOCAL   0;
+MULTIPLY;         [area = slot 2]
+
+RETURN;
+
+*/

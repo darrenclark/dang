@@ -2,10 +2,11 @@
 #include "interpreter.h"
 #include "lexer.h"
 #include "parser.h"
+#include "vm.h"
 #include <fstream>
 #include <sstream>
 
-static std::string read_program(const char *path) {
+/*static std::string read_program(const char *path) {
   if (std::string(path) == "-") {
     std::stringstream s;
     s << std::cin.rdbuf();
@@ -44,5 +45,25 @@ int main(int argc, char *argv[]) {
 
   int result = interpreter.run();
 
+  std::cout << result << std::endl;
+}*/
+
+int main() {
+
+  // clang-format off
+  int program[] = {
+    Op::const_int, 3,
+    Op::const_int, 100,
+    Op::get_local, 1,
+    Op::get_local, 1,
+    Op::multiply,
+    Op::get_local, 0,
+    Op::multiply,
+    Op::return_
+  };
+  // clang-format on
+
+  VM vm(program);
+  int result = vm.run();
   std::cout << result << std::endl;
 }
