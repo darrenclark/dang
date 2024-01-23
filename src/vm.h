@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <optional>
+
 enum Op : int {
   // const_int  X :  pushes integer X
   const_int,
@@ -10,8 +11,44 @@ enum Op : int {
   // multiply     :  Multiplies top to elements on stack
   multiply,
   // return       :  Returns top value on stack
-  return_
+  return_,
+
+  // constant for
+  OP_COUNT
 };
+
+inline std::string to_string(Op op) {
+  switch (op) {
+  case const_int:
+    return "const_int";
+  case get_local:
+    return "get_local";
+  case multiply:
+    return "multiply";
+  case return_:
+    return "return_";
+  case OP_COUNT:
+    return "<invalid>";
+  }
+  return "<invalid>";
+}
+
+inline int op_n_args(Op op) {
+  switch (op) {
+  case const_int:
+    return 1;
+  case get_local:
+    return 1;
+  case multiply:
+    return 0;
+  case return_:
+    return 0;
+  case OP_COUNT:
+    return 0;
+  }
+
+  return 0;
+}
 
 class VM {
 public:

@@ -1,4 +1,5 @@
 #include "ast_printer.h"
+#include "disassembler.h"
 #include "interpreter.h"
 #include "lexer.h"
 #include "parser.h"
@@ -63,7 +64,14 @@ int main() {
   };
   // clang-format on
 
+  Disassembler disasm;
+  std::cerr << disasm.disassemble(program);
+
+  std::cerr << std::endl;
+
   VM vm(program);
   int result = vm.run();
+
+  std::cerr << std::endl;
   std::cout << result << std::endl;
 }
