@@ -120,16 +120,16 @@ public:
 
     switch (node.op) {
     case BinOp::add:
-      assert(false);
+      code.push_back(Op::add);
       return;
     case BinOp::subtract:
-      assert(false);
+      code.push_back(Op::subtract);
       return;
     case BinOp::multiply:
       code.push_back(Op::multiply);
       return;
     case BinOp::divide:
-      assert(false);
+      code.push_back(Op::divide);
       return;
     }
   }

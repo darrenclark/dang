@@ -8,9 +8,16 @@ enum Op : int {
   const_int,
   // get_local  N :  Gets local variable (N is relative to frame pointer)
   get_local,
-  // multiply     :  Multiplies top to elements on stack
+  // add :  Adds top 2 elements on stack
+  add,
+  // subtract :  Subtracts top 2 elements on stack (a=pop(); b=pop(); push(b -
+  // a))
+  subtract,
+  // multiply :  Multiplies top 2 elements on stack
   multiply,
-  // return       :  Returns top value on stack
+  // divide :  Divides top 2 elements on the stack (a=pop(); b=pop(); push(b/a))
+  divide,
+  // return :  Returns top value on stack
   return_,
 
   // constant for
@@ -23,8 +30,14 @@ inline std::string to_string(Op op) {
     return "const_int";
   case get_local:
     return "get_local";
+  case add:
+    return "add";
+  case subtract:
+    return "subtract";
   case multiply:
     return "multiply";
+  case divide:
+    return "divide";
   case return_:
     return "return_";
   case OP_COUNT:
@@ -39,7 +52,10 @@ inline int op_n_args(Op op) {
     return 1;
   case get_local:
     return 1;
+  case add:
+  case subtract:
   case multiply:
+  case divide:
     return 0;
   case return_:
     return 0;
@@ -77,10 +93,31 @@ private:
       push(*(fp + read_arg()));
       trace("get_local  ");
       break;
+    case Op::add: {
+      int a = pop();
+      int b = pop();
+      push(a + b);
+      trace("add   ");
+      break;
+    }
+    case Op::subtract: {
+      int a = pop();
+      int b = pop();
+      push(b - a);
+      trace("add   ");
+      break;
+    }
     case Op::multiply: {
       int a = pop();
       int b = pop();
       push(a * b);
+      trace("multiply   ");
+      break;
+    }
+    case Op::divide: {
+      int a = pop();
+      int b = pop();
+      push(b / a);
       trace("multiply   ");
       break;
     }
