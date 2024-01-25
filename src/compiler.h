@@ -2,18 +2,87 @@
 
 #include "parser.h"
 #include "value-ptr.hpp"
-#include "vm.h"
 #include <span>
 #include <string>
 #include <unordered_map>
+
+using Value = int;
+
+enum Op : int {
+  // load_const  X :  pushes constant X from constant table
+  load_const,
+  // get_local  N :  Gets local variable (N is relative to frame pointer)
+  get_local,
+  // add :  Adds top 2 elements on stack
+  add,
+  // subtract :  Subtracts top 2 elements on stack (a=pop(); b=pop(); push(b -
+  // a))
+  subtract,
+  // multiply :  Multiplies top 2 elements on stack
+  multiply,
+  // divide :  Divides top 2 elements on the stack (a=pop(); b=pop(); push(b/a))
+  divide,
+  // return :  Returns top value on stack
+  return_,
+
+  // constant for
+  OP_COUNT
+};
+
+inline std::string to_string(Op op) {
+  switch (op) {
+  case load_const:
+    return "load_const";
+  case get_local:
+    return "get_local";
+  case add:
+    return "add";
+  case subtract:
+    return "subtract";
+  case multiply:
+    return "multiply";
+  case divide:
+    return "divide";
+  case return_:
+    return "return_";
+  case OP_COUNT:
+    return "<invalid>";
+  }
+  return "<invalid>";
+}
+
+inline int op_n_args(Op op) {
+  switch (op) {
+  case load_const:
+    return 1;
+  case get_local:
+    return 1;
+  case add:
+  case subtract:
+  case multiply:
+  case divide:
+    return 0;
+  case return_:
+    return 0;
+  case OP_COUNT:
+    return 0;
+  }
+
+  return 0;
+}
+
+struct Chunk {
+  std::vector<int> code;
+  std::vector<Value> constants;
+};
 
 class Compiler {
 public:
   Compiler(ASTNodeProgram program) : program(std::move(program)) {}
 
-  std::span<const int> compile() {
+  Chunk compile() {
     (*this)(program);
-    return code;
+    return chunk;
   }
 
   void operator()(const ASTNodeProgram &node) {
@@ -35,7 +104,7 @@ public:
   void operator()(const ASTNodeReturn &node) {
     (*this)(node.expr);
 
-    code.push_back(Op::return_);
+    chunk.code.push_back(Op::return_);
   }
 
   void operator()(const ASTNodeLet &node) {
@@ -120,16 +189,16 @@ public:
 
     switch (node.op) {
     case BinOp::add:
-      code.push_back(Op::add);
+      chunk.code.push_back(Op::add);
       return;
     case BinOp::subtract:
-      code.push_back(Op::subtract);
+      chunk.code.push_back(Op::subtract);
       return;
     case BinOp::multiply:
-      code.push_back(Op::multiply);
+      chunk.code.push_back(Op::multiply);
       return;
     case BinOp::divide:
-      code.push_back(Op::divide);
+      chunk.code.push_back(Op::divide);
       return;
     }
   }
@@ -137,16 +206,19 @@ public:
   void operator()(const ASTNodeIntegerLiteral &node) {
     int value = std::stoi(node.token.value);
 
-    code.push_back(Op::const_int);
-    code.push_back(value);
+    chunk.constants.push_back(value);
+    int index = chunk.constants.size() - 1;
+
+    chunk.code.push_back(Op::load_const);
+    chunk.code.push_back(index);
   }
 
   void operator()(const ASTNodeIdentifier &node) {
     auto it = std::find(vars.begin(), vars.end(), node.token.value);
     assert(it != vars.end());
 
-    code.push_back(Op::get_local);
-    code.push_back(it - vars.begin());
+    chunk.code.push_back(Op::get_local);
+    chunk.code.push_back(it - vars.begin());
   }
 
   void operator()(const ASTNodeParenExpr &node) { return (*this)(node.child); }
@@ -162,6 +234,6 @@ public:
 
 private:
   ASTNodeProgram program;
-  std::vector<int> code{};
+  Chunk chunk{};
   std::vector<std::string> vars{};
 };

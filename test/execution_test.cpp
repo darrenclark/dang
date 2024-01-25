@@ -8,7 +8,7 @@ static int compile_and_run(const std::string &source) {
   Parser p(l.lex());
   Compiler c(p.parse());
   auto code = c.compile();
-  VM vm(code.data());
+  VM vm(code);
   return vm.run();
 }
 

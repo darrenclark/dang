@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   Disassembler disasm;
   std::cerr << disasm.disassemble(code) << "\n\n";
 
-  VM vm(code.data());
+  VM vm(code);
   int result = vm.run();
 
   std::cout << result << std::endl;
