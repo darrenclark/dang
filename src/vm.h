@@ -8,10 +8,10 @@ class VM {
 public:
   VM(Chunk chunk)
       : chunk(chunk), code(this->chunk.code.data()), ip(code),
-        stack(new int[1024]), fp(stack), sp(stack) {}
+        stack(new Value[1024]), fp(stack), sp(stack) {}
   ~VM() { delete[] stack; }
 
-  int run() {
+  Value run() {
     while (true) {
       if (auto res = step()) {
         return *res;
@@ -20,8 +20,8 @@ public:
   }
 
 private:
-  std::optional<int> step() {
-    std::optional<int> result = std::nullopt;
+  std::optional<Value> step() {
+    std::optional<Value> result = std::nullopt;
 
     switch ((Op)*ip++) {
     case Op::load_const:
@@ -38,29 +38,29 @@ private:
       break;
     }
     case Op::add: {
-      int a = pop();
-      int b = pop();
+      Value a = pop();
+      Value b = pop();
       push(a + b);
       trace("add   ");
       break;
     }
     case Op::subtract: {
-      int a = pop();
-      int b = pop();
+      Value a = pop();
+      Value b = pop();
       push(b - a);
       trace("subtract   ");
       break;
     }
     case Op::multiply: {
-      int a = pop();
-      int b = pop();
+      Value a = pop();
+      Value b = pop();
       push(a * b);
       trace("multiply   ");
       break;
     }
     case Op::divide: {
-      int a = pop();
-      int b = pop();
+      Value a = pop();
+      Value b = pop();
       push(b / a);
       trace("divide   ");
       break;
@@ -94,18 +94,18 @@ private:
 
   int read_arg() { return *ip++; }
 
-  void push(int value) {
+  void push(Value value) {
     *sp = value;
     sp++;
   }
 
-  int pop() { return *--sp; }
+  Value pop() { return *--sp; }
 
   void trace(const char *op) {
     std::cerr << op << "   stack:";
 
-    for (int *i = stack; i < sp; i++) {
-      std::cerr << " " << *i;
+    for (Value *i = stack; i < sp; i++) {
+      std::cerr << " " << i->to_string();
     }
 
     std::cerr << "  [ip: " << (ip - code) << "]";
@@ -118,6 +118,6 @@ private:
   const int *code;
   const int *ip;
 
-  int *stack;
-  int *fp, *sp;
+  Value *stack;
+  Value *fp, *sp;
 };

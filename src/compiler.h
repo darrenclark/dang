@@ -3,10 +3,91 @@
 #include "parser.h"
 #include "value-ptr.hpp"
 #include <span>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
-using Value = int;
+struct Value {
+  std::variant<int> value;
+
+  static Value of(int v) { return Value{.value = v}; }
+
+  std::string type() const {
+    struct TypeVisitor {
+      std::string operator()(int v) const { return "int"; }
+    };
+    return std::visit(TypeVisitor{}, value);
+  }
+
+  std::string to_string() const {
+    struct ToStringVisitor {
+      std::string operator()(int v) const { return std::to_string(v); }
+    };
+    return std::visit(ToStringVisitor{}, value);
+  }
+
+  operator bool() const {
+    struct BoolVisitor {
+      bool operator()(int v) const { return v != 0; }
+    };
+    return std::visit(BoolVisitor{}, value);
+  }
+
+  Value &operator+=(const Value &rhs) {
+    *this = binaryOp<std::plus<>>(*this, rhs);
+    return *this;
+  }
+
+  friend Value operator+(Value lhs, const Value &rhs) {
+    lhs += rhs;
+    return lhs;
+  }
+
+  Value &operator-=(const Value &rhs) {
+    *this = binaryOp<std::minus<>>(*this, rhs);
+    return *this;
+  }
+
+  friend Value operator-(Value lhs, const Value &rhs) {
+    lhs -= rhs;
+    return lhs;
+  }
+
+  Value &operator*=(const Value &rhs) {
+    *this = binaryOp<std::multiplies<>>(*this, rhs);
+    return *this;
+  }
+
+  friend Value operator*(Value lhs, const Value &rhs) {
+    lhs *= rhs;
+    return lhs;
+  }
+
+  Value &operator/=(const Value &rhs) {
+    *this = binaryOp<std::divides<>>(*this, rhs);
+    return *this;
+  }
+
+  friend Value operator/(Value lhs, const Value &rhs) {
+    lhs /= rhs;
+    return lhs;
+  }
+
+private:
+  template <typename F> Value binaryOp(const Value &lhs, const Value &rhs) {
+    return std::visit(
+        [&](auto &&a, auto &&b) {
+          if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
+            return Value{.value = F()(a, b)};
+          } else {
+            std::cerr << "invalid operands: " << lhs.type() << " and "
+                      << rhs.type() << std::endl;
+            exit(EXIT_FAILURE);
+          }
+        },
+        lhs.value, rhs.value);
+  }
+};
 
 enum Op : int {
   // load_const  X :  pushes constant X from constant table
@@ -310,7 +391,7 @@ public:
   }
 
   void operator()(const ASTNodeIntegerLiteral &node) {
-    int value = std::stoi(node.token.value);
+    Value value = Value{.value = std::stoi(node.token.value)};
 
     chunk.constants.push_back(value);
     int index = chunk.constants.size() - 1;
