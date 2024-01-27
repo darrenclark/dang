@@ -9,15 +9,18 @@
 #include <unordered_map>
 
 struct Value {
-  std::variant<int> value;
+  std::variant<int, double> value;
 
   static Value of(int v) { return Value{.value = v}; }
+
+  static Value of(double v) { return Value{.value = v}; }
 
   bool operator==(const Value &) const = default;
 
   std::string type() const {
     struct TypeVisitor {
       std::string operator()(int v) const { return "int"; }
+      std::string operator()(double v) const { return "double"; }
     };
     return std::visit(TypeVisitor{}, value);
   }
@@ -25,6 +28,7 @@ struct Value {
   std::string to_string() const {
     struct ToStringVisitor {
       std::string operator()(int v) const { return std::to_string(v); }
+      std::string operator()(double v) const { return std::to_string(v); }
     };
     return std::visit(ToStringVisitor{}, value);
   }
@@ -32,6 +36,7 @@ struct Value {
   operator bool() const {
     struct BoolVisitor {
       bool operator()(int v) const { return v != 0; }
+      bool operator()(double v) const { return v != 0.0; }
     };
     return std::visit(BoolVisitor{}, value);
   }
@@ -82,10 +87,16 @@ private:
         [&](auto &&a, auto &&b) {
           if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
             return Value{.value = F()(a, b)};
+          } else if constexpr (std::is_arithmetic_v<
+                                   std::remove_reference_t<decltype(a)>> &&
+                               std::is_arithmetic_v<
+                                   std::remove_reference_t<decltype(b)>>) {
+            return Value{.value = F()((double)a, (double)b)};
           } else {
             std::cerr << "invalid operands: " << lhs.type() << " and "
                       << rhs.type() << std::endl;
             exit(EXIT_FAILURE);
+            return Value{};
           }
         },
         lhs.value, rhs.value);
@@ -402,6 +413,16 @@ public:
 
   void operator()(const ASTNodeIntegerLiteral &node) {
     Value value = Value{.value = std::stoi(node.token.value)};
+
+    chunk.constants.push_back(value);
+    int index = chunk.constants.size() - 1;
+
+    chunk.code.push_back(Op::load_const);
+    chunk.code.push_back(index);
+  }
+
+  void operator()(const ASTNodeDoubleLiteral &node) {
+    Value value = Value{.value = std::stod(node.token.value)};
 
     chunk.constants.push_back(value);
     int index = chunk.constants.size() - 1;

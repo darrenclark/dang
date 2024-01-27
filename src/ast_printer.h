@@ -184,6 +184,12 @@ public:
     end_struct();
   }
 
+  void operator()(const ASTNodeDoubleLiteral &node) {
+    begin_struct("ASTNodeDoubleLiteral");
+    field("token", node.token);
+    end_struct();
+  }
+
   void operator()(const ASTNodeIdentifier &node) {
     begin_struct("ASTNodeIdentifier");
     field("token", node.token);

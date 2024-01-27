@@ -8,6 +8,7 @@
 
 enum class TokenType {
   integer_literal,
+  double_literal,
   identifier,
   kw_return,
   kw_let,
@@ -41,6 +42,8 @@ inline std::string to_string(TokenType type) {
 
   case TokenType::integer_literal:
     return "integer_literal";
+  case TokenType::double_literal:
+    return "double_literal";
   case TokenType::identifier:
     return "identifier";
   case TokenType::kw_return:
@@ -107,8 +110,17 @@ public:
           consume();
         }
       } else if (std::isdigit(*ch)) {
-        auto value = consume_while([](char c) { return std::isdigit(c); });
-        tokens.push_back({.type = TokenType::integer_literal, .value = value});
+        std::string value =
+            consume_while([](char c) { return std::isdigit(c); });
+        if (peek() == '.') {
+          consume();
+          value += '.';
+          value += consume_while([](char c) { return std::isdigit(c); });
+          tokens.push_back({.type = TokenType::double_literal, .value = value});
+        } else {
+          tokens.push_back(
+              {.type = TokenType::integer_literal, .value = value});
+        }
       } else if (std::isalpha(*ch)) {
         auto value = consume_while([](char c) { return std::isalnum(c); });
         if (value == "return") {

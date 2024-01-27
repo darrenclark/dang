@@ -19,6 +19,12 @@ TEST_CASE("math can be done", "[execution]") {
   REQUIRE(compile_and_run(code) == Value::of(54));
 }
 
+TEST_CASE("adding an integer and a float produce a float", "[execution]") {
+  std::string code = "return 5 * 1.5;";
+
+  REQUIRE(compile_and_run(code) == Value::of(7.5));
+}
+
 TEST_CASE("can read and write variables in outer scopes", "[execution]") {
   std::string code = "let x = 5; { x = x * x; } return x;";
 

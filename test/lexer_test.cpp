@@ -30,6 +30,17 @@ TEST_CASE("keywords can be lexed", "[lexer]") {
   CHECK_THAT(lexer.lex(), RangeEquals(expected));
 }
 
+TEST_CASE("literals can be lexed", "[lexer]") {
+  Lexer lexer(" 100 3.14");
+
+  const std::array<Token, 2> expected{{
+      {.type = TokenType::integer_literal, .value = "100"},
+      {.type = TokenType::double_literal, .value = "3.14"},
+  }};
+
+  CHECK_THAT(lexer.lex(), RangeEquals(expected));
+}
+
 TEST_CASE("math operators can be lexed", "[lexer]") {
   Lexer lexer("5 * (2 + 3) - 4 / 2");
 

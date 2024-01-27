@@ -52,6 +52,12 @@ struct ASTNodeIntegerLiteral {
   bool operator==(const ASTNodeIntegerLiteral &) const = default;
 };
 
+struct ASTNodeDoubleLiteral {
+  Token token;
+
+  bool operator==(const ASTNodeDoubleLiteral &) const = default;
+};
+
 struct ASTNodeIdentifier {
   Token token;
 
@@ -62,7 +68,7 @@ struct ASTNodeParenExpr;
 struct ASTNodeFunctionCall;
 
 struct ASTNodeTerm {
-  std::variant<ASTNodeIntegerLiteral, ASTNodeIdentifier,
+  std::variant<ASTNodeIntegerLiteral, ASTNodeDoubleLiteral, ASTNodeIdentifier,
                valuable::value_ptr<ASTNodeParenExpr>,
                valuable::value_ptr<ASTNodeFunctionCall>>
       child;
@@ -411,6 +417,8 @@ public:
 
     if (token->type == TokenType::integer_literal) {
       return {{.child = (ASTNodeIntegerLiteral){.token = consume()}}};
+    } else if (token->type == TokenType::double_literal) {
+      return {{.child = (ASTNodeDoubleLiteral){.token = consume()}}};
     } else if (token->type == TokenType::identifier && peek(1) &&
                peek(1)->type == TokenType::open_paren) {
       auto name = consume();
