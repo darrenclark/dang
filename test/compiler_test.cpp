@@ -12,10 +12,10 @@ static Chunk compile(const std::string &source) {
   return c.compile();
 }
 
-TEST_CASE("Vars end_scope returns number of variables to pop", "[compiler]") {
+TEST_CASE("Vars", "[compiler]") {
   Vars vars{};
 
-  SECTION("when nested") {
+  SECTION("end_scope returns number of variables to pop") {
     vars.define("a");
 
     vars.start_scope();
@@ -33,6 +33,15 @@ TEST_CASE("Vars end_scope returns number of variables to pop", "[compiler]") {
     vars.define("b3");
 
     REQUIRE(vars.end_scope() == 3);
+  }
+
+  SECTION("shadowing variables works") {
+    vars.define("a");
+
+    vars.start_scope();
+    vars.define("a");
+
+    REQUIRE(vars.lookup("a") == 1);
   }
 }
 

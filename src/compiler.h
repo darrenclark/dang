@@ -84,9 +84,10 @@ inline int op_n_args(Op op) {
 class Vars {
 public:
   std::optional<int> lookup(const std::string &name) {
-    auto it = std::find(vars.begin(), vars.end(), name);
-    if (it != vars.end()) {
-      return it - vars.begin();
+    auto it = std::find(vars.rbegin(), vars.rend(), name);
+    if (it != vars.rend()) {
+      int from_end = it - vars.rbegin();
+      return vars.size() - from_end - 1;
     }
     return std::nullopt;
   }
