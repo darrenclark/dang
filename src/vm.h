@@ -1,17 +1,28 @@
 #pragma once
 
 #include "compiler.h"
+#include "disassembler.h"
 #include <iostream>
 #include <optional>
 
+#define DISASSEMBLE 1
+
 class VM {
 public:
-  VM(Chunk chunk)
-      : chunk(chunk), code(this->chunk.code.data()), ip(code),
-        stack(new Value[1024]), fp(stack), sp(stack) {}
+  VM() : stack(new Value[1024]), fp(stack), sp(stack) {}
   ~VM() { delete[] stack; }
 
-  Value run() {
+  Value eval(const std::string &source) {
+    Compiler compiler;
+    chunk = compiler.compile(source);
+    code = chunk.code.data();
+    ip = code;
+
+#if DISASSEMBLE
+    Disassembler d;
+    std::cerr << d.disassemble(chunk) << std::endl;
+#endif
+
     while (true) {
       if (auto res = step()) {
         return *res;
@@ -113,7 +124,7 @@ private:
     std::cerr << std::endl;
   }
 
-  const Chunk chunk;
+  Chunk chunk;
 
   const int *code;
   const int *ip;

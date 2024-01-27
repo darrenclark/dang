@@ -1,17 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "../src/compiler.h"
-#include "../src/disassembler.h"
 #include "../src/vm.h"
 
-static int compile_and_run(const std::string &source) {
-  Compiler c{};
-  auto code = c.compile(source);
-  VM vm(code);
-  Disassembler d;
-  std::cerr << d.disassemble(code) << std::endl;
-
-  return vm.run();
+static Value compile_and_run(const std::string &source) {
+  VM vm;
+  return vm.eval(source);
 }
 
 TEST_CASE("basic program can be run", "[execution]") {

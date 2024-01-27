@@ -32,16 +32,10 @@ int main(int argc, char *argv[]) {
 
   std::string source = read_program(argv[1]);
 
-  Compiler compiler{};
-  auto code = compiler.compile(source);
+  VM vm;
+  Value result = vm.eval(source);
 
-  Disassembler disasm;
-  std::cerr << disasm.disassemble(code) << "\n\n";
-
-  VM vm(code);
-  int result = vm.run();
-
-  std::cout << result << std::endl;
+  std::cout << result.to_string() << std::endl;
 }
 
 /*int main() {
