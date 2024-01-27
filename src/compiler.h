@@ -13,6 +13,8 @@ struct Value {
 
   static Value of(int v) { return Value{.value = v}; }
 
+  bool operator==(const Value &) const = default;
+
   std::string type() const {
     struct TypeVisitor {
       std::string operator()(int v) const { return "int"; }
@@ -89,6 +91,11 @@ private:
         lhs.value, rhs.value);
   }
 };
+
+inline std::ostream &operator<<(std::ostream &os, Value const &value) {
+  os << value.to_string();
+  return os;
+}
 
 enum Op : int {
   // load_const  X :  pushes constant X from constant table
