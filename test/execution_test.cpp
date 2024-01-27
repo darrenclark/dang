@@ -5,10 +5,8 @@
 #include "../src/vm.h"
 
 static int compile_and_run(const std::string &source) {
-  Lexer l(source);
-  Parser p(l.lex());
-  Compiler c(p.parse());
-  auto code = c.compile();
+  Compiler c{};
+  auto code = c.compile(source);
   VM vm(code);
   Disassembler d;
   std::cerr << d.disassemble(code) << std::endl;

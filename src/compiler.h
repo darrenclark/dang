@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lexer.h"
 #include "parser.h"
 #include "value-ptr.hpp"
 #include <span>
@@ -220,10 +221,12 @@ struct Chunk {
 
 class Compiler {
 public:
-  Compiler(ASTNodeProgram program) : program(std::move(program)) {}
+  Compiler() {}
 
-  Chunk compile() {
-    (*this)(program);
+  Chunk compile(const std::string &source) {
+    Lexer lexer(source);
+    Parser parser(lexer.lex());
+    (*this)(parser.parse());
     return chunk;
   }
 
@@ -423,7 +426,6 @@ public:
   }
 
 private:
-  ASTNodeProgram program;
   Chunk chunk{};
   Vars locals{};
 };

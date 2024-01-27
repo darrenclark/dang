@@ -1,8 +1,6 @@
 #include "ast_printer.h"
 #include "compiler.h"
 #include "disassembler.h"
-#include "lexer.h"
-#include "parser.h"
 #include "vm.h"
 #include <fstream>
 #include <sstream>
@@ -34,17 +32,8 @@ int main(int argc, char *argv[]) {
 
   std::string source = read_program(argv[1]);
 
-  Lexer lexer(source);
-  auto tokens = lexer.lex();
-
-  Parser parser(tokens);
-  auto ast = parser.parse();
-
-  // ASTPrinter printer(ast);
-  // std::cerr << printer.print();
-
-  Compiler compiler(ast);
-  auto code = compiler.compile();
+  Compiler compiler{};
+  auto code = compiler.compile(source);
 
   Disassembler disasm;
   std::cerr << disasm.disassemble(code) << "\n\n";

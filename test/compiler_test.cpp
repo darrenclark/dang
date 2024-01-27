@@ -7,10 +7,8 @@
 using Catch::Matchers::RangeEquals;
 
 static Chunk compile(const std::string &source) {
-  Lexer l(source);
-  Parser p(l.lex());
-  Compiler c(p.parse());
-  return c.compile();
+  Compiler c{};
+  return c.compile(source);
 }
 
 TEST_CASE("Vars", "[compiler]") {
