@@ -23,7 +23,7 @@ private:
   std::optional<int> step() {
     std::optional<int> result = std::nullopt;
 
-    switch (*ip++) {
+    switch ((Op)*ip++) {
     case Op::load_const:
       push(chunk.constants.at(read_arg()));
       trace("load_const  ");
@@ -48,7 +48,7 @@ private:
       int a = pop();
       int b = pop();
       push(b - a);
-      trace("add   ");
+      trace("subtract   ");
       break;
     }
     case Op::multiply: {
@@ -62,15 +62,31 @@ private:
       int a = pop();
       int b = pop();
       push(b / a);
-      trace("multiply   ");
+      trace("divide   ");
       break;
     }
     case Op::pop:
       pop();
       trace("pop   ");
+      break;
+    case Op::jump: {
+      int n = read_arg();
+      ip += n;
+      trace("jump  ");
+      break;
+    }
+    case Op::jump_if_zero: {
+      int n = read_arg();
+      ip += pop() ? 0 : n;
+      trace("jump_if_zero  ");
+      break;
+    }
     case Op::return_:
       result = pop();
       trace("return     ");
+      break;
+    case Op::OP_COUNT:
+      assert(false);
     }
 
     return result;

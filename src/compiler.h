@@ -26,6 +26,10 @@ enum Op : int {
   divide,
   // pop : Pops one element off the top of the stack
   pop,
+  // jump N : Jumps N instructions
+  jump,
+  // jump_if_zero N : Jumps N instructions if top of stack is zero (and pops it)
+  jump_if_zero,
   // return :  Returns top value on stack
   return_,
 
@@ -51,6 +55,10 @@ inline std::string to_string(Op op) {
     return "divide";
   case pop:
     return "pop";
+  case jump:
+    return "jump";
+  case jump_if_zero:
+    return "jump_if_zero";
   case return_:
     return "return_";
   case OP_COUNT:
@@ -70,8 +78,11 @@ inline int op_n_args(Op op) {
   case subtract:
   case multiply:
   case divide:
-    return 0;
   case pop:
+    return 0;
+  case jump:
+  case jump_if_zero:
+    return 1;
   case return_:
     return 0;
   case OP_COUNT:
@@ -189,14 +200,16 @@ public:
   }
 
   void operator()(const ASTNodeIf &node) {
-    assert(false);
-    /*auto condition = (*this)(node.condition);
+    (*this)(node.condition);
 
-    if (condition) {
-      return (*this)(node.body);
-    } else {
-      return std::visit(*this, node.rest);
-    }*/
+    chunk.code.push_back(Op::jump_if_zero);
+
+    int i = chunk.code.size();
+    chunk.code.push_back(0);
+
+    (*this)(node.body);
+
+    chunk.code[i] = chunk.code.size() - i - 1;
   }
 
   void operator()(const ASTNodeElseIf &node) {

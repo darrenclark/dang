@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
 
 #include "../src/compiler.h"
+#include "../src/disassembler.h"
 
 using Catch::Matchers::RangeEquals;
 
@@ -59,6 +60,30 @@ TEST_CASE("correct bytecode is generated for nested scopes", "[compiler]") {
     Op::multiply,
     Op::set_local, 0,
     Op::pop,
+    Op::get_local, 0,
+    Op::return_
+  };
+  // clang-format on
+
+  CHECK_THAT(compiled.code, RangeEquals(expected));
+}
+
+TEST_CASE("correct bytecode is generated for if statement", "[compiler]") {
+  std::string source = "let x = 5; "
+                       "if x { x = x * 5; } "
+                       "return x; ";
+
+  Chunk compiled = compile(source);
+
+  // clang-format off
+  const int expected[] = {
+    Op::load_const, 0,
+    Op::get_local, 0,
+    Op::jump_if_zero, 7,
+    Op::get_local, 0,
+    Op::load_const, 1,
+    Op::multiply,
+    Op::set_local, 0,
     Op::get_local, 0,
     Op::return_
   };

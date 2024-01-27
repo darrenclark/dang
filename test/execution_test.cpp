@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "../src/compiler.h"
+#include "../src/disassembler.h"
 #include "../src/vm.h"
 
 static int compile_and_run(const std::string &source) {
@@ -9,6 +10,9 @@ static int compile_and_run(const std::string &source) {
   Compiler c(p.parse());
   auto code = c.compile();
   VM vm(code);
+  Disassembler d;
+  std::cerr << d.disassemble(code) << std::endl;
+
   return vm.run();
 }
 
@@ -36,24 +40,18 @@ TEST_CASE("can shadow variables in outer scopes", "[execution]") {
   REQUIRE(compile_and_run(source) == 5);
 }
 
-/*
-TEST_CASE("if statement evaluating to true", "[interpreter]") {
+TEST_CASE("if statement evaluating to true", "[execution]") {
   std::string program = "let x = 5; "
                         "if x { x = x * 5; } "
                         "return x; ";
 
-  Interpreter i(ast(program));
-
-  REQUIRE(i.run() == 25);
+  REQUIRE(compile_and_run(program) == 25);
 }
 
-TEST_CASE("if statement evaluating to false", "[interpreter]") {
+TEST_CASE("if statement evaluating to false", "[execution]") {
   std::string program = "let x = 5; "
                         "if x - 5 { x = x * 5; } "
                         "return x; ";
 
-  Interpreter i(ast(program));
-
-  REQUIRE(i.run() == 5);
+  REQUIRE(compile_and_run(program) == 5);
 }
-*/
