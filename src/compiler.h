@@ -13,6 +13,8 @@ enum Op : int {
   load_const,
   // get_local  N :  Gets local variable (N is relative to frame pointer)
   get_local,
+  // set_local  N :  Sets local variable to value at top of stack (and pops it)
+  set_local,
   // add :  Adds top 2 elements on stack
   add,
   // subtract :  Subtracts top 2 elements on stack (a=pop(); b=pop(); push(b -
@@ -22,6 +24,8 @@ enum Op : int {
   multiply,
   // divide :  Divides top 2 elements on the stack (a=pop(); b=pop(); push(b/a))
   divide,
+  // pop : Pops one element off the top of the stack
+  pop,
   // return :  Returns top value on stack
   return_,
 
@@ -35,6 +39,8 @@ inline std::string to_string(Op op) {
     return "load_const";
   case get_local:
     return "get_local";
+  case set_local:
+    return "set_local";
   case add:
     return "add";
   case subtract:
@@ -43,6 +49,8 @@ inline std::string to_string(Op op) {
     return "multiply";
   case divide:
     return "divide";
+  case pop:
+    return "pop";
   case return_:
     return "return_";
   case OP_COUNT:
@@ -56,12 +64,14 @@ inline int op_n_args(Op op) {
   case load_const:
     return 1;
   case get_local:
+  case set_local:
     return 1;
   case add:
   case subtract:
   case multiply:
   case divide:
     return 0;
+  case pop:
   case return_:
     return 0;
   case OP_COUNT:
@@ -70,6 +80,45 @@ inline int op_n_args(Op op) {
 
   return 0;
 }
+
+class Vars {
+public:
+  std::optional<int> lookup(const std::string &name) {
+    auto it = std::find(vars.begin(), vars.end(), name);
+    if (it != vars.end()) {
+      return it - vars.begin();
+    }
+    return std::nullopt;
+  }
+
+  int define(const std::string &name) {
+    auto it = std::find(vars.begin() + *scopes.rbegin(), vars.end(), name);
+    if (it != vars.end()) {
+      std::cerr << "Variable already defined, cannot redefine: " << name
+                << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    int index = vars.size();
+    vars.push_back(name);
+    return index;
+  }
+
+  void start_scope() { scopes.push_back(vars.size()); }
+
+  int end_scope() {
+    int count = vars.size() - scopes.at(scopes.size() - 1);
+    scopes.pop_back();
+    for (int i = 0; i < count; i++) {
+      vars.pop_back();
+    }
+    return count;
+  }
+
+private:
+  std::vector<std::string> vars;
+  std::vector<size_t> scopes{0};
+};
 
 struct Chunk {
   std::vector<int> code;
@@ -110,35 +159,32 @@ public:
   void operator()(const ASTNodeLet &node) {
     (*this)(node.expr);
 
-    // TODO: Verify variable not already defined
-
-    vars.push_back(node.identifier.value);
-
-    // auto val = ;
-    // vars.define(node.identifier.value, val);
-    // return val;
+    locals.define(node.identifier.value);
   }
 
   void operator()(const ASTNodeAssign &node) {
-    assert(false);
-    // auto val = (*this)(node.expr);
-    // vars.assign(node.identifier.value, val);
-    // return val;
+    auto index = locals.lookup(node.identifier.value);
+    if (index) {
+      (*this)(node.expr);
+      chunk.code.push_back(Op::set_local);
+      chunk.code.push_back(*index);
+    } else {
+      std::cerr << "Undefined variable: " << node.identifier.value << std::endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   void operator()(const ASTNodeScope &node) {
-    assert(false);
-    /*int result = 0;
-
-    vars.begin_scope();
+    locals.start_scope();
 
     for (const auto &stmt : node.body) {
-      result = (*this)(stmt);
+      (*this)(stmt);
     }
 
-    vars.end_scope();
-
-    return result;*/
+    int num = locals.end_scope();
+    for (int i = 0; i < num; i++) {
+      chunk.code.push_back(Op::pop);
+    }
   }
 
   void operator()(const ASTNodeIf &node) {
@@ -214,11 +260,14 @@ public:
   }
 
   void operator()(const ASTNodeIdentifier &node) {
-    auto it = std::find(vars.begin(), vars.end(), node.token.value);
-    assert(it != vars.end());
-
-    chunk.code.push_back(Op::get_local);
-    chunk.code.push_back(it - vars.begin());
+    auto index = locals.lookup(node.token.value);
+    if (index) {
+      chunk.code.push_back(Op::get_local);
+      chunk.code.push_back(*index);
+    } else {
+      std::cerr << "Undefined variable: " << node.token.value << std::endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   void operator()(const ASTNodeParenExpr &node) { return (*this)(node.child); }
@@ -235,5 +284,5 @@ public:
 private:
   ASTNodeProgram program;
   Chunk chunk{};
-  std::vector<std::string> vars{};
+  Vars locals{};
 };

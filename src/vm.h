@@ -32,6 +32,11 @@ private:
       push(*(fp + read_arg()));
       trace("get_local  ");
       break;
+    case Op::set_local: {
+      *(fp + read_arg()) = pop();
+      trace("set_local  ");
+      break;
+    }
     case Op::add: {
       int a = pop();
       int b = pop();
@@ -60,6 +65,9 @@ private:
       trace("multiply   ");
       break;
     }
+    case Op::pop:
+      pop();
+      trace("pop   ");
     case Op::return_:
       result = pop();
       trace("return     ");

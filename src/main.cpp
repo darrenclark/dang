@@ -1,7 +1,6 @@
 #include "ast_printer.h"
 #include "compiler.h"
 #include "disassembler.h"
-#include "interpreter.h"
 #include "lexer.h"
 #include "parser.h"
 #include "vm.h"
@@ -43,9 +42,6 @@ int main(int argc, char *argv[]) {
 
   // ASTPrinter printer(ast);
   // std::cerr << printer.print();
-
-  // Interpreter interpreter(ast);
-  // int result = interpreter.run();
 
   Compiler compiler(ast);
   auto code = compiler.compile();

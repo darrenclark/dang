@@ -14,9 +14,9 @@ list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 add_executable(tests
   test/example.cpp
   src/calc.cpp
+  test/compiler_test.cpp
   test/lexer_test.cpp
   test/parser_test.cpp
-  test/interpreter_test.cpp
   test/execution_test.cpp
 )
 
