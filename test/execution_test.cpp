@@ -55,3 +55,26 @@ TEST_CASE("if statement evaluating to false", "[execution]") {
 
   REQUIRE(compile_and_run(program) == 5);
 }
+
+TEST_CASE("complex if else if changes evaluate correctly", "[execution]") {
+  SECTION("if is true") {
+    std::string program = "let x = 0; if 1 { x = 1; } else if 1 { x = 2; } "
+                          "else { x = 3; } return x;";
+
+    REQUIRE(compile_and_run(program) == 1);
+  }
+
+  SECTION("else if is true") {
+    std::string program = "let x = 0; if 0 { x = 1; } else if 1 { x = 2; } "
+                          "else { x = 3; } return x;";
+
+    REQUIRE(compile_and_run(program) == 2);
+  }
+
+  SECTION("else is true") {
+    std::string program = "let x = 0; if 0 { x = 1; } else if 0 { x = 2; } "
+                          "else { x = 3; } return x;";
+
+    REQUIRE(compile_and_run(program) == 3);
+  }
+}

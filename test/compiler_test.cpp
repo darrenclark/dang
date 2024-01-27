@@ -89,5 +89,8 @@ TEST_CASE("correct bytecode is generated for if statement", "[compiler]") {
   };
   // clang-format on
 
+  Disassembler d;
+  std::cerr << d.disassemble(compiled) << std::endl;
+
   CHECK_THAT(compiled.code, RangeEquals(expected));
 }

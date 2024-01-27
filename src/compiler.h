@@ -200,6 +200,8 @@ public:
   }
 
   void operator()(const ASTNodeIf &node) {
+    std::vector<int> end_jump_offsets;
+
     (*this)(node.condition);
 
     chunk.code.push_back(Op::jump_if_zero);
@@ -209,7 +211,51 @@ public:
 
     (*this)(node.body);
 
-    chunk.code[i] = chunk.code.size() - i - 1;
+    const ASTNodeIf::Rest *rest = &node.rest;
+    const ASTNodeIf::Rest rest_end = std::monostate{};
+
+    while (!std::holds_alternative<std::monostate>(*rest)) {
+      chunk.code.push_back(Op::jump);
+      end_jump_offsets.push_back(chunk.code.size());
+      chunk.code.push_back(0);
+
+      // if previous condition was false, jump here
+      chunk.code[i] = chunk.code.size() - i - 1;
+
+      std::visit(
+          [&](const auto &node) {
+            if constexpr (std::is_same<
+                              decltype(node),
+                              const valuable::value_ptr<ASTNodeElseIf> &>()) {
+              (*this)(node->condition);
+              chunk.code.push_back(Op::jump_if_zero);
+
+              i = chunk.code.size();
+              chunk.code.push_back(0);
+
+              (*this)(node->body);
+              rest = &node->rest;
+
+            } else if constexpr (std::is_same<decltype(node),
+                                              const valuable::value_ptr<
+                                                  ASTNodeElse> &>()) {
+              i = -1;
+
+              (*this)(node->body);
+              rest = &rest_end;
+            }
+          },
+          *rest);
+    }
+
+    for (int offset : end_jump_offsets) {
+      chunk.code[offset] = chunk.code.size() - offset - 1;
+    }
+
+    if (i >= 0) {
+      // if previous condition was false, jump here
+      chunk.code[i] = chunk.code.size() - i - 1;
+    }
   }
 
   void operator()(const ASTNodeElseIf &node) {
