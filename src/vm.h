@@ -5,7 +5,8 @@
 #include <iostream>
 #include <optional>
 
-#define DISASSEMBLE 1
+#define DISASSEMBLE 0
+#define TRACE 0
 
 class VM {
 public:
@@ -17,6 +18,8 @@ public:
     chunk = compiler.compile(source);
     code = chunk.code.data();
     ip = code;
+    fp = stack;
+    sp = stack;
 
 #if DISASSEMBLE
     Disassembler d;
@@ -146,6 +149,7 @@ private:
   Value pop() { return *--sp; }
 
   void trace(const char *op) {
+#if TRACE
     std::cerr << op << "   stack:";
 
     for (Value *i = stack; i < sp; i++) {
@@ -155,6 +159,7 @@ private:
     std::cerr << "  [ip: " << (ip - code) << "]";
 
     std::cerr << std::endl;
+#endif
   }
 
   Chunk chunk;

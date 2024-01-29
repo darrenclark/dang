@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.28)
 
 find_package(Catch2 3 REQUIRED)
 
-project(dang VERSION 1.0 LANGUAGES CXX)
+project(dang VERSION 1.0 LANGUAGES CXX C)
 
 # Main
-add_executable(dang src/main.cpp)
+add_executable(dang src/main.cpp src/linenoise.c)
 set_property(TARGET dang PROPERTY CXX_STANDARD 20)
 
 # Tests

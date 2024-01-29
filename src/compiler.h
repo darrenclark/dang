@@ -203,6 +203,19 @@ public:
       (*this)(stmt);
     }
 
+    if (chunk.code.size() == 0 ||
+        chunk.code.at(chunk.code.size() - 1) != Op::return_) {
+      // TODO: Switch to pushing a nil instead
+      Value value = Value{.value = 0};
+
+      chunk.constants.push_back(value);
+      int index = chunk.constants.size() - 1;
+
+      chunk.code.push_back(Op::load_const);
+      chunk.code.push_back(index);
+      chunk.code.push_back(Op::return_);
+    }
+
     // vars.end_scope();
   }
 

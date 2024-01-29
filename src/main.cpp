@@ -1,6 +1,7 @@
 #include "ast_printer.h"
 #include "compiler.h"
 #include "disassembler.h"
+#include "linenoise.h"
 #include "vm.h"
 #include <fstream>
 #include <sstream>
@@ -24,18 +25,35 @@ static std::string read_program(const char *path) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
+  if (argc > 2) {
     std::cerr << "error: invalid arguments" << std::endl;
-    std::cerr << "usage: " << argv[0] << " path/to/program.dang" << std::endl;
+    std::cerr << "usage:" << std::endl;
+    std::cerr << "  " << argv[0] << "                         # repl"
+              << std::endl;
+    std::cerr << "  " << argv[0] << " path/to/program.dang    # run a program"
+              << std::endl;
     exit(EXIT_FAILURE);
+  } else if (argc == 2) {
+    std::string source = read_program(argv[1]);
+
+    VM vm;
+    Value result = vm.eval(source);
+
+    std::cout << result.to_string() << std::endl;
+  } else {
+    VM vm;
+
+    char *line;
+    while ((line = linenoise("> ")) != NULL) {
+      if (!line)
+        break;
+
+      Value result = vm.eval(line);
+      std::cout << result.to_string() << std::endl;
+
+      linenoiseFree(line);
+    }
   }
-
-  std::string source = read_program(argv[1]);
-
-  VM vm;
-  Value result = vm.eval(source);
-
-  std::cout << result.to_string() << std::endl;
 }
 
 /*int main() {
