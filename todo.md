@@ -6,10 +6,11 @@
     - [ ] `||`
 - [ ] Basic types
     - [ ] Int
-    - [ ] String
+    - [x] String
+        - [ ] escaping in literals
     - [ ] Nil
     - [ ] Boolean
-    - [ ] Float
+    - [x] Float
 - [ ] Complex types
     - [ ] Arrays
     - [ ] Dictionaries

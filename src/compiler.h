@@ -3,110 +3,11 @@
 #include "lexer.h"
 #include "parser.h"
 #include "value-ptr.hpp"
+#include "value.h"
 #include <span>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-
-struct Value {
-  std::variant<int, double> value;
-
-  static Value of(int v) { return Value{.value = v}; }
-
-  static Value of(double v) { return Value{.value = v}; }
-
-  bool operator==(const Value &) const = default;
-
-  std::string type() const {
-    struct TypeVisitor {
-      std::string operator()(int v) const { return "int"; }
-      std::string operator()(double v) const { return "double"; }
-    };
-    return std::visit(TypeVisitor{}, value);
-  }
-
-  std::string to_string() const {
-    struct ToStringVisitor {
-      std::string operator()(int v) const { return std::to_string(v); }
-      std::string operator()(double v) const { return std::to_string(v); }
-    };
-    return std::visit(ToStringVisitor{}, value);
-  }
-
-  operator bool() const {
-    struct BoolVisitor {
-      bool operator()(int v) const { return v != 0; }
-      bool operator()(double v) const { return v != 0.0; }
-    };
-    return std::visit(BoolVisitor{}, value);
-  }
-
-  Value &operator+=(const Value &rhs) {
-    *this = binaryOp<std::plus<>>(*this, rhs);
-    return *this;
-  }
-
-  friend Value operator+(Value lhs, const Value &rhs) {
-    lhs += rhs;
-    return lhs;
-  }
-
-  Value &operator-=(const Value &rhs) {
-    *this = binaryOp<std::minus<>>(*this, rhs);
-    return *this;
-  }
-
-  friend Value operator-(Value lhs, const Value &rhs) {
-    lhs -= rhs;
-    return lhs;
-  }
-
-  Value &operator*=(const Value &rhs) {
-    *this = binaryOp<std::multiplies<>>(*this, rhs);
-    return *this;
-  }
-
-  friend Value operator*(Value lhs, const Value &rhs) {
-    lhs *= rhs;
-    return lhs;
-  }
-
-  Value &operator/=(const Value &rhs) {
-    *this = binaryOp<std::divides<>>(*this, rhs);
-    return *this;
-  }
-
-  friend Value operator/(Value lhs, const Value &rhs) {
-    lhs /= rhs;
-    return lhs;
-  }
-
-private:
-  template <typename F> Value binaryOp(const Value &lhs, const Value &rhs) {
-    return std::visit(
-        [&](auto &&a, auto &&b) {
-          if constexpr (std::is_same_v<decltype(a), decltype(b)>) {
-            return Value{.value = F()(a, b)};
-          } else if constexpr (std::is_arithmetic_v<
-                                   std::remove_reference_t<decltype(a)>> &&
-                               std::is_arithmetic_v<
-                                   std::remove_reference_t<decltype(b)>>) {
-            return Value{.value = F()((double)a, (double)b)};
-          } else {
-            std::cerr << "invalid operands: " << lhs.type() << " and "
-                      << rhs.type() << std::endl;
-            exit(EXIT_FAILURE);
-            return Value{};
-          }
-        },
-        lhs.value, rhs.value);
-  }
-};
-
-inline std::ostream &operator<<(std::ostream &os, Value const &value) {
-  os << value.to_string();
-  return os;
-}
 
 enum Op : int {
   // load_const  X :  pushes constant X from constant table
@@ -423,6 +324,16 @@ public:
 
   void operator()(const ASTNodeDoubleLiteral &node) {
     Value value = Value{.value = std::stod(node.token.value)};
+
+    chunk.constants.push_back(value);
+    int index = chunk.constants.size() - 1;
+
+    chunk.code.push_back(Op::load_const);
+    chunk.code.push_back(index);
+  }
+
+  void operator()(const ASTNodeStringLiteral &node) {
+    Value value = Value{.value = node.token.value};
 
     chunk.constants.push_back(value);
     int index = chunk.constants.size() - 1;
