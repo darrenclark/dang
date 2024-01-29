@@ -9,9 +9,18 @@
 #include <string>
 #include <unordered_map>
 
+enum class CompilerKind { script, function };
+
 enum Op : int {
-  // load_const  X :  pushes constant X from constant table
+  // load_const  X :  Pushes constant X from constant table
   load_const,
+  // define_global  X :  Define global named X from constant table
+  define_global,
+  // get_global  X :  Gets global named X from constant table
+  get_global,
+  // set_global  X :  Sets global named X from constant table to value at top of
+  // stack (and pops it)
+  set_global,
   // get_local  N :  Gets local variable (N is relative to frame pointer)
   get_local,
   // set_local  N :  Sets local variable to value at top of stack (and pops it)
@@ -42,6 +51,12 @@ inline std::string to_string(Op op) {
   switch (op) {
   case load_const:
     return "load_const";
+  case define_global:
+    return "define_global";
+  case get_global:
+    return "get_global";
+  case set_global:
+    return "set_global";
   case get_local:
     return "get_local";
   case set_local:
@@ -72,6 +87,10 @@ inline int op_n_args(Op op) {
   switch (op) {
   case load_const:
     return 1;
+  case define_global:
+  case get_global:
+  case set_global:
+    return 1;
   case get_local:
   case set_local:
     return 1;
@@ -95,16 +114,36 @@ inline int op_n_args(Op op) {
 
 class Vars {
 public:
-  std::optional<int> lookup(const std::string &name) {
+  struct Global {
+    std::string name;
+
+    bool operator==(const Global &) const = default;
+  };
+
+  struct Local {
+    int index;
+
+    bool operator==(const Local &) const = default;
+  };
+
+  using Ref = std::variant<Global, Local>;
+
+  Vars(CompilerKind compiler_kind) : compiler_kind(compiler_kind) {}
+
+  Ref lookup(const std::string &name) {
     auto it = std::find(vars.rbegin(), vars.rend(), name);
     if (it != vars.rend()) {
       int from_end = it - vars.rbegin();
-      return vars.size() - from_end - 1;
+      return Local{.index = (int)(vars.size() - from_end - 1)};
     }
-    return std::nullopt;
+    return Global{.name = name};
   }
 
-  int define(const std::string &name) {
+  Ref define(const std::string &name) {
+    if (is_global_scope()) {
+      return Global{.name = name};
+    }
+
     auto it = std::find(vars.begin() + *scopes.rbegin(), vars.end(), name);
     if (it != vars.end()) {
       std::cerr << "Variable already defined, cannot redefine: " << name
@@ -114,7 +153,7 @@ public:
 
     int index = vars.size();
     vars.push_back(name);
-    return index;
+    return Local{.index = index};
   }
 
   void start_scope() { scopes.push_back(vars.size()); }
@@ -129,6 +168,12 @@ public:
   }
 
 private:
+  bool is_global_scope() {
+    return compiler_kind == CompilerKind::script && scopes.size() <= 1;
+  }
+
+  CompilerKind compiler_kind;
+
   std::vector<std::string> vars;
   std::vector<size_t> scopes{0};
 };
@@ -140,7 +185,7 @@ struct Chunk {
 
 class Compiler {
 public:
-  Compiler() {}
+  Compiler(CompilerKind kind = CompilerKind::script) : locals(kind) {}
 
   Chunk compile(const std::string &source) {
     Lexer lexer(source);
@@ -172,20 +217,39 @@ public:
   }
 
   void operator()(const ASTNodeLet &node) {
-    (*this)(node.expr);
+    auto var = locals.define(node.identifier.value);
+    if (std::holds_alternative<Vars::Local>(var)) {
+      // locals stored on stack
+      (*this)(node.expr);
+    } else {
+      Vars::Global &global = std::get<Vars::Global>(var);
 
-    locals.define(node.identifier.value);
+      (*this)(node.expr);
+      chunk.code.push_back(Op::define_global);
+
+      chunk.constants.push_back(Value{.value = global.name});
+      int index = chunk.constants.size() - 1;
+
+      chunk.code.push_back(index);
+    }
   }
 
   void operator()(const ASTNodeAssign &node) {
-    auto index = locals.lookup(node.identifier.value);
-    if (index) {
+    auto var = locals.lookup(node.identifier.value);
+    if (Vars::Local *local = std::get_if<Vars::Local>(&var)) {
       (*this)(node.expr);
       chunk.code.push_back(Op::set_local);
-      chunk.code.push_back(*index);
+      chunk.code.push_back(local->index);
     } else {
-      std::cerr << "Undefined variable: " << node.identifier.value << std::endl;
-      exit(EXIT_FAILURE);
+      Vars::Global &global = std::get<Vars::Global>(var);
+
+      (*this)(node.expr);
+      chunk.code.push_back(Op::set_global);
+
+      chunk.constants.push_back(Value{.value = global.name});
+      int index = chunk.constants.size() - 1;
+
+      chunk.code.push_back(index);
     }
   }
 
@@ -343,13 +407,19 @@ public:
   }
 
   void operator()(const ASTNodeIdentifier &node) {
-    auto index = locals.lookup(node.token.value);
-    if (index) {
+    auto var = locals.lookup(node.token.value);
+    if (Vars::Local *local = std::get_if<Vars::Local>(&var)) {
       chunk.code.push_back(Op::get_local);
-      chunk.code.push_back(*index);
+      chunk.code.push_back(local->index);
     } else {
-      std::cerr << "Undefined variable: " << node.token.value << std::endl;
-      exit(EXIT_FAILURE);
+      Vars::Global &global = std::get<Vars::Global>(var);
+
+      chunk.code.push_back(Op::get_global);
+
+      chunk.constants.push_back(Value{.value = global.name});
+      int index = chunk.constants.size() - 1;
+
+      chunk.code.push_back(index);
     }
   }
 
@@ -366,5 +436,5 @@ public:
 
 private:
   Chunk chunk{};
-  Vars locals{};
+  Vars locals;
 };

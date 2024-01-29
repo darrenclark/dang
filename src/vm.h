@@ -39,6 +39,39 @@ private:
       push(chunk.constants.at(read_arg()));
       trace("load_const  ");
       break;
+    case Op::define_global: {
+      std::string name = chunk.constants.at(read_arg()).string_value();
+      auto it = globals.find(name);
+      if (it != globals.end()) {
+        std::cerr << "global '" << name << "' already defined" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      globals[name] = pop();
+      trace("define_global  ");
+      break;
+    }
+    case Op::get_global: {
+      std::string name = chunk.constants.at(read_arg()).string_value();
+      auto it = globals.find(name);
+      if (it == globals.end()) {
+        std::cerr << "global '" << name << "' not defined" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      push(it->second);
+      trace("get_global  ");
+      break;
+    }
+    case Op::set_global: {
+      std::string name = chunk.constants.at(read_arg()).string_value();
+      auto it = globals.find(name);
+      if (it == globals.end()) {
+        std::cerr << "global '" << name << "' not defined" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      it->second = pop();
+      trace("set_global  ");
+      break;
+    }
     case Op::get_local:
       push(*(fp + read_arg()));
       trace("get_local  ");
@@ -131,4 +164,6 @@ private:
 
   Value *stack;
   Value *fp, *sp;
+
+  std::unordered_map<std::string, Value> globals;
 };

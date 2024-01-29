@@ -12,7 +12,7 @@ static Chunk compile(const std::string &source) {
 }
 
 TEST_CASE("Vars", "[compiler]") {
-  Vars vars{};
+  Vars vars{CompilerKind::script};
 
   SECTION("end_scope returns number of variables to pop") {
     vars.define("a");
@@ -35,12 +35,66 @@ TEST_CASE("Vars", "[compiler]") {
   }
 
   SECTION("shadowing variables works") {
-    vars.define("a");
+    vars.define("a"); // global
 
     vars.start_scope();
-    vars.define("a");
+    vars.define("a"); // local @ 0
 
-    REQUIRE(vars.lookup("a") == 1);
+    REQUIRE(vars.lookup("a") == Vars::Ref{Vars::Local{.index = 0}});
+  }
+
+  SECTION("global vs locals when CompilerKind::script") {
+    Vars vars(CompilerKind::script);
+
+    SECTION("lookup defaults to global variables if not defined locally") {
+      vars.start_scope();
+
+      REQUIRE(vars.lookup("abc") == Vars::Ref{Vars::Global{.name = "abc"}});
+    }
+
+    SECTION("variables in root scope are globals") {
+      REQUIRE(vars.define("x") == Vars::Ref{Vars::Global{.name = "x"}});
+
+      vars.start_scope();
+
+      REQUIRE(vars.lookup("x") == Vars::Ref{Vars::Global{.name = "x"}});
+    }
+
+    SECTION("variables in nested scopes are locals") {
+      vars.start_scope();
+      REQUIRE(vars.define("x") == Vars::Ref{Vars::Local{.index = 0}});
+      REQUIRE(vars.lookup("x") == Vars::Ref{Vars::Local{.index = 0}});
+
+      REQUIRE(vars.define("y") == Vars::Ref{Vars::Local{.index = 1}});
+      REQUIRE(vars.lookup("y") == Vars::Ref{Vars::Local{.index = 1}});
+    }
+  }
+
+  SECTION("global vs locals when CompilerKind::function") {
+    Vars vars(CompilerKind::function);
+
+    SECTION("lookup defaults to global variables if not defined locally") {
+      vars.start_scope();
+
+      REQUIRE(vars.lookup("abc") == Vars::Ref{Vars::Global{.name = "abc"}});
+    }
+
+    SECTION("variables in root scope are locals") {
+      REQUIRE(vars.define("x") == Vars::Ref{Vars::Local{.index = 0}});
+
+      vars.start_scope();
+
+      REQUIRE(vars.lookup("x") == Vars::Ref{Vars::Local{.index = 0}});
+    }
+
+    SECTION("variables in nested scopes are locals") {
+      vars.start_scope();
+      REQUIRE(vars.define("x") == Vars::Ref{Vars::Local{.index = 0}});
+      REQUIRE(vars.lookup("x") == Vars::Ref{Vars::Local{.index = 0}});
+
+      REQUIRE(vars.define("y") == Vars::Ref{Vars::Local{.index = 1}});
+      REQUIRE(vars.lookup("y") == Vars::Ref{Vars::Local{.index = 1}});
+    }
   }
 }
 
@@ -52,13 +106,14 @@ TEST_CASE("correct bytecode is generated for nested scopes", "[compiler]") {
   // clang-format off
   const int expected[] = {
     Op::load_const, 0,
+    Op::define_global, 1,
+    Op::get_global, 2,
     Op::get_local, 0,
-    Op::get_local, 1,
-    Op::load_const, 1,
+    Op::load_const, 3,
     Op::multiply,
-    Op::set_local, 0,
+    Op::set_global, 4,
     Op::pop,
-    Op::get_local, 0,
+    Op::get_global, 5,
     Op::return_
   };
   // clang-format on
@@ -76,19 +131,17 @@ TEST_CASE("correct bytecode is generated for if statement", "[compiler]") {
   // clang-format off
   const int expected[] = {
     Op::load_const, 0,
-    Op::get_local, 0,
+    Op::define_global, 1,
+    Op::get_global, 2,
     Op::jump_if_zero, 7,
-    Op::get_local, 0,
-    Op::load_const, 1,
+    Op::get_global, 3,
+    Op::load_const, 4,
     Op::multiply,
-    Op::set_local, 0,
-    Op::get_local, 0,
+    Op::set_global, 5,
+    Op::get_global, 6,
     Op::return_
   };
   // clang-format on
-
-  Disassembler d;
-  std::cerr << d.disassemble(compiled) << std::endl;
 
   CHECK_THAT(compiled.code, RangeEquals(expected));
 }
