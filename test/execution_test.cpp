@@ -19,10 +19,26 @@ TEST_CASE("math can be done", "[execution]") {
   REQUIRE(compile_and_run(code) == Value::of(54));
 }
 
+TEST_CASE("order of non-communative operators is correct", "[execution]") {
+  SECTION("subtraction") {
+    REQUIRE(compile_and_run("return 10 - 5;") == Value::of(5));
+  }
+
+  SECTION("division") {
+    REQUIRE(compile_and_run("return 10 / 5;") == Value::of(2));
+  }
+}
+
 TEST_CASE("adding an integer and a float produce a float", "[execution]") {
   std::string code = "return 5 * 1.5;";
 
   REQUIRE(compile_and_run(code) == Value::of(7.5));
+}
+
+TEST_CASE("string concatenation works", "[execution]") {
+  std::string code = "let name = \"world\"; return \"Hello, \" + name;";
+
+  REQUIRE(compile_and_run(code) == Value::of("Hello, world"));
 }
 
 TEST_CASE("can read and write variables in outer scopes", "[execution]") {

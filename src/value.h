@@ -56,6 +56,8 @@ struct Value {
 
   static Value of(double v) { return Value{.value = v}; }
 
+  static Value of(const std::string &v) { return Value{.value = v}; }
+
   bool operator==(const Value &) const = default;
 
   std::string to_string() const {

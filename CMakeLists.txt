@@ -18,6 +18,7 @@ add_executable(tests
   test/lexer_test.cpp
   test/parser_test.cpp
   test/execution_test.cpp
+  test/value_test.cpp
 )
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

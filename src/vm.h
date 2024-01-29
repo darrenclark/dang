@@ -51,7 +51,7 @@ private:
     case Op::add: {
       Value a = pop();
       Value b = pop();
-      push(a + b);
+      push(b + a);
       trace("add   ");
       break;
     }
@@ -65,7 +65,7 @@ private:
     case Op::multiply: {
       Value a = pop();
       Value b = pop();
-      push(a * b);
+      push(b * a);
       trace("multiply   ");
       break;
     }
