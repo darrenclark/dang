@@ -7,6 +7,9 @@ Hobby programming language.  Aiming to have a language functional enough to do A
 ## Building
 
 ```sh
+# or apt-get install, yum install, apk add, etc..
+brew install catch2
+
 cmake -B./build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 .
 cd build
 make
