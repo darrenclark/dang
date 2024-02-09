@@ -1,8 +1,9 @@
 #include <iostream>
+#include <memory>
 #include <string>
 #include <variant>
 
-enum class ValueType { int_, double_, string };
+enum class ValueType { int_, double_, string, function };
 
 inline std::string to_string(ValueType t) {
   switch (t) {
@@ -12,11 +13,22 @@ inline std::string to_string(ValueType t) {
     return "double";
   case ValueType::string:
     return "string";
+  case ValueType::function:
+    return "function";
   }
 }
 
+struct Chunk;
+
+struct Function {
+  std::string name;
+  std::shared_ptr<Chunk> chunk;
+
+  bool operator==(const Function &) const = default;
+};
+
 struct Value {
-  std::variant<int, double, std::string> value;
+  std::variant<int, double, std::string, Function> value;
 
   ValueType type() const {
     if (std::holds_alternative<int>(value)) {
@@ -25,6 +37,8 @@ struct Value {
       return ValueType::double_;
     } else if (std::holds_alternative<std::string>(value)) {
       return ValueType::string;
+    } else if (std::holds_alternative<Function>(value)) {
+      return ValueType::function;
     } else {
       assert(false);
     }
@@ -65,6 +79,9 @@ struct Value {
       std::string operator()(int v) const { return std::to_string(v); }
       std::string operator()(double v) const { return std::to_string(v); }
       std::string operator()(const std::string &v) const { return v; }
+      std::string operator()(const Function &v) const {
+        return "#<Function(" + v.name + ")>;";
+      }
     };
     return std::visit(ToStringVisitor{}, value);
   }
@@ -74,6 +91,7 @@ struct Value {
       bool operator()(int v) const { return v != 0; }
       bool operator()(double v) const { return v != 0.0; }
       bool operator()(const std::string &v) const { return v.size() > 0; }
+      bool operator()(const Function &v) const { return true; }
     };
     return std::visit(BoolVisitor{}, value);
   }

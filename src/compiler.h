@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "value-ptr.hpp"
 #include "value.h"
+#include <memory>
 #include <span>
 #include <sstream>
 #include <string>
@@ -187,11 +188,11 @@ class Compiler {
 public:
   Compiler(CompilerKind kind = CompilerKind::script) : locals(kind) {}
 
-  Chunk compile(const std::string &source) {
+  Function compile(const std::string &source) {
     Lexer lexer(source);
     Parser parser(lexer.lex());
     (*this)(parser.parse());
-    return chunk;
+    return Function{.name = "(main)", .chunk = std::make_shared<Chunk>(chunk)};
   }
 
   void operator()(const ASTNodeProgram &node) {

@@ -15,8 +15,8 @@ public:
 
   Value eval(const std::string &source) {
     Compiler compiler;
-    chunk = compiler.compile(source);
-    code = chunk.code.data();
+    function = compiler.compile(source);
+    code = function.chunk->code.data();
     ip = code;
     fp = stack;
     sp = stack;
@@ -39,11 +39,12 @@ private:
 
     switch ((Op)*ip++) {
     case Op::load_const:
-      push(chunk.constants.at(read_arg()));
+      push(current_chunk().constants.at(read_arg()));
       trace("load_const  ");
       break;
     case Op::define_global: {
-      std::string name = chunk.constants.at(read_arg()).string_value();
+      std::string name =
+          current_chunk().constants.at(read_arg()).string_value();
       auto it = globals.find(name);
       if (it != globals.end()) {
         std::cerr << "global '" << name << "' already defined" << std::endl;
@@ -54,7 +55,8 @@ private:
       break;
     }
     case Op::get_global: {
-      std::string name = chunk.constants.at(read_arg()).string_value();
+      std::string name =
+          current_chunk().constants.at(read_arg()).string_value();
       auto it = globals.find(name);
       if (it == globals.end()) {
         std::cerr << "global '" << name << "' not defined" << std::endl;
@@ -65,7 +67,8 @@ private:
       break;
     }
     case Op::set_global: {
-      std::string name = chunk.constants.at(read_arg()).string_value();
+      std::string name =
+          current_chunk().constants.at(read_arg()).string_value();
       auto it = globals.find(name);
       if (it == globals.end()) {
         std::cerr << "global '" << name << "' not defined" << std::endl;
@@ -162,13 +165,15 @@ private:
 #endif
   }
 
-  Chunk chunk;
+  Function function;
 
   const int *code;
   const int *ip;
 
   Value *stack;
   Value *fp, *sp;
+
+  const Chunk &current_chunk() { return *function.chunk.get(); }
 
   std::unordered_map<std::string, Value> globals;
 };

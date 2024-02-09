@@ -6,7 +6,7 @@
 
 using Catch::Matchers::RangeEquals;
 
-static Chunk compile(const std::string &source) {
+static Function compile(const std::string &source) {
   Compiler c{};
   return c.compile(source);
 }
@@ -101,7 +101,7 @@ TEST_CASE("Vars", "[compiler]") {
 TEST_CASE("correct bytecode is generated for nested scopes", "[compiler]") {
   std::string source = "let x = 5; { let y = x; x = y * 2; } return x;";
 
-  Chunk compiled = compile(source);
+  Function compiled = compile(source);
 
   // clang-format off
   const int expected[] = {
@@ -118,7 +118,7 @@ TEST_CASE("correct bytecode is generated for nested scopes", "[compiler]") {
   };
   // clang-format on
 
-  CHECK_THAT(compiled.code, RangeEquals(expected));
+  CHECK_THAT(compiled.chunk->code, RangeEquals(expected));
 }
 
 TEST_CASE("correct bytecode is generated for if statement", "[compiler]") {
@@ -126,7 +126,7 @@ TEST_CASE("correct bytecode is generated for if statement", "[compiler]") {
                        "if x { x = x * 5; } "
                        "return x; ";
 
-  Chunk compiled = compile(source);
+  Function compiled = compile(source);
 
   // clang-format off
   const int expected[] = {
@@ -143,5 +143,5 @@ TEST_CASE("correct bytecode is generated for if statement", "[compiler]") {
   };
   // clang-format on
 
-  CHECK_THAT(compiled.code, RangeEquals(expected));
+  CHECK_THAT(compiled.chunk->code, RangeEquals(expected));
 }
