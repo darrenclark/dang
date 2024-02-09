@@ -22,8 +22,14 @@
     - [ ] While
     - [ ] Do while (?)
 - [ ] Functions
-    - [ ] Closures / capturing
-    - [ ] Anonymous
+    - [x] Update VM to support call frames
+    - [ ] Compiling & calling functions
+    - [ ] Closures / capturing / anonymous
 - [ ] Exceptions/errors
     - [ ] Try/catch (?)
 - [ ] Immutability - let vs var
+
+## Bugs
+
+- [ ] Errors shouldn't `exit(EXIT_FAILURE)`
+- [ ] Stack doesn't properly dealloc memory
