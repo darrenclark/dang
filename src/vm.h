@@ -8,22 +8,27 @@
 #define DISASSEMBLE 0
 #define TRACE 0
 
+struct Frame {
+  Function function;
+  int *ip;
+  Value *fp; // correct name?
+};
+
 class VM {
 public:
-  VM() : stack(new Value[1024]), fp(stack), sp(stack) {}
+  VM() : stack(new Value[1024]), sp(stack) {}
   ~VM() { delete[] stack; }
 
   Value eval(const std::string &source) {
-    Compiler compiler;
-    function = compiler.compile(source);
-    code = function.chunk->code.data();
-    ip = code;
-    fp = stack;
     sp = stack;
+
+    Compiler compiler;
+    Function function = compiler.compile(source);
+    enter_function(function);
 
 #if DISASSEMBLE
     Disassembler d;
-    std::cerr << d.disassemble(chunk) << std::endl;
+    std::cerr << d.disassemble(current_chunk()) << std::endl;
 #endif
 
     while (true) {
@@ -34,10 +39,15 @@ public:
   }
 
 private:
+  void enter_function(const Function &function) {
+    frames.push_back(Frame{
+        .function = function, .ip = function.chunk->code.data(), .fp = sp});
+  }
+
   std::optional<Value> step() {
     std::optional<Value> result = std::nullopt;
 
-    switch ((Op)*ip++) {
+    switch ((Op)*current_frame().ip++) {
     case Op::load_const:
       push(current_chunk().constants.at(read_arg()));
       trace("load_const  ");
@@ -79,11 +89,11 @@ private:
       break;
     }
     case Op::get_local:
-      push(*(fp + read_arg()));
+      push(*(current_frame().fp + read_arg()));
       trace("get_local  ");
       break;
     case Op::set_local: {
-      *(fp + read_arg()) = pop();
+      *(current_frame().fp + read_arg()) = pop();
       trace("set_local  ");
       break;
     }
@@ -121,20 +131,28 @@ private:
       break;
     case Op::jump: {
       int n = read_arg();
-      ip += n;
+      current_frame().ip += n;
       trace("jump  ");
       break;
     }
     case Op::jump_if_zero: {
       int n = read_arg();
-      ip += pop() ? 0 : n;
+      current_frame().ip += pop() ? 0 : n;
       trace("jump_if_zero  ");
       break;
     }
-    case Op::return_:
-      result = pop();
+    case Op::return_: {
+      Value r = pop();
+      sp = current_frame().fp;
+      frames.pop_back();
+      if (frames.size() == 0) {
+        result = r;
+      } else {
+        push(r);
+      }
       trace("return     ");
       break;
+    }
     case Op::OP_COUNT:
       assert(false);
     }
@@ -142,7 +160,7 @@ private:
     return result;
   }
 
-  int read_arg() { return *ip++; }
+  int read_arg() { return *current_frame().ip++; }
 
   void push(Value value) {
     *sp = value;
@@ -159,21 +177,24 @@ private:
       std::cerr << " " << i->to_string();
     }
 
-    std::cerr << "  [ip: " << (ip - code) << "]";
+    if (frames.size() > 0) {
+      std::cerr << "  [ip: "
+                << (current_frame().ip - current_chunk().code.data()) << "]";
+    } else {
+      std::cerr << "  [ip: null]";
+    }
 
     std::cerr << std::endl;
 #endif
   }
 
-  Function function;
-
-  const int *code;
-  const int *ip;
+  std::vector<Frame> frames;
 
   Value *stack;
-  Value *fp, *sp;
+  Value *sp;
 
-  const Chunk &current_chunk() { return *function.chunk.get(); }
+  Frame &current_frame() { return frames.back(); }
+  const Chunk &current_chunk() { return *current_frame().function.chunk; }
 
   std::unordered_map<std::string, Value> globals;
 };
