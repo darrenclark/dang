@@ -41,6 +41,10 @@ enum Op : int {
   jump,
   // jump_if_zero N : Jumps N instructions if top of stack is zero (and pops it)
   jump_if_zero,
+  // call N :  Calls function with N args.  Args are last N values on stack, and
+  //           function to be called is below that.  Pops function & args, and
+  //           pushes result.
+  call,
   // return :  Returns top value on stack
   return_,
 
@@ -76,6 +80,8 @@ inline std::string to_string(Op op) {
     return "jump";
   case jump_if_zero:
     return "jump_if_zero";
+  case call:
+    return "call";
   case return_:
     return "return_";
   case OP_COUNT:
@@ -103,6 +109,8 @@ inline int op_n_args(Op op) {
     return 0;
   case jump:
   case jump_if_zero:
+    return 1;
+  case call:
     return 1;
   case return_:
     return 0;
@@ -219,10 +227,18 @@ public:
 
     // vars.end_scope();
 
-    return Function{.name = "(main)", .chunk = std::make_shared<Chunk>(chunk)};
+    return Function{.name = "(script)",
+                    .arity = 0,
+                    .chunk = std::make_shared<Chunk>(chunk)};
   }
 
   Function compile(const ASTNodeFunctionDef &node) {
+    for (const auto &arg : node.arg_names) {
+      // args are effectively locals, so we can simply define them as locals
+      auto var = locals.define(arg.value);
+      assert(std::holds_alternative<Vars::Local>(var));
+    }
+
     for (const auto &stmt : node.body.body) {
       (*this)(stmt);
     }
@@ -241,6 +257,7 @@ public:
     }
 
     return Function{.name = node.name.value,
+                    .arity = static_cast<int>(node.arg_names.size()),
                     .chunk = std::make_shared<Chunk>(chunk)};
   }
 
@@ -483,8 +500,18 @@ public:
   void operator()(const ASTNodeParenExpr &node) { return (*this)(node.child); }
 
   void operator()(const ASTNodeFunctionCall &node) {
-    assert(false);
-    // TODO: Implement
+    // push function on stack
+
+    // TODO: should this ASTNodeIdentifier elsewhere?
+    (*this)(ASTNodeIdentifier{.token = node.name});
+
+    // push args on stack
+    for (auto &arg : node.arguments) {
+      (*this)(arg);
+    }
+
+    chunk.code.push_back(Op::call);
+    chunk.code.push_back(node.arguments.size());
   }
 
   template <typename T> void operator()(const valuable::value_ptr<T> &ptr) {

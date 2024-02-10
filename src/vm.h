@@ -28,7 +28,7 @@ public:
 
 #if DISASSEMBLE
     Disassembler d;
-    std::cerr << d.disassemble(current_chunk()) << std::endl;
+    std::cerr << d.disassemble(function) << std::endl;
 #endif
 
     while (true) {
@@ -40,8 +40,12 @@ public:
 
 private:
   void enter_function(const Function &function) {
+    enter_function(function, sp);
+  }
+
+  void enter_function(const Function &function, Value *fp) {
     frames.push_back(Frame{
-        .function = function, .ip = function.chunk->code.data(), .fp = sp});
+        .function = function, .ip = function.chunk->code.data(), .fp = fp});
   }
 
   std::optional<Value> step() {
@@ -89,11 +93,13 @@ private:
       break;
     }
     case Op::get_local:
-      push(*(current_frame().fp + read_arg()));
+      // +1 because function is at fp
+      push(*(current_frame().fp + read_arg() + 1));
       trace("get_local  ");
       break;
     case Op::set_local: {
-      *(current_frame().fp + read_arg()) = pop();
+      // +1 because function is at fp
+      *(current_frame().fp + read_arg() + 1) = pop();
       trace("set_local  ");
       break;
     }
@@ -139,6 +145,26 @@ private:
       int n = read_arg();
       current_frame().ip += pop() ? 0 : n;
       trace("jump_if_zero  ");
+      break;
+    }
+    case Op::call: {
+      int arg_count = read_arg();
+      Value v = *(sp - arg_count - 1);
+      if (v.type() != ValueType::function) {
+        std::cerr << "Cannot call non-function" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      Function f = v.function_value();
+      if (arg_count != f.arity) {
+        std::cerr << "Incorrect number of arguments to `" << f.name
+                  << "`, expected " << f.arity << " but got " << arg_count
+                  << std::endl;
+        exit(EXIT_FAILURE);
+      }
+
+      enter_function(f, sp - arg_count - 1);
+      trace("call     ");
       break;
     }
     case Op::return_: {

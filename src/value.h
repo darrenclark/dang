@@ -22,6 +22,7 @@ struct Chunk;
 
 struct Function {
   std::string name;
+  int arity;
   std::shared_ptr<Chunk> chunk;
 
   bool operator==(const Function &) const = default;
@@ -65,6 +66,8 @@ struct Value {
   int int_value() const { return std::get<int>(value); }
 
   std::string string_value() const { return std::get<std::string>(value); }
+
+  Function function_value() const { return std::get<Function>(value); }
 
   static Value of(int v) { return Value{.value = v}; }
 

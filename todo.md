@@ -33,4 +33,5 @@
 
 - [ ] Errors shouldn't `exit(EXIT_FAILURE)`
 - [ ] Stack doesn't properly dealloc memory
+- [ ] Root "(script)" function doesn't exist at bottom of stack (maybe no issue?)
 - [ ] Allow underscores in variable names

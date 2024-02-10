@@ -1,26 +1,9 @@
-fn rectArea(l, w) {
-  return l * w;
+let pi = 3.14159;
+
+fn areaOfCircle(radius) {
+  return pi * (radius * radius);
 }
 
-//return rectArea(5, 10);
-
-let pi = 3.14159;
 let radius = 100;
-let area = pi * (radius * radius);
 
-return area;
-
-/*
-
-CONST_INT   3;    [pi = slot 0]
-CONST_INT   100;  [radius = slot 1]
-
-GET_LOCAL   1;
-GET_LOCAL   1;
-MULTIPLY;
-GET_LOCAL   0;
-MULTIPLY;         [area = slot 2]
-
-RETURN;
-
-*/
+return areaOfCircle(radius);
