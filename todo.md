@@ -8,11 +8,11 @@
     - [ ] `==` `!=`
     - [ ] `<` `<=` `>=` `>`
 - [ ] Basic types
-    - [ ] Int
+    - [x] Int
     - [x] String
         - [ ] escaping in literals
-    - [ ] Nil
-    - [ ] Boolean
+    - [ ] Null
+    - [x] Boolean
     - [x] Float
 - [ ] Complex types
     - [ ] Arrays
@@ -26,7 +26,7 @@
     - [ ] Do while (?)
 - [ ] Functions
     - [x] Update VM to support call frames
-    - [ ] Compiling & calling functions
+    - [x] Compiling & calling functions
     - [ ] Closures / capturing / anonymous
 - [ ] Exceptions/errors
     - [ ] Try/catch (?)

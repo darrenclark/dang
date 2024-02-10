@@ -41,6 +41,11 @@ TEST_CASE("string concatenation works", "[execution]") {
   REQUIRE(compile_and_run(code) == Value::of("Hello, world"));
 }
 
+TEST_CASE("booleans work", "[execution]") {
+  REQUIRE(compile_and_run("return true;") == Value::of(true));
+  REQUIRE(compile_and_run("return false;") == Value::of(false));
+}
+
 TEST_CASE("can read and write variables in outer scopes", "[execution]") {
   std::string code = "let x = 5; { x = x * x; } return x;";
 

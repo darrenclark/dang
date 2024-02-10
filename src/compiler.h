@@ -470,6 +470,16 @@ public:
     chunk.code.push_back(index);
   }
 
+  void operator()(const ASTNodeBooleanLiteral &node) {
+    Value value = Value{.value = node.value};
+
+    chunk.constants.push_back(value);
+    int index = chunk.constants.size() - 1;
+
+    chunk.code.push_back(Op::load_const);
+    chunk.code.push_back(index);
+  }
+
   void operator()(const ASTNodeStringLiteral &node) {
     Value value = Value{.value = node.token.value};
 

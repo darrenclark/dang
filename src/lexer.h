@@ -16,6 +16,8 @@ enum class TokenType {
   kw_if,
   kw_else,
   kw_fn,
+  kw_true,
+  kw_false,
 
   // punctuation
   equals,
@@ -59,6 +61,10 @@ inline std::string to_string(TokenType type) {
     return "kw_else";
   case TokenType::kw_fn:
     return "kw_fn";
+  case TokenType::kw_true:
+    return "kw_true";
+  case TokenType::kw_false:
+    return "kw_false";
   case TokenType::equals:
     return "equals";
   case TokenType::open_paren:
@@ -82,6 +88,12 @@ inline std::string to_string(TokenType type) {
   case TokenType::star:
     return "star";
   }
+}
+
+inline std::ostream &operator<<(std::ostream &os, Token const &token) {
+  os << "Token{.type = " << to_string(token.type)
+     << ", .value = " << token.value << "}";
+  return os;
 }
 
 class Lexer {
@@ -136,6 +148,10 @@ public:
           tokens.push_back({.type = TokenType::kw_else});
         } else if (value == "fn") {
           tokens.push_back({.type = TokenType::kw_fn});
+        } else if (value == "true") {
+          tokens.push_back({.type = TokenType::kw_true});
+        } else if (value == "false") {
+          tokens.push_back({.type = TokenType::kw_false});
         } else {
           tokens.push_back({.type = TokenType::identifier, .value = value});
         }

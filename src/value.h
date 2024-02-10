@@ -3,7 +3,7 @@
 #include <string>
 #include <variant>
 
-enum class ValueType { int_, double_, string, function };
+enum class ValueType { int_, double_, boolean, string, function };
 
 inline std::string to_string(ValueType t) {
   switch (t) {
@@ -11,6 +11,8 @@ inline std::string to_string(ValueType t) {
     return "int";
   case ValueType::double_:
     return "double";
+  case ValueType::boolean:
+    return "boolean";
   case ValueType::string:
     return "string";
   case ValueType::function:
@@ -29,13 +31,15 @@ struct Function {
 };
 
 struct Value {
-  std::variant<int, double, std::string, Function> value;
+  std::variant<int, double, bool, std::string, Function> value;
 
   ValueType type() const {
     if (std::holds_alternative<int>(value)) {
       return ValueType::int_;
     } else if (std::holds_alternative<double>(value)) {
       return ValueType::double_;
+    } else if (std::holds_alternative<bool>(value)) {
+      return ValueType::boolean;
     } else if (std::holds_alternative<std::string>(value)) {
       return ValueType::string;
     } else if (std::holds_alternative<Function>(value)) {
@@ -65,6 +69,8 @@ struct Value {
 
   int int_value() const { return std::get<int>(value); }
 
+  int bool_value() const { return std::get<bool>(value); }
+
   std::string string_value() const { return std::get<std::string>(value); }
 
   Function function_value() const { return std::get<Function>(value); }
@@ -72,6 +78,10 @@ struct Value {
   static Value of(int v) { return Value{.value = v}; }
 
   static Value of(double v) { return Value{.value = v}; }
+
+  static Value of(bool v) { return Value{.value = v}; }
+
+  static Value of(const char *v) { return Value{.value = v}; }
 
   static Value of(const std::string &v) { return Value{.value = v}; }
 
@@ -81,6 +91,7 @@ struct Value {
     struct ToStringVisitor {
       std::string operator()(int v) const { return std::to_string(v); }
       std::string operator()(double v) const { return std::to_string(v); }
+      std::string operator()(bool v) const { return std::to_string(v); }
       std::string operator()(const std::string &v) const { return v; }
       std::string operator()(const Function &v) const {
         return "#<Function(" + v.name + ")>;";
@@ -93,6 +104,7 @@ struct Value {
     struct BoolVisitor {
       bool operator()(int v) const { return v != 0; }
       bool operator()(double v) const { return v != 0.0; }
+      bool operator()(bool v) const { return v; }
       bool operator()(const std::string &v) const { return v.size() > 0; }
       bool operator()(const Function &v) const { return true; }
     };

@@ -31,12 +31,14 @@ TEST_CASE("keywords can be lexed", "[lexer]") {
 }
 
 TEST_CASE("literals can be lexed", "[lexer]") {
-  Lexer lexer(" 100 3.14 \"hello world\"");
+  Lexer lexer(" 100 3.14 \"hello world\" true false");
 
-  const std::array<Token, 3> expected{{
+  const std::array<Token, 5> expected{{
       {.type = TokenType::integer_literal, .value = "100"},
       {.type = TokenType::double_literal, .value = "3.14"},
       {.type = TokenType::string_literal, .value = "hello world"},
+      {.type = TokenType::kw_true},
+      {.type = TokenType::kw_false},
   }};
 
   CHECK_THAT(lexer.lex(), RangeEquals(expected));
