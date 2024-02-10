@@ -4,6 +4,9 @@
     - [ ] `!`
     - [ ] `&&`
     - [ ] `||`
+- [ ] Comparison operators
+    - [ ] `==` `!=`
+    - [ ] `<` `<=` `>=` `>`
 - [ ] Basic types
     - [ ] Int
     - [x] String
@@ -35,3 +38,6 @@
 - [ ] Stack doesn't properly dealloc memory
 - [ ] Root "(script)" function doesn't exist at bottom of stack (maybe no issue?)
 - [ ] Allow underscores in variable names
+
+- [ ] Decompiler should print constants
+- [ ] Improve trace ouput
