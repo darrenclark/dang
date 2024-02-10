@@ -188,14 +188,14 @@ class Compiler {
 public:
   Compiler(CompilerKind kind = CompilerKind::script) : locals(kind) {}
 
-  Function compile(const std::string &source) {
+  static Function compile(const std::string &source) {
     Lexer lexer(source);
     Parser parser(lexer.lex());
-    (*this)(parser.parse());
-    return Function{.name = "(main)", .chunk = std::make_shared<Chunk>(chunk)};
+    Compiler compiler(CompilerKind::script);
+    return compiler.compile(parser.parse());
   }
 
-  void operator()(const ASTNodeProgram &node) {
+  Function compile(const ASTNodeProgram &node) {
     // int result = 0;
 
     // vars.begin_scope();
@@ -218,6 +218,30 @@ public:
     }
 
     // vars.end_scope();
+
+    return Function{.name = "(main)", .chunk = std::make_shared<Chunk>(chunk)};
+  }
+
+  Function compile(const ASTNodeFunctionDef &node) {
+    for (const auto &stmt : node.body.body) {
+      (*this)(stmt);
+    }
+
+    if (chunk.code.size() == 0 ||
+        chunk.code.at(chunk.code.size() - 1) != Op::return_) {
+      // TODO: Switch to pushing a nil instead
+      Value value = Value{.value = 0};
+
+      chunk.constants.push_back(value);
+      int index = chunk.constants.size() - 1;
+
+      chunk.code.push_back(Op::load_const);
+      chunk.code.push_back(index);
+      chunk.code.push_back(Op::return_);
+    }
+
+    return Function{.name = node.name.value,
+                    .chunk = std::make_shared<Chunk>(chunk)};
   }
 
   void operator()(const ASTNodeStmt &node) {
@@ -358,8 +382,27 @@ public:
   void operator()(const std::monostate &node) {}
 
   void operator()(const ASTNodeFunctionDef &node) {
-    assert(false);
-    // TODO: Implement
+    Compiler compiler(CompilerKind::function);
+    Function function = compiler.compile(node);
+
+    chunk.constants.push_back(Value{.value = function});
+    int function_index = chunk.constants.size() - 1;
+    chunk.code.push_back(Op::load_const);
+    chunk.code.push_back(function_index);
+
+    auto var = locals.define(node.name.value);
+    if (std::holds_alternative<Vars::Local>(var)) {
+      // locals stored on stack - nothing else needed
+    } else {
+      Vars::Global &global = std::get<Vars::Global>(var);
+
+      chunk.code.push_back(Op::define_global);
+
+      chunk.constants.push_back(Value{.value = global.name});
+      int index = chunk.constants.size() - 1;
+
+      chunk.code.push_back(index);
+    }
   }
 
   void operator()(const ASTNodeExpr &node) {

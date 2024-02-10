@@ -1,3 +1,9 @@
+fn rectArea(l, w) {
+  return l * w;
+}
+
+//return rectArea(5, 10);
+
 let pi = 3.14159;
 let radius = 100;
 let area = pi * (radius * radius);

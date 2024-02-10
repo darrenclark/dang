@@ -33,3 +33,4 @@
 
 - [ ] Errors shouldn't `exit(EXIT_FAILURE)`
 - [ ] Stack doesn't properly dealloc memory
+- [ ] Allow underscores in variable names
