@@ -46,6 +46,13 @@ inline std::string to_string(BinOp op) {
   }
 }
 
+struct ASTNodeNullLiteral {
+  Token token;
+  bool value;
+
+  bool operator==(const ASTNodeNullLiteral &) const = default;
+};
+
 struct ASTNodeIntegerLiteral {
   Token token;
 
@@ -82,8 +89,8 @@ struct ASTNodeFunctionCall;
 
 struct ASTNodeTerm {
   std::variant<ASTNodeIntegerLiteral, ASTNodeDoubleLiteral,
-               ASTNodeBooleanLiteral, ASTNodeStringLiteral, ASTNodeIdentifier,
-               valuable::value_ptr<ASTNodeParenExpr>,
+               ASTNodeBooleanLiteral, ASTNodeNullLiteral, ASTNodeStringLiteral,
+               ASTNodeIdentifier, valuable::value_ptr<ASTNodeParenExpr>,
                valuable::value_ptr<ASTNodeFunctionCall>>
       child;
 
@@ -439,6 +446,8 @@ public:
     } else if (token->type == TokenType::kw_false) {
       return {{.child = (ASTNodeBooleanLiteral){.token = consume(),
                                                 .value = false}}};
+    } else if (token->type == TokenType::kw_null) {
+      return {{.child = (ASTNodeNullLiteral){.token = consume()}}};
     } else if (token->type == TokenType::string_literal) {
       return {{.child = (ASTNodeStringLiteral){.token = consume()}}};
     } else if (token->type == TokenType::identifier && peek(1) &&

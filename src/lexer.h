@@ -18,6 +18,7 @@ enum class TokenType {
   kw_fn,
   kw_true,
   kw_false,
+  kw_null,
 
   // punctuation
   equals,
@@ -65,6 +66,8 @@ inline std::string to_string(TokenType type) {
     return "kw_true";
   case TokenType::kw_false:
     return "kw_false";
+  case TokenType::kw_null:
+    return "kw_null";
   case TokenType::equals:
     return "equals";
   case TokenType::open_paren:
@@ -152,6 +155,8 @@ public:
           tokens.push_back({.type = TokenType::kw_true});
         } else if (value == "false") {
           tokens.push_back({.type = TokenType::kw_false});
+        } else if (value == "null") {
+          tokens.push_back({.type = TokenType::kw_null});
         } else {
           tokens.push_back({.type = TokenType::identifier, .value = value});
         }

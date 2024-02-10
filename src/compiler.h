@@ -450,6 +450,16 @@ public:
     }
   }
 
+  void operator()(const ASTNodeNullLiteral &node) {
+    Value value;
+
+    chunk.constants.push_back(value);
+    int index = chunk.constants.size() - 1;
+
+    chunk.code.push_back(Op::load_const);
+    chunk.code.push_back(index);
+  }
+
   void operator()(const ASTNodeIntegerLiteral &node) {
     Value value = Value{.value = std::stoi(node.token.value)};
 

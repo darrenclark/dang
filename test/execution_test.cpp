@@ -46,6 +46,10 @@ TEST_CASE("booleans work", "[execution]") {
   REQUIRE(compile_and_run("return false;") == Value::of(false));
 }
 
+TEST_CASE("null works", "[execution]") {
+  REQUIRE(compile_and_run("return null;") == Value());
+}
+
 TEST_CASE("can read and write variables in outer scopes", "[execution]") {
   std::string code = "let x = 5; { x = x * x; } return x;";
 

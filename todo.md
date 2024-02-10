@@ -11,7 +11,7 @@
     - [x] Int
     - [x] String
         - [ ] escaping in literals
-    - [ ] Null
+    - [x] Null
     - [x] Boolean
     - [x] Float
 - [ ] Complex types

@@ -3,10 +3,12 @@
 #include <string>
 #include <variant>
 
-enum class ValueType { int_, double_, boolean, string, function };
+enum class ValueType { null_, int_, double_, boolean, string, function };
 
 inline std::string to_string(ValueType t) {
   switch (t) {
+  case ValueType::null_:
+    return "null";
   case ValueType::int_:
     return "int";
   case ValueType::double_:
@@ -31,10 +33,13 @@ struct Function {
 };
 
 struct Value {
-  std::variant<int, double, bool, std::string, Function> value;
+  /// Underlying value.  `std::monostate` represents null
+  std::variant<std::monostate, int, double, bool, std::string, Function> value;
 
   ValueType type() const {
-    if (std::holds_alternative<int>(value)) {
+    if (std::holds_alternative<std::monostate>(value)) {
+      return ValueType::null_;
+    } else if (std::holds_alternative<int>(value)) {
       return ValueType::int_;
     } else if (std::holds_alternative<double>(value)) {
       return ValueType::double_;
@@ -89,6 +94,7 @@ struct Value {
 
   std::string to_string() const {
     struct ToStringVisitor {
+      std::string operator()(std::monostate v) const { return "null"; }
       std::string operator()(int v) const { return std::to_string(v); }
       std::string operator()(double v) const { return std::to_string(v); }
       std::string operator()(bool v) const { return std::to_string(v); }
@@ -102,6 +108,7 @@ struct Value {
 
   operator bool() const {
     struct BoolVisitor {
+      bool operator()(std::monostate v) const { return false; }
       bool operator()(int v) const { return v != 0; }
       bool operator()(double v) const { return v != 0.0; }
       bool operator()(bool v) const { return v; }
