@@ -23,11 +23,35 @@ defmodule Dang.Eval do
 
   defp eval([], _env), do: nil
 
-  defp eval_term([:+, a, b], env) do
-    {a, env} = eval_term(a, env)
-    {b, env} = eval_term(b, env)
+  defp eval_args(args, env) do
+    {args, env} =
+      Enum.reduce(args, {[], env}, fn arg, {args, env} ->
+        {arg, env} = eval_term(arg, env)
+        {[arg | args], env}
+      end)
 
-    {a + b, env}
+    args = Enum.reverse(args)
+    {args, env}
+  end
+
+  defp eval_term([:+ | args], env) do
+    {args, env} = eval_args(args, env)
+    {Enum.sum(args), env}
+  end
+
+  defp eval_term([:- | args], env) do
+    {args, env} = eval_args(args, env)
+    {Enum.reduce(args, &(&2 - &1)), env}
+  end
+
+  defp eval_term([:* | args], env) do
+    {args, env} = eval_args(args, env)
+    {Enum.reduce(args, &(&2 * &1)), env}
+  end
+
+  defp eval_term([:/ | args], env) do
+    {args, env} = eval_args(args, env)
+    {Enum.reduce(args, &(&2 / &1)), env}
   end
 
   defp eval_term([:let, name, val], env) when is_atom(name) do
@@ -48,13 +72,7 @@ defmodule Dang.Eval do
   defp eval_term([func | args], env) do
     {{:fn, arg_names, body, captured_env}, env} = eval_term(func, env)
 
-    {args, env} =
-      Enum.reduce(args, {[], env}, fn arg, {args, env} ->
-        {arg, env} = eval_term(arg, env)
-        {[arg | args], env}
-      end)
-
-    args = Enum.reverse(args)
+    {args, env} = eval_args(args, env)
 
     if length(arg_names) != length(args) do
       raise """

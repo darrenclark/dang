@@ -43,4 +43,8 @@ defmodule DangTest do
              """)
            ) == %RuntimeError{message: "Variable :x not found"}
   end
+
+  test "can do math" do
+    assert 5 == Dang.run("(- (/ (* (+ 1 3 2) 8) 4) 5 2)")
+  end
 end

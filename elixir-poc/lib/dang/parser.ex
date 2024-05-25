@@ -6,9 +6,11 @@ defmodule Dang.Parser do
 
   number = integer(min: 1)
 
+  symbols = [?!..?', ?*..?/, ?:..?@, ?|, ?~]
+
   atom =
-    ascii_string([?a..?z, ?A..?Z, ?+], min: 1)
-    |> ascii_string([?a..?z, ?A..?Z, ?0..?9, ?+], min: 0)
+    ascii_string([?a..?z, ?A..?Z | symbols], min: 1)
+    |> ascii_string([?a..?z, ?A..?Z, ?0..?9, ?+ | symbols], min: 0)
     |> reduce({Enum, :join, []})
     |> map({String, :to_atom, []})
 
