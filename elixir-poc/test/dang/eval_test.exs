@@ -13,6 +13,20 @@ defmodule Dang.EvalTest do
       [:let, :y, 2],
       [:+, :x, :y]
     ]
+
     assert 5 = Eval.eval(code)
+  end
+
+  test "functions" do
+    code = [
+      [
+        :let,
+        :add,
+        [:fn, [:x, :y], [:let, :result, [:+, :x, :y]], [:return, :result]]
+      ],
+      [:add, 5, 6]
+    ]
+
+    assert 11 = Eval.eval(code)
   end
 end
