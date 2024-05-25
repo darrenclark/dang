@@ -3,53 +3,55 @@ defmodule Dang.Eval do
   Evaluates an AST parsed by `Dang.Parser`
   """
 
-  def eval(ast), do: eval(ast, %{})
+  alias Dang.Env
 
-  defp eval([term], state) do
-    {res, _} = eval_term(term, state)
+  def eval(ast), do: eval(ast, Env.new())
+
+  defp eval([term], env) do
+    {res, _} = eval_term(term, env)
     res
   catch
     {:return, val} -> val
   end
 
-  defp eval([term | rest], state) do
-    {_, state} = eval_term(term, state)
-    eval(rest, state)
+  defp eval([term | rest], env) do
+    {_, env} = eval_term(term, env)
+    eval(rest, env)
   catch
     {:return, val} -> val
   end
 
-  defp eval([], _state), do: nil
+  defp eval([], _env), do: nil
 
-  defp eval_term([:+, a, b], state) do
-    {a, state} = eval_term(a, state)
-    {b, state} = eval_term(b, state)
+  defp eval_term([:+, a, b], env) do
+    {a, env} = eval_term(a, env)
+    {b, env} = eval_term(b, env)
 
-    {a + b, state}
+    {a + b, env}
   end
 
-  defp eval_term([:let, name, val], state) when is_atom(name) do
-    {val, state} = eval_term(val, state)
+  defp eval_term([:let, name, val], env) when is_atom(name) do
+    {val, env} = eval_term(val, env)
 
-    {val, Map.put(state, name, val)}
+    {val, Env.put(env, name, val)}
   end
 
-  defp eval_term([:fn, arg_names | body], state) do
-    {{:fn, arg_names, body}, state}
+  defp eval_term([:fn, arg_names | body], env) do
+    {{:fn, arg_names, body, Env.capture(env)}, env}
   end
 
-  defp eval_term([:return, val], state) do
-    {val, _state} = eval_term(val, state)
+  defp eval_term([:return, val], env) do
+    {val, _env} = eval_term(val, env)
     throw {:return, val}
   end
 
-  defp eval_term([func | args], state) do
-    {{:fn, arg_names, body}, state} = eval_term(func, state)
+  defp eval_term([func | args], env) do
+    {{:fn, arg_names, body, captured_env}, env} = eval_term(func, env)
 
-    {args, state} =
-      Enum.reduce(args, {[], state}, fn arg, {args, state} ->
-        {arg, state} = eval_term(arg, state)
-        {[arg | args], state}
+    {args, env} =
+      Enum.reduce(args, {[], env}, fn arg, {args, env} ->
+        {arg, env} = eval_term(arg, env)
+        {[arg | args], env}
       end)
 
     args = Enum.reverse(args)
@@ -61,14 +63,14 @@ defmodule Dang.Eval do
       """
     end
 
-    func_state = state |> Map.merge(Enum.zip(arg_names, args) |> Map.new())
-    result = eval(body, func_state)
-    {result, state}
+    func_env = env |> Env.function_env(captured_env, Map.new(Enum.zip(arg_names, args)))
+    result = eval(body, func_env)
+    {result, env}
   end
 
-  defp eval_term(x, state) when is_number(x), do: {x, state}
+  defp eval_term(x, env) when is_number(x), do: {x, env}
 
-  defp eval_term(name, state) when is_atom(name) do
-    {Map.fetch!(state, name), state}
+  defp eval_term(name, env) when is_atom(name) do
+    {Env.fetch!(env, name), env}
   end
 end
