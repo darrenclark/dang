@@ -24,5 +24,15 @@ defmodule Dang.Eval do
     {a + b, state}
   end
 
+  defp eval_term([:let, name, val], state) when is_atom(name) do
+    {val, state} = eval_term(val, state)
+
+    {val, Map.put(state, name, val)}
+  end
+
   defp eval_term(x, state) when is_number(x), do: {x, state}
+
+  defp eval_term(name, state) when is_atom(name) do
+    {Map.fetch!(state, name), state}
+  end
 end

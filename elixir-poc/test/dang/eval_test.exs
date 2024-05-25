@@ -6,4 +6,13 @@ defmodule Dang.EvalTest do
   test "addition" do
     assert 5 = Eval.eval([[:+, 3, 2]])
   end
+
+  test "variables" do
+    code = [
+      [:let, :x, 3],
+      [:let, :y, 2],
+      [:+, :x, :y]
+    ]
+    assert 5 = Eval.eval(code)
+  end
 end
