@@ -48,7 +48,7 @@ defmodule Dang.Eval do
 
   defp eval_term([:+ | args], env) do
     {args, env} = eval_args(args, env)
-    {Enum.sum(args), env}
+    {Enum.reduce(args, &add/2), env}
   end
 
   defp eval_term([:- | args], env) do
@@ -91,6 +91,16 @@ defmodule Dang.Eval do
 
   defp eval_term([:if | _] = if, env), do: eval_if(if, env)
 
+  defp eval_term([:print | args], env) do
+    {args, env} = eval_args(args, env)
+
+    args
+    |> Enum.map(&to_string/1)
+    |> IO.puts()
+
+    {nil, env}
+  end
+
   defp eval_term([func | args], env) do
     {{:fn, arg_names, body, captured_env}, env} = eval_term(func, env)
 
@@ -113,6 +123,8 @@ defmodule Dang.Eval do
   defp eval_term(name, env) when is_atom(name) do
     {Env.fetch!(env, name), env}
   end
+
+  defp eval_term(bin, env) when is_binary(bin), do: {bin, env}
 
   defp eval_cmp(_, [_]), do: true
 
@@ -176,4 +188,7 @@ defmodule Dang.Eval do
   end
 
   defp eval_if([], env), do: {nil, env}
+
+  defp add(b, a) when is_binary(a) and is_binary(b), do: a <> b
+  defp add(b, a), do: a + b
 end

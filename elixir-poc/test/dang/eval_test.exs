@@ -5,6 +5,8 @@ defmodule Dang.EvalTest do
 
   test "addition" do
     assert 5 = Eval.eval([[:+, 3, 2]])
+
+    assert "Hello, world!" = Eval.eval([[:+, "Hello,", " ", "world!"]])
   end
 
   test "variables" do
