@@ -40,4 +40,13 @@ defmodule Dang.ParserTest do
              (add 5 6)
              """)
   end
+
+  test "can parse a string" do
+    assert [
+             [:print, "Hello, world"]
+           ] =
+             Parser.parse("""
+             (print "Hello, world")
+             """)
+  end
 end
