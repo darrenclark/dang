@@ -29,4 +29,38 @@ defmodule Dang.EvalTest do
 
     assert 11 = Eval.eval(code)
   end
+
+  test "ifs" do
+    code = [
+      [:if, [:>, :x, 0], 1, :elseif, [:==, :x, 0], 0, :else, -1]
+    ]
+
+    assert 1 == Eval.eval(code, x: 5)
+    assert 1 == Eval.eval(code, x: 3)
+    assert 0 == Eval.eval(code, x: 0)
+    assert -1 == Eval.eval(code, x: -32)
+
+    code = [
+      [:if, [:>=, :x, 0], 42, :else, 21]
+    ]
+
+    assert 42 == Eval.eval(code, x: 90)
+    assert 42 == Eval.eval(code, x: 0)
+    assert 21 == Eval.eval(code, x: -23)
+
+    code = [
+      [:if, [:<=, :x, 0], 11]
+    ]
+
+    assert nil == Eval.eval(code, x: 90)
+    assert 11 == Eval.eval(code, x: 0)
+    assert 11 == Eval.eval(code, x: -23)
+  end
+
+  test "!= evaluation" do
+    assert true == Eval.eval([[:!=, 1, 3]])
+    assert false == Eval.eval([[:!=, 1, 1]])
+    assert false == Eval.eval([[:!=, 1, 3, 1]])
+    assert true == Eval.eval([[:!=, 1, 3, 5]])
+  end
 end

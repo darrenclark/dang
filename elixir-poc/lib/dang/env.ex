@@ -5,7 +5,7 @@ defmodule Dang.Env do
             locals: %{},
             scope: :global
 
-  def new, do: %Dang.Env{}
+  def new(bindings \\ []), do: %Dang.Env{globals: Map.new(bindings)}
 
   def put(%Env{scope: :global} = env, key, value) do
     %{env | globals: Map.put(env.globals, key, value)}

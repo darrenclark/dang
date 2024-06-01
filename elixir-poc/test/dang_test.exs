@@ -47,4 +47,12 @@ defmodule DangTest do
   test "can do math" do
     assert 5 == Dang.run("(- (/ (* (+ 1 3 2) 8) 4) 5 2)")
   end
+
+  test "if statements work" do
+    assert 9 ==
+             Dang.run("""
+             (let x 5)
+             (if (== x 5) 9 else 3)
+             """)
+  end
 end
