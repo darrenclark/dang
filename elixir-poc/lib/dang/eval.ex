@@ -74,6 +74,16 @@ defmodule Dang.Eval do
     {eval_cmp(cmp_op, args), env}
   end
 
+  defp eval_term([op | args], env) when op in [:and, :&&] do
+    {args, env} = eval_args(args, env)
+    {eval_and(args), env}
+  end
+
+  defp eval_term([op | args], env) when op in [:or, :||] do
+    {args, env} = eval_args(args, env)
+    {eval_or(args), env}
+  end
+
   defp eval_term([:let, name, val], env) when is_atom(name) do
     {val, env} = eval_term(val, env)
 
@@ -120,6 +130,10 @@ defmodule Dang.Eval do
 
   defp eval_term(x, env) when is_number(x), do: {x, env}
 
+  defp eval_term(atom, env) when atom in [nil, true, false] do
+    {atom, env}
+  end
+
   defp eval_term(name, env) when is_atom(name) do
     {Env.fetch!(env, name), env}
   end
@@ -162,6 +176,15 @@ defmodule Dang.Eval do
       _ -> true
     end
   end
+
+  defp eval_and([arg]), do: arg || false
+  defp eval_and([arg | rest]) when arg not in [nil, false], do: eval_and(rest)
+  defp eval_and([_arg | _rest]), do: false
+  defp eval_and([]), do: false
+
+  defp eval_or([arg | _rest]) when arg not in [nil, false], do: arg
+  defp eval_or([_arg | rest]), do: eval_or(rest)
+  defp eval_or([]), do: nil
 
   defp eval_if([:if, cond, body | rest], env) do
     {cond, env} = eval_term(cond, env)

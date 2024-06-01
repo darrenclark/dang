@@ -52,7 +52,8 @@ defmodule DangTest do
     assert 9 ==
              Dang.run("""
              (let x 5)
-             (if (== x 5) 9 else 3)
+             (let y 10)
+             (if (and (== x 5) (> y 7)) 9 else 3)
              """)
   end
 end

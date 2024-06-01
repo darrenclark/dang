@@ -28,8 +28,6 @@ defmodule Dang.Env do
   end
 
   def function_env(%Env{} = env, %Env{} = captured_env, args) do
-    %{captured_env |
-      globals: env.globals,
-      locals: Map.merge(captured_env.locals, args)}
+    %{captured_env | globals: env.globals, locals: Map.merge(captured_env.locals, args)}
   end
 end

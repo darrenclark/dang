@@ -65,4 +65,41 @@ defmodule Dang.EvalTest do
     assert false == Eval.eval([[:!=, 1, 3, 1]])
     assert true == Eval.eval([[:!=, 1, 3, 5]])
   end
+
+  test "special atoms evaluate to themselves" do
+    # (let returns it's value)
+    assert nil == Eval.eval([[:let, :x, nil]])
+    assert true == Eval.eval([[:let, :x, true]])
+    assert false == Eval.eval([[:let, :x, false]])
+  end
+
+  test "truthiness or falsiness" do
+    code = [
+      [:if, :input, 1, :else, 0]
+    ]
+
+    assert 1 == Eval.eval(code, input: true)
+    assert 0 == Eval.eval(code, input: false)
+    assert 0 == Eval.eval(code, input: nil)
+  end
+
+  test "|| returns the first truthy value, or nil" do
+    code = [
+      [:||, :a, :b, :c]
+    ]
+
+    assert true == Eval.eval(code, a: true, b: nil, c: false)
+    assert 1 == Eval.eval(code, a: false, b: nil, c: 1)
+    assert nil == Eval.eval(code, a: false, b: false, c: false)
+    assert "a" == Eval.eval(code, a: "a", b: "b", c: "c")
+  end
+
+  test "&& returns last truthy value, or false" do
+    code = [
+      [:&&, :a, :b, :c]
+    ]
+
+    assert "hello" == Eval.eval(code, a: true, b: "a", c: "hello")
+    assert false == Eval.eval(code, a: true, b: nil, c: "hello")
+  end
 end

@@ -1,7 +1,7 @@
 defmodule Dang.Builtins do
   def builtins do
     %{
-      :+ => {:builtin, :+},
+      :+ => {:builtin, :+}
     }
   end
 
