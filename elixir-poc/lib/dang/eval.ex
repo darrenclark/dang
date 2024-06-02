@@ -66,6 +66,11 @@ defmodule Dang.Eval do
     {{:fn, arg_names, body, Env.capture(env)}, env}
   end
 
+  defp eval_term([:do | body], env) do
+    result = eval(body, env)
+    {result, env}
+  end
+
   defp eval_term([:return, val], env) do
     {val, _env} = eval_term(val, env)
     throw({:return, val})

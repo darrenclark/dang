@@ -112,4 +112,12 @@ defmodule Dang.EvalTest do
 
     assert ["a", "b", 3] == Eval.eval(code, a: "a")
   end
+
+  test "do evaluates its body sequentially" do
+    code = [
+      [:do, [:let, :x, 5], [:let, :y, 9], [:*, :x, :y]]
+    ]
+
+    assert 45 = Eval.eval(code)
+  end
 end
