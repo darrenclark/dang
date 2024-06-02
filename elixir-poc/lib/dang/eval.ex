@@ -46,6 +46,11 @@ defmodule Dang.Eval do
     {args, env}
   end
 
+  defp eval_term([:list | args], env) do
+    {items, env} = eval_args(args, env)
+    {items, env}
+  end
+
   defp eval_term([:+ | args], env) do
     {args, env} = eval_args(args, env)
     {Enum.reduce(args, &add/2), env}
@@ -105,7 +110,7 @@ defmodule Dang.Eval do
     {args, env} = eval_args(args, env)
 
     args
-    |> Enum.map(&to_string/1)
+    |> Enum.map(&as_string/1)
     |> IO.puts()
 
     {nil, env}
@@ -213,5 +218,12 @@ defmodule Dang.Eval do
   defp eval_if([], env), do: {nil, env}
 
   defp add(b, a) when is_binary(a) and is_binary(b), do: a <> b
+  defp add(b, a) when is_list(a) and is_list(b), do: a ++ b
   defp add(b, a), do: a + b
+
+  defp as_string(list) when is_list(list) do
+    "[" <> (list |> Enum.map(&as_string/1) |> Enum.join(", ")) <> "]"
+  end
+
+  defp as_string(x), do: to_string(x)
 end

@@ -7,6 +7,8 @@ defmodule Dang.EvalTest do
     assert 5 = Eval.eval([[:+, 3, 2]])
 
     assert "Hello, world!" = Eval.eval([[:+, "Hello,", " ", "world!"]])
+
+    assert [1, 2, 3, 4] = Eval.eval([[:+, [:list, 1, 2], [:list, 3, 4]]])
   end
 
   test "variables" do
@@ -101,5 +103,13 @@ defmodule Dang.EvalTest do
 
     assert "hello" == Eval.eval(code, a: true, b: "a", c: "hello")
     assert false == Eval.eval(code, a: true, b: nil, c: "hello")
+  end
+
+  test "list returns a list" do
+    code = [
+      [:list, :a, "b", 3]
+    ]
+
+    assert ["a", "b", 3] == Eval.eval(code, a: "a")
   end
 end
