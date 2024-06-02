@@ -46,39 +46,6 @@ defmodule Dang.Eval do
     {args, env}
   end
 
-  defp eval_term([:list | args], env) do
-    {items, env} = eval_args(args, env)
-    {items, env}
-  end
-
-  defp eval_term([:+ | args], env) do
-    {args, env} = eval_args(args, env)
-    {Enum.reduce(args, &add/2), env}
-  end
-
-  defp eval_term([:- | args], env) do
-    {args, env} = eval_args(args, env)
-    {Enum.reduce(args, &(&2 - &1)), env}
-  end
-
-  defp eval_term([:* | args], env) do
-    {args, env} = eval_args(args, env)
-    {Enum.reduce(args, &(&2 * &1)), env}
-  end
-
-  defp eval_term([:/ | args], env) do
-    {args, env} = eval_args(args, env)
-    {Enum.reduce(args, &(&2 / &1)), env}
-  end
-
-  defp eval_term([cmp_op | args], env) when cmp_op in [:>, :>=, :<, :<=, :==, :!=] do
-    {args, env} = eval_args(args, env)
-
-    if length(args) <= 1, do: raise("expected at least 2 args for #{cmp_op}")
-
-    {eval_cmp(cmp_op, args), env}
-  end
-
   defp eval_term([op | args], env) when op in [:and, :&&] do
     {args, env} = eval_args(args, env)
     {eval_and(args), env}
@@ -106,31 +73,26 @@ defmodule Dang.Eval do
 
   defp eval_term([:if | _] = if, env), do: eval_if(if, env)
 
-  defp eval_term([:print | args], env) do
-    {args, env} = eval_args(args, env)
-
-    args
-    |> Enum.map(&as_string/1)
-    |> IO.puts()
-
-    {nil, env}
-  end
-
   defp eval_term([func | args], env) do
-    {{:fn, arg_names, body, captured_env}, env} = eval_term(func, env)
+    case eval_term(func, env) do
+      {{:fn, arg_names, body, captured_env}, env} ->
+        {args, env} = eval_args(args, env)
 
-    {args, env} = eval_args(args, env)
+        if length(arg_names) != length(args) do
+          raise """
+          Expected args: #{inspect(arg_names)}
+          Got args:      #{inspect(args)}
+          """
+        end
 
-    if length(arg_names) != length(args) do
-      raise """
-      Expected args: #{inspect(arg_names)}
-      Got args:      #{inspect(args)}
-      """
+        func_env = env |> Env.function_env(captured_env, Map.new(Enum.zip(arg_names, args)))
+        result = eval(body, func_env)
+        {result, env}
+      {{:builtin, mod, fun, extra_args}, env} ->
+        {args, env} = eval_args(args, env)
+        result = apply(mod, fun, [args | extra_args])
+        {result, env}
     end
-
-    func_env = env |> Env.function_env(captured_env, Map.new(Enum.zip(arg_names, args)))
-    result = eval(body, func_env)
-    {result, env}
   end
 
   defp eval_term(x, env) when is_number(x), do: {x, env}
@@ -144,43 +106,6 @@ defmodule Dang.Eval do
   end
 
   defp eval_term(bin, env) when is_binary(bin), do: {bin, env}
-
-  defp eval_cmp(_, [_]), do: true
-
-  defp eval_cmp(:>, [lhs, rhs | rest]) do
-    if lhs > rhs, do: eval_cmp(:>, [rhs | rest]), else: false
-  end
-
-  defp eval_cmp(:>=, [lhs, rhs | rest]) do
-    if lhs >= rhs, do: eval_cmp(:>=, [rhs | rest]), else: false
-  end
-
-  defp eval_cmp(:<, [lhs, rhs | rest]) do
-    if lhs < rhs, do: eval_cmp(:<, [rhs | rest]), else: false
-  end
-
-  defp eval_cmp(:<=, [lhs, rhs | rest]) do
-    if lhs <= rhs, do: eval_cmp(:<=, [rhs | rest]), else: false
-  end
-
-  defp eval_cmp(:==, [lhs, rhs | rest]) do
-    if lhs == rhs, do: eval_cmp(:==, [rhs | rest]), else: false
-  end
-
-  # != can't be evaluated by looking at each item and the next one
-  # because of cases like (!= 1 3 1), hence this extra logic
-
-  defp eval_cmp(:!=, [lhs, rhs]), do: lhs != rhs
-
-  defp eval_cmp(:!=, args) do
-    Enum.reduce_while(args, %{}, fn arg, acc ->
-      if Map.has_key?(acc, arg), do: {:halt, false}, else: {:cont, Map.put(acc, arg, nil)}
-    end)
-    |> case do
-      false -> false
-      _ -> true
-    end
-  end
 
   defp eval_and([arg]), do: arg || false
   defp eval_and([arg | rest]) when arg not in [nil, false], do: eval_and(rest)
@@ -216,14 +141,4 @@ defmodule Dang.Eval do
   end
 
   defp eval_if([], env), do: {nil, env}
-
-  defp add(b, a) when is_binary(a) and is_binary(b), do: a <> b
-  defp add(b, a) when is_list(a) and is_list(b), do: a ++ b
-  defp add(b, a), do: a + b
-
-  defp as_string(list) when is_list(list) do
-    "[" <> (list |> Enum.map(&as_string/1) |> Enum.join(", ")) <> "]"
-  end
-
-  defp as_string(x), do: to_string(x)
 end

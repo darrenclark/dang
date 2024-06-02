@@ -1,7 +1,8 @@
 defmodule Dang.Env do
   alias __MODULE__
 
-  defstruct globals: %{},
+  defstruct builtins: Dang.Builtins.builtins(),
+            globals: %{},
             locals: %{},
             scope: :global
 
@@ -19,11 +20,13 @@ defmodule Dang.Env do
     case env do
       %{locals: %{^key => val}} -> val
       %{globals: %{^key => val}} -> val
+      %{builtins: %{^key => val}} -> val
       _ -> raise "Variable #{inspect(key)} not found"
     end
   end
 
   def capture(%Env{} = env) do
+    # Globals aren't captured - they'll get patched in via function_env
     %{env | globals: %{}, scope: :local}
   end
 
