@@ -56,4 +56,19 @@ defmodule DangTest do
              (if (and (== x 5) (> y 7)) 9 else 3)
              """)
   end
+
+  test "can implement map" do
+    assert [1, 4, 9] ==
+             Dang.run("""
+             (let map (fn (enum func)
+               (let result (list))
+               (for x enum (do
+                 (set result (+ result (list (func x))))
+               ))
+               (return result)
+             ))
+
+             (map (list 1 2 3) (fn (x) (* x x)))
+             """)
+  end
 end

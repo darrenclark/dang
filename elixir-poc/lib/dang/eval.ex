@@ -62,13 +62,49 @@ defmodule Dang.Eval do
     {val, Env.put(env, name, val)}
   end
 
+  defp eval_term([:var, name, val], env) when is_atom(name) do
+    {val, env} = eval_term(val, env)
+
+    {val, Env.put(env, name, val)}
+  end
+
+  defp eval_term([:set, name, val], env) when is_atom(name) do
+    {val, env} = eval_term(val, env)
+
+    {val, Env.put(env, name, val)}
+  end
+
+  defp eval_term([:get, val], env) do
+    {val, env} = eval_term(val, env)
+    {val, env}
+  end
+
   defp eval_term([:fn, arg_names | body], env) do
     {{:fn, arg_names, body, Env.capture(env)}, env}
   end
 
+  defp eval_term([:for, elem_name, enum, body], env) do
+    {enum, env} = eval_term(enum, env)
+
+    len = Dang.Enum.len(enum)
+
+    if len > 0 do
+      env =
+        Enum.reduce(0..(len - 1), env, fn i, env ->
+          env = Dang.Env.put(env, elem_name, Dang.Enum.at(enum, i))
+          {_, env} = eval_term(body, env)
+          env
+        end)
+
+      {nil, env}
+    else
+      {nil, env}
+    end
+  end
+
   defp eval_term([:do | body], env) do
-    result = eval(body, env)
-    {result, env}
+    {result, env} = eval_args(body, env)
+    {List.last(result), env}
   end
 
   defp eval_term([:return, val], env) do
@@ -93,6 +129,7 @@ defmodule Dang.Eval do
         func_env = env |> Env.function_env(captured_env, Map.new(Enum.zip(arg_names, args)))
         result = eval(body, func_env)
         {result, env}
+
       {{:builtin, mod, fun, extra_args}, env} ->
         {args, env} = eval_args(args, env)
         result = apply(mod, fun, [args | extra_args])

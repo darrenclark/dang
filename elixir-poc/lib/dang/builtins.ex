@@ -21,7 +21,7 @@ defmodule Dang.Builtins do
       :last => {:builtin, __MODULE__, :last, []},
       :trim => {:builtin, __MODULE__, :trim, []},
       :split => {:builtin, __MODULE__, :split, []},
-      :readfile => {:builtin, __MODULE__, :readfile, []},
+      :readfile => {:builtin, __MODULE__, :readfile, []}
     }
   end
 
@@ -87,6 +87,7 @@ defmodule Dang.Builtins do
 
   def at([index, enum]) when is_integer(index) and is_enum(enum) do
     len = Dang.Enum.len(enum)
+
     if index >= 0 and index < len do
       Dang.Enum.at(enum, index)
     else
@@ -101,7 +102,7 @@ defmodule Dang.Builtins do
 
   def last([enum]) when is_enum(enum) do
     len = Dang.Enum.len(enum)
-    if len > 0, do: Dang.Enum.at(enum, len-1), else: nil
+    if len > 0, do: Dang.Enum.at(enum, len - 1), else: nil
   end
 
   def trim([str]) when is_binary(str), do: String.trim(str)

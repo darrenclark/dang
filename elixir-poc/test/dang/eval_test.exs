@@ -120,4 +120,14 @@ defmodule Dang.EvalTest do
 
     assert 45 = Eval.eval(code)
   end
+
+  test "for iterates over a list" do
+    code = [
+      [:var, :sum, 0],
+      [:for, :x, [:list, 1, 2, 3], [:set, :sum, [:+, :sum, :x]]],
+      [:get, :sum]
+    ]
+
+    assert 6 = Eval.eval(code)
+  end
 end
