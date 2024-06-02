@@ -12,10 +12,20 @@ defmodule Dang.Builtins do
       :< => {:builtin, __MODULE__, :cmp, [:<]},
       :== => {:builtin, __MODULE__, :cmp, [:==]},
       :!= => {:builtin, __MODULE__, :cmp_ne, []},
+      :int => {:builtin, __MODULE__, :int, []},
       :str => {:builtin, __MODULE__, :str, []},
       :print => {:builtin, __MODULE__, :print, []},
+      :len => {:builtin, __MODULE__, :len, []},
+      :at => {:builtin, __MODULE__, :at, []},
+      :first => {:builtin, __MODULE__, :first, []},
+      :last => {:builtin, __MODULE__, :last, []},
+      :trim => {:builtin, __MODULE__, :trim, []},
+      :split => {:builtin, __MODULE__, :split, []},
+      :readfile => {:builtin, __MODULE__, :readfile, []},
     }
   end
+
+  import Dang.Enum, only: [is_enum: 1]
 
   def add(args) do
     Enum.reduce(args, &add/2)
@@ -61,6 +71,10 @@ defmodule Dang.Builtins do
     nil
   end
 
+  def int([arg]) when is_binary(arg), do: String.to_integer(arg)
+  def int([arg]) when is_float(arg), do: round(arg)
+  def int([arg]) when is_integer(arg), do: arg
+
   def str([arg]), do: as_string(arg)
 
   defp as_string(list) when is_list(list) do
@@ -68,4 +82,31 @@ defmodule Dang.Builtins do
   end
 
   defp as_string(x), do: to_string(x)
+
+  def len([arg]) when is_enum(arg), do: Dang.Enum.len(arg)
+
+  def at([index, enum]) when is_integer(index) and is_enum(enum) do
+    len = Dang.Enum.len(enum)
+    if index >= 0 and index < len do
+      Dang.Enum.at(enum, index)
+    else
+      raise "index #{index} out of bounds of #{enum}"
+    end
+  end
+
+  def first([enum]) when is_enum(enum) do
+    len = Dang.Enum.len(enum)
+    if len > 0, do: Dang.Enum.at(enum, 0), else: nil
+  end
+
+  def last([enum]) when is_enum(enum) do
+    len = Dang.Enum.len(enum)
+    if len > 0, do: Dang.Enum.at(enum, len-1), else: nil
+  end
+
+  def trim([str]) when is_binary(str), do: String.trim(str)
+
+  def split([str, sep]) when is_binary(str), do: String.split(str, sep)
+
+  def readfile([path]) when is_binary(path), do: File.read!(path)
 end
