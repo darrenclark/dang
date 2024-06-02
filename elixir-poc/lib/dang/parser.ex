@@ -21,7 +21,10 @@ defmodule Dang.Parser do
     ignore(ascii_char([?"]))
     |> repeat(
       choice([
-        ignore(string("\\")) |> ascii_char([]),
+        string("\\n") |> replace("\n"),
+        string("\\t") |> replace("\t"),
+        string("\\\\") |> replace("\\"),
+        # TODO: support more escape sequences, error if invalid escape sequence
         ascii_char([{:not, ?"}])
       ])
     )

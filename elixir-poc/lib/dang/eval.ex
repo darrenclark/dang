@@ -112,6 +112,11 @@ defmodule Dang.Eval do
     throw({:return, val})
   end
 
+  defp eval_term([:raise, val], env) do
+    {val, _env} = eval_term(val, env)
+    raise val
+  end
+
   defp eval_term([:if | _] = if, env), do: eval_if(if, env)
 
   defp eval_term([func | args], env) do

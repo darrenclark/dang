@@ -130,4 +130,12 @@ defmodule Dang.EvalTest do
 
     assert 6 = Eval.eval(code)
   end
+
+  test "raise throws an error" do
+    code = [
+      [:raise, "boom"]
+    ]
+
+    assert catch_error(Eval.eval(code)) == %RuntimeError{message: "boom"}
+  end
 end

@@ -1,0 +1,47 @@
+(let map (fn (enum func)
+ (let result (list))
+ (for x enum (do
+   (set result (+ result (list (func x))))
+ ))
+ (return result)
+))
+
+(let reduce (fn (enum initial-acc func)
+ (let acc initial-acc)
+ (for x enum (do
+   (set acc (func x acc))
+ ))
+ (return acc)
+))
+
+(let filter (fn (enum func)
+ (let result (list))
+ (for x enum (do
+   (if (func x)
+     (set result (+ result (list x))))
+ ))
+ (return result)
+))
+
+(let is-digit? (fn (ch)
+  (return (&& (>= ch "0") (<= ch "9")))
+))
+
+
+(let input-path (first argv))
+(if (== input-path nil) (raise "Expected path to input as first arg"))
+
+(let input (readfile input-path))
+
+(var parsed (split input "\n"))
+(set parsed (filter parsed (fn (l) (> (len l) 0))))
+
+(let calibration-value (fn (line)
+  (let digits-only (filter line is-digit?))
+  (let value (+ (first digits-only) (last digits-only)))
+  (return (int value))
+))
+
+(let values (map parsed calibration-value))
+
+(print "Sum of calibration values: " (reduce values 0 +))

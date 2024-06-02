@@ -49,4 +49,10 @@ defmodule Dang.ParserTest do
              (print "Hello, world")
              """)
   end
+
+  test "parses escape sequences correctly" do
+    assert [
+      [:print, "alice\nbob"]
+    ] = Parser.parse(~s|(print "alice\\nbob")|)
+  end
 end

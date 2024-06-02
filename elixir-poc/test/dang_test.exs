@@ -71,4 +71,20 @@ defmodule DangTest do
              (map (list 1 2 3) (fn (x) (* x x)))
              """)
   end
+
+  test "can implement filter" do
+    assert [2, 3] ==
+             Dang.run("""
+             (let filter (fn (enum func)
+               (let result (list))
+               (for x enum (do
+                 (if (func x)
+                   (set result (+ result (list x))))
+               ))
+               (return result)
+             ))
+
+             (filter (list 1 2 3) (fn (x) (>= x 2)))
+             """)
+  end
 end
