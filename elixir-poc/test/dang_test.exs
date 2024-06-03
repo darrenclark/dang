@@ -87,4 +87,24 @@ defmodule DangTest do
              (filter (list 1 2 3) (fn (x) (>= x 2)))
              """)
   end
+
+  test "is? function" do
+    assert true == Dang.run("(is? (list 1 2 3) enum)")
+    assert false == Dang.run("(is? false enum)")
+    assert true == Dang.run("(is? (/ 3 2) number)")
+    assert false == Dang.run("(is? (/ 3 2) int)")
+    assert true == Dang.run("(is? (/ 3 2) float)")
+    assert false == Dang.run("(is? (/ 3 2) str)")
+    assert true == Dang.run("(is? \"hello\" str)")
+    assert true == Dang.run("(is? \"hello\" enum)")
+  end
+
+  test "implicit function returns" do
+    assert 11 =
+             Dang.run("""
+             (let add (fn (x y) (+ x y)))
+
+             (add 5 6)
+             """)
+  end
 end

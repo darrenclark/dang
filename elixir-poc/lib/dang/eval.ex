@@ -4,6 +4,7 @@ defmodule Dang.Eval do
   """
 
   alias Dang.Env
+  import Dang.Enum, only: [is_enum: 1]
 
   @doc """
   Evaluate an AST and return the result
@@ -110,6 +111,20 @@ defmodule Dang.Eval do
   defp eval_term([:return, val], env) do
     {val, _env} = eval_term(val, env)
     throw({:return, val})
+  end
+
+  defp eval_term([:is?, val, type], env) do
+    {val, env} = eval_term(val, env)
+
+    case type do
+      :str -> {is_binary(val), env}
+      :list -> {is_list(val), env}
+      :int -> {is_integer(val), env}
+      :float -> {is_float(val), env}
+      :number -> {is_number(val), env}
+      :enum -> {is_enum(val), env}
+      :atom -> {is_atom(val), env}
+    end
   end
 
   defp eval_term([:raise, val], env) do

@@ -34,3 +34,4 @@ mix escript.build && ./dang
 - Comparison short circuiting
 - Ensure `set` only mutates `var`s, not `let`
 - Ensure scoping works correctly with if & loops
+- Better enum interface (make it easier to implement map, filter ,etc.)
