@@ -24,9 +24,41 @@ module.exports = grammar({
   name: 'dang',
 
   rules: {
-    source_file: $ => repeat($._definition),
+    source_file: $ => repeat($._stmt),
 
-    _definition: $ => choice(
+    _stmt: $ => choice(
+      $._expr
+    ),
+
+    _expr: $ => choice(
+      $.function_call,
+      $.identifier,
+      $.string_literal,
+      $.number_literal
+    ),
+
+    identifier: $ => /[A-Za-z_?]+/,
+
+    function_call: $ => seq(
+      field('fun', $.identifier),
+      field('arg', $._arguments)
+    ),
+
+    _arguments: $ => seq(
+      '(',
+      optional(list_seq($._expr, ',')),
+      ')'
+    ),
+
+    string_literal: $ => seq(
+      '"',
+      repeat(token(prec(-1, /([^"`$\\\r\n]|\\(.|\r?\n))+/))),
+      '"'
+    ),
+
+    number_literal: $ => /\d+/,
+
+    /*_definition: $ => choice(
       $.let_stmt,
       $.var_stmt,
       $.assignment,
@@ -69,26 +101,11 @@ module.exports = grammar({
 
     nil: $ => 'nil',
 
-    identifier: $ => /[A-Za-z_?]+/,
 
     number: $ => /\d+/,
 
-    string: $ => seq(
-      '"',
-      repeat(token(prec(-1, /([^"`$\\\r\n]|\\(.|\r?\n))+/))),
-      '"'
-    ),
 
-    function_call: $ => seq(
-      field('function', $.identifier),
-      field('arguments', $.arguments)
-    ),
 
-    arguments: $ => seq(
-      '(',
-      optional(list_seq($.expression, ',')),
-      ')'
-    ),
 
     body: $ => seq(
       '{',
@@ -172,6 +189,6 @@ module.exports = grammar({
     //fn: $ => seq(
     //  'fn',
     //  '(',
-
+    */
   }
 });
