@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 tree-sitter = "~0.20.10"
 tree-sitter-dang = { path = "tree-sitter-dang" }
+rustyline = "14.0.0"
