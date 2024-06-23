@@ -1,24 +1,32 @@
+use dirs::home_dir;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
+const HISTORY_FILE: &str = ".dang_history";
+
 fn main() -> Result<()> {
+    let history_file = home_dir().map(|p| {
+        let mut path = p.clone();
+        path.push(HISTORY_FILE);
+        String::from(path.to_str().unwrap())
+    });
+
     let mut rl = DefaultEditor::new()?;
-    //if rl.load_history("history.txt").is_err() {
-    //    println!("No previous history.");
-    //}
+
+    if let Some(f) = &history_file {
+        let _ = rl.load_history(&f);
+    }
     loop {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                //rl.add_history_entry(line.as_str());
+                let _ = rl.add_history_entry(line.as_str());
                 print_tree(line);
             }
             Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
                 break;
             }
             Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
                 break;
             }
             Err(err) => {
@@ -27,7 +35,9 @@ fn main() -> Result<()> {
             }
         }
     }
-    //rl.save_history("history.txt");
+    if let Some(f) = &history_file {
+        rl.save_history(&f)?;
+    }
     Ok(())
 }
 
