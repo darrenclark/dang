@@ -3,6 +3,7 @@ mod dang_parser;
 use dang_parser::DangParser;
 use dang_parser::Rule;
 use dirs::home_dir;
+use pest::iterators::Pair;
 use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
@@ -26,7 +27,7 @@ fn main() -> Result<()> {
         match readline {
             Ok(line) => {
                 let _ = rl.add_history_entry(line.as_str());
-                print_tree(line);
+                handle_input(line);
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -46,7 +47,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn print_tree(line: String) {
+fn handle_input(line: String) {
     /*let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(tree_sitter_dang::language())
@@ -55,9 +56,24 @@ fn print_tree(line: String) {
     println!("{}", tree.root_node().to_sexp());*/
 
     let result = DangParser::parse(Rule::source_file, &line);
-    if result.is_err() {
-        println!("{}", result.unwrap_err());
+    if let Ok(pairs) = result {
+        pairs.for_each(|p| print_tree(p, 0));
     } else {
-        println!("{:?}", result);
+        println!("{:?}", result.unwrap_err());
     }
+}
+
+fn print_tree(pair: Pair<Rule>, depth: usize) {
+    if pair.as_rule() == Rule::EOI {
+        return;
+    }
+
+    println!(
+        "{:indent$}{:?}:  {}",
+        "",
+        pair.as_rule(),
+        pair.as_str(),
+        indent = depth * 2
+    );
+    pair.into_inner().for_each(|p| print_tree(p, depth + 1))
 }
