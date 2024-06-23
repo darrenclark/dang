@@ -1,4 +1,9 @@
+mod dang_parser;
+
+use dang_parser::DangParser;
+use dang_parser::Rule;
 use dirs::home_dir;
+use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
@@ -42,10 +47,17 @@ fn main() -> Result<()> {
 }
 
 fn print_tree(line: String) {
-    let mut parser = tree_sitter::Parser::new();
+    /*let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(tree_sitter_dang::language())
         .expect("Error loading dang grammar");
     let tree = parser.parse(line, None).unwrap();
-    println!("{}", tree.root_node().to_sexp());
+    println!("{}", tree.root_node().to_sexp());*/
+
+    let result = DangParser::parse(Rule::source_file, &line);
+    if result.is_err() {
+        println!("{}", result.unwrap_err());
+    } else {
+        println!("{:?}", result);
+    }
 }

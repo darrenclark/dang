@@ -1,0 +1,31 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+source_file = _{ SOI ~ "\n"* ~ (stmt ~ "\n"+) * ~ stmt? ~ EOI }
+
+identifier = @{ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
+
+stmt = _{ expr }
+
+expr = _{ function_call | identifier | string_literal | number_literal }
+
+function_call = { identifier ~ args }
+
+args = {
+  "(" ~ ")" |
+  "(" ~ expr ~ ("," ~ expr)* ~ ")"
+}
+
+string_literal = ${ "\"" ~ string_contents ~ "\"" }
+string_contents = @{ char* }
+char = _{
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+number_literal = @{
+    "-"?
+    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+    ~ ("." ~ ASCII_DIGIT*)?
+    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
