@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use pest::iterators::{Pair, Pairs};
-
-use crate::dang_parser::Rule;
+use crate::{ast::Node, ast::NodeKind};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -39,55 +37,35 @@ impl Context {
     }
 }
 
-pub fn interpret(pairs: Pairs<Rule>) -> Value {
+pub fn interpret(node: Node) -> Value {
     let mut context = Context::new();
-    let mut result = Value::Null;
-    for p in pairs {
-        if p.as_rule() == Rule::EOI {
-            break;
-        }
-        result = eval(&mut context, p)
-    }
-    result
+    eval(&mut context, &node)
 }
 
-fn eval(context: &mut Context, pair: Pair<Rule>) -> Value {
-    match pair.as_rule() {
-        Rule::EOI => panic!(),
-        Rule::WHITESPACE => panic!(),
-        Rule::source_file => panic!(),
-        Rule::identifier => match context.get(pair.as_str()) {
-            Some(v) => v.clone(),
-            None => panic!("no binding {}", pair.as_str()),
-        },
-        Rule::stmt => panic!(),
-        Rule::expr => panic!(),
-        Rule::function_call => {
-            let mut iter = pair.into_inner();
-            let func = eval(context, iter.next().unwrap());
-
+fn eval(context: &mut Context, node: &Node) -> Value {
+    match &node.kind {
+        NodeKind::SourceFile(children) => {
+            let mut result = Value::Null;
+            for n in children {
+                result = eval(context, n);
+            }
+            result
+        }
+        NodeKind::FunctionCall { function, args } => {
+            let func = eval(context, function.as_ref());
             if let Value::NativeFunc(name) = func {
-                let args = iter
-                    .next()
-                    .unwrap()
-                    .into_inner()
-                    .map(|p| eval(context, p))
-                    .collect();
-                native_call(name, args)
+                let evaled_args = args.iter().map(|n| eval(context, n)).collect();
+                native_call(name, evaled_args)
             } else {
                 panic!("tried to call a non-function value: {:?}", func)
             }
         }
-        Rule::args => panic!(),
-        Rule::string_literal => {
-            Value::String(String::from(pair.into_inner().next().unwrap().as_str()))
-        }
-        Rule::string_contents => panic!(),
-        Rule::char => panic!(),
-        Rule::number_literal => {
-            // TODO: integer_literal in grammar??
-            Value::Integer(pair.as_str().parse::<i64>().unwrap())
-        }
+        NodeKind::Identifier(name) => match context.get(name) {
+            Some(v) => v.clone(),
+            None => panic!("no binding {}", name),
+        },
+        NodeKind::StringLiteral(contents) => Value::String(contents.to_owned()),
+        NodeKind::IntegerLiteral(i) => Value::Integer(*i),
     }
 }
 

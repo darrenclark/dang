@@ -1,11 +1,9 @@
+mod ast;
 mod dang_parser;
 mod interpreter;
 
-use dang_parser::DangParser;
-use dang_parser::Rule;
 use dirs::home_dir;
 use interpreter::interpret;
-use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
@@ -56,7 +54,7 @@ fn handle_input(line: String) {
     let tree = parser.parse(line, None).unwrap();
     println!("{}", tree.root_node().to_sexp());*/
 
-    let result = DangParser::parse(Rule::source_file, &line);
+    let result = dang_parser::parse(&line);
     if let Ok(pairs) = result {
         let val = interpret(pairs);
         println!("{:?}", val);
