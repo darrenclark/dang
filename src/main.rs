@@ -1,9 +1,10 @@
 mod dang_parser;
+mod interpreter;
 
 use dang_parser::DangParser;
 use dang_parser::Rule;
 use dirs::home_dir;
-use pest::iterators::Pair;
+use interpreter::interpret;
 use pest::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
@@ -57,13 +58,14 @@ fn handle_input(line: String) {
 
     let result = DangParser::parse(Rule::source_file, &line);
     if let Ok(pairs) = result {
-        pairs.for_each(|p| print_tree(p, 0));
+        let val = interpret(pairs);
+        println!("{:?}", val);
     } else {
-        println!("{:?}", result.unwrap_err());
+        println!("{}", result.unwrap_err());
     }
 }
 
-fn print_tree(pair: Pair<Rule>, depth: usize) {
+/*fn print_tree(pair: Pair<Rule>, depth: usize) {
     if pair.as_rule() == Rule::EOI {
         return;
     }
@@ -76,4 +78,4 @@ fn print_tree(pair: Pair<Rule>, depth: usize) {
         indent = depth * 2
     );
     pair.into_inner().for_each(|p| print_tree(p, depth + 1))
-}
+}*/
