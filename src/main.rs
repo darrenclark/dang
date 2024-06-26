@@ -28,7 +28,7 @@ fn main() -> Result<()> {
 fn run_file(path: &std::path::PathBuf) -> Result<()> {
     let mut interpreter = Interpreter::new();
     let file = fs::read_to_string(path)?;
-    handle_input(&mut interpreter, file);
+    handle_input(&mut interpreter, file, false);
     Ok(())
 }
 
@@ -51,7 +51,7 @@ fn repl() -> Result<()> {
         match readline {
             Ok(line) => {
                 let _ = rl.add_history_entry(line.as_str());
-                handle_input(&mut interpreter, line);
+                handle_input(&mut interpreter, line, true);
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -71,7 +71,7 @@ fn repl() -> Result<()> {
     Ok(())
 }
 
-fn handle_input(interpreter: &mut Interpreter, line: String) {
+fn handle_input(interpreter: &mut Interpreter, line: String, print_result: bool) {
     /*let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(tree_sitter_dang::language())
@@ -82,7 +82,11 @@ fn handle_input(interpreter: &mut Interpreter, line: String) {
     let result = dang_parser::parse(&line);
     if let Ok(pairs) = result {
         match interpreter.eval(&pairs) {
-            Ok(value) => println!("{:?}", value),
+            Ok(value) => {
+                if print_result {
+                    println!("{:?}", value)
+                }
+            }
             Err(exception) => println!("{}", exception),
         }
     } else {

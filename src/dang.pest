@@ -1,6 +1,6 @@
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
-source_file = _{ SOI ~ "\n"* ~ (stmt ~ "\n"+) * ~ stmt? ~ EOI }
+source_file = _{ SOI ~ stmt* ~ EOI }
 
 identifier = @{ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
 

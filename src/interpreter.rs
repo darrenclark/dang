@@ -173,8 +173,10 @@ fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> 
     for v in args {
         if let Value::String(s) = v {
             print!("{}", s)
+        } else if let Value::Integer(i) = v {
+            print!("{}", i)
         } else {
-            exception!("print: arg is not a string: {:?}", v)
+            exception!("print: arg is not printable: {:?}", v)
         }
     }
 

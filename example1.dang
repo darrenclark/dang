@@ -1,2 +1,2 @@
 print("1 + 2 = ")
-print(add(1, 2))
+println(add(1, 2))
