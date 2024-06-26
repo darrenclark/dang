@@ -10,6 +10,14 @@ pub enum NodeKind {
         identifier: Box<Node>,
         expr: Box<Node>,
     },
+    Var {
+        identifier: Box<Node>,
+        expr: Box<Node>,
+    },
+    Assignment {
+        identifier: Box<Node>,
+        expr: Box<Node>,
+    },
     FunctionCall {
         function: Box<Node>,
         args: Vec<Node>,

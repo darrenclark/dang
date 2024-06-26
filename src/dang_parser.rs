@@ -39,6 +39,24 @@ fn to_ast(pair: Pair<Rule>) -> Option<Node> {
                 expr: Box::new(expr),
             })
         }
+        Rule::var_stmt => {
+            let mut iter = pair.into_inner();
+            let identifier = to_ast(iter.next().unwrap()).unwrap();
+            let expr = to_ast(iter.next().unwrap()).unwrap();
+            new_node(NodeKind::Var {
+                identifier: Box::new(identifier),
+                expr: Box::new(expr),
+            })
+        }
+        Rule::assignment => {
+            let mut iter = pair.into_inner();
+            let identifier = to_ast(iter.next().unwrap()).unwrap();
+            let expr = to_ast(iter.next().unwrap()).unwrap();
+            new_node(NodeKind::Assignment {
+                identifier: Box::new(identifier),
+                expr: Box::new(expr),
+            })
+        }
         Rule::expr => panic!(),
         Rule::function_call => {
             let mut iter = pair.into_inner();

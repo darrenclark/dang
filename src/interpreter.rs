@@ -28,29 +28,50 @@ impl Interpreter {
 }
 
 #[derive(Debug)]
+struct Variable {
+    value: Value,
+    mutable: bool,
+}
+
+#[derive(Debug)]
 struct Context {
-    bindings: HashMap<String, Value>,
+    variables: HashMap<String, Variable>,
 }
 
 impl Context {
     fn new() -> Context {
         let mut c = Context {
-            bindings: HashMap::new(),
+            variables: HashMap::new(),
         };
 
-        c.put("add", Value::NativeFunc("add"));
-        c.put("print", Value::NativeFunc("print"));
-        c.put("println", Value::NativeFunc("println"));
+        c.define("add", false, Value::NativeFunc("add"));
+        c.define("print", false, Value::NativeFunc("print"));
+        c.define("println", false, Value::NativeFunc("println"));
 
         c
     }
 
-    fn get(&self, binding: &str) -> Option<&Value> {
-        self.bindings.get(binding)
+    fn get(&self, name: &str) -> Option<&Value> {
+        self.variables.get(name).map(|v| &v.value)
     }
 
-    fn put(&mut self, binding: &str, value: Value) {
-        self.bindings.insert(String::from(binding), value);
+    fn define(&mut self, name: &str, mutable: bool, value: Value) {
+        if self.variables.contains_key(name) {
+            panic!("variable '{}' already defined", name)
+        }
+        self.variables
+            .insert(String::from(name), Variable { value, mutable });
+    }
+
+    fn assign(&mut self, name: &str, value: Value) {
+        if let Some(v) = self.variables.get_mut(name) {
+            if !v.mutable {
+                panic!("variable '{}' is not mutable", name)
+            }
+            v.value = value
+        } else {
+            panic!("variable '{}' is not defined", name)
+        }
     }
 }
 
@@ -66,7 +87,25 @@ fn eval(context: &mut Context, node: &Node) -> Value {
         NodeKind::Let { identifier, expr } => match &identifier.kind {
             NodeKind::Identifier(name) => {
                 let value = eval(context, expr);
-                context.put(name, value.clone());
+                context.define(name, false, value.clone());
+                value
+            }
+            _ => panic!(),
+        },
+        NodeKind::Var { identifier, expr } => match &identifier.kind {
+            NodeKind::Identifier(name) => {
+                // TODO: immutable vs mutable
+                let value = eval(context, expr);
+                context.define(name, true, value.clone());
+                value
+            }
+            _ => panic!(),
+        },
+        NodeKind::Assignment { identifier, expr } => match &identifier.kind {
+            NodeKind::Identifier(name) => {
+                // TODO: ensure value has been defined before
+                let value = eval(context, expr);
+                context.assign(name, value.clone());
                 value
             }
             _ => panic!(),
