@@ -10,3 +10,4 @@ rustyline = "14.0.0"
 dirs = "5.0.1"
 pest = "2.7.10"
 pest_derive = "2.7.10"
+clap = { version = "4.5.7", features = ["derive"] }

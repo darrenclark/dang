@@ -2,14 +2,37 @@ mod ast;
 mod dang_parser;
 mod interpreter;
 
+use std::fs;
+
+use clap::Parser;
 use dirs::home_dir;
 use interpreter::Interpreter;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
+#[derive(Parser)]
+struct Cli {
+    path: Option<std::path::PathBuf>,
+}
+
 const HISTORY_FILE: &str = ".dang_history";
 
 fn main() -> Result<()> {
+    let args = Cli::parse();
+    match args.path {
+        Some(path) => run_file(&path),
+        None => repl(),
+    }
+}
+
+fn run_file(path: &std::path::PathBuf) -> Result<()> {
+    let mut interpreter = Interpreter::new();
+    let file = fs::read_to_string(path)?;
+    handle_input(&mut interpreter, file);
+    Ok(())
+}
+
+fn repl() -> Result<()> {
     let mut interpreter = Interpreter::new();
 
     let history_file = home_dir().map(|p| {
