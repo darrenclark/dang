@@ -1,6 +1,23 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use crate::{ast::Node, ast::NodeKind};
+
+#[derive(Debug)]
+pub struct Exception {
+    message: String,
+}
+
+impl fmt::Display for Exception {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "exception: {}", self.message)
+    }
+}
+
+macro_rules! exception {
+    ($($arg:tt)*) => {
+        return Err(Exception { message: format!($($arg)*) })
+    };
+}
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -22,7 +39,7 @@ impl Interpreter {
         }
     }
 
-    pub fn eval(&mut self, node: &Node) -> Value {
+    pub fn eval(&mut self, node: &Node) -> Result<Value, Exception> {
         eval(&mut self.context, node)
     }
 }
@@ -44,9 +61,9 @@ impl Context {
             variables: HashMap::new(),
         };
 
-        c.define("add", false, Value::NativeFunc("add"));
-        c.define("print", false, Value::NativeFunc("print"));
-        c.define("println", false, Value::NativeFunc("println"));
+        let _ = c.define("add", false, Value::NativeFunc("add"));
+        let _ = c.define("print", false, Value::NativeFunc("print"));
+        let _ = c.define("println", false, Value::NativeFunc("println"));
 
         c
     }
@@ -55,109 +72,109 @@ impl Context {
         self.variables.get(name).map(|v| &v.value)
     }
 
-    fn define(&mut self, name: &str, mutable: bool, value: Value) {
+    fn define(&mut self, name: &str, mutable: bool, value: Value) -> Result<(), Exception> {
         if self.variables.contains_key(name) {
-            panic!("variable '{}' already defined", name)
+            exception!("variable '{}' already defined", name)
         }
         self.variables
             .insert(String::from(name), Variable { value, mutable });
+        Ok(())
     }
 
-    fn assign(&mut self, name: &str, value: Value) {
+    fn assign(&mut self, name: &str, value: Value) -> Result<(), Exception> {
         if let Some(v) = self.variables.get_mut(name) {
             if !v.mutable {
-                panic!("variable '{}' is not mutable", name)
+                exception!("variable '{}' is not mutable", name)
             }
-            v.value = value
+            v.value = value;
+            Ok(())
         } else {
-            panic!("variable '{}' is not defined", name)
+            exception!("variable '{}' is not defined", name)
         }
     }
 }
 
-fn eval(context: &mut Context, node: &Node) -> Value {
+fn eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
     match &node.kind {
         NodeKind::SourceFile(children) => {
             let mut result = Value::Null;
             for n in children {
-                result = eval(context, n);
+                result = eval(context, n)?
             }
-            result
+            Ok(result)
         }
         NodeKind::Let { identifier, expr } => match &identifier.kind {
             NodeKind::Identifier(name) => {
-                let value = eval(context, expr);
-                context.define(name, false, value.clone());
-                value
+                let value = eval(context, expr)?;
+                context.define(name, false, value.clone())?;
+                Ok(value)
             }
             _ => panic!(),
         },
         NodeKind::Var { identifier, expr } => match &identifier.kind {
             NodeKind::Identifier(name) => {
-                // TODO: immutable vs mutable
-                let value = eval(context, expr);
-                context.define(name, true, value.clone());
-                value
+                let value = eval(context, expr)?;
+                context.define(name, true, value.clone())?;
+                Ok(value)
             }
             _ => panic!(),
         },
         NodeKind::Assignment { identifier, expr } => match &identifier.kind {
             NodeKind::Identifier(name) => {
-                // TODO: ensure value has been defined before
-                let value = eval(context, expr);
-                context.assign(name, value.clone());
-                value
+                let value = eval(context, expr)?;
+                context.assign(name, value.clone())?;
+                Ok(value)
             }
             _ => panic!(),
         },
         NodeKind::FunctionCall { function, args } => {
-            let func = eval(context, function.as_ref());
+            let func = eval(context, function.as_ref())?;
             if let Value::NativeFunc(name) = func {
-                let evaled_args = args.iter().map(|n| eval(context, n)).collect();
+                let mut evaled_args = Vec::with_capacity(args.len());
+                for n in args {
+                    evaled_args.push(eval(context, n)?)
+                }
                 native_call(name, evaled_args)
             } else {
-                panic!("tried to call a non-function value: {:?}", func)
+                exception!("tried to call a non-function value: {:?}", func)
             }
         }
         NodeKind::Identifier(name) => match context.get(name) {
-            Some(v) => v.clone(),
-            None => panic!("no binding {}", name),
+            Some(v) => Ok(v.clone()),
+            None => exception!("no binding {}", name),
         },
-        NodeKind::StringLiteral(contents) => Value::String(contents.to_owned()),
-        NodeKind::IntegerLiteral(i) => Value::Integer(*i),
+        NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
+        NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
     }
 }
 
-fn native_call(name: &str, args: Vec<Value>) -> Value {
+fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {
     match name {
         "add" => native_call_add(&args),
         "print" => native_call_print(&args, false),
         "println" => native_call_print(&args, true),
-        _ => panic!("native function '{}' not found", name),
+        _ => exception!("native function '{}' not found", name),
     }
 }
 
-fn native_call_add(args: &[Value]) -> Value {
-    let sum = args
-        .iter()
-        .map(|v| {
-            if let Value::Integer(int) = v {
-                int
-            } else {
-                panic!("add: arg is not a number: {:?}", v)
-            }
-        })
-        .sum();
+fn native_call_add(args: &[Value]) -> Result<Value, Exception> {
+    let sum = args.iter().try_fold(0, |acc, v| {
+        if let Value::Integer(int) = v {
+            Ok(acc + int)
+        } else {
+            exception!("add: arg is not a number: {:?}", v)
+        }
+    })?;
 
-    Value::Integer(sum)
+    Ok(Value::Integer(sum))
 }
 
-fn native_call_print(args: &[Value], newline: bool) -> Value {
+fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> {
     for v in args {
         if let Value::String(s) = v {
             print!("{}", s)
         } else {
-            panic!("print: arg is not a string: {:?}", v)
+            exception!("print: arg is not a string: {:?}", v)
         }
     }
 
@@ -165,5 +182,5 @@ fn native_call_print(args: &[Value], newline: bool) -> Value {
         println!();
     }
 
-    Value::Null
+    Ok(Value::Null)
 }

@@ -58,8 +58,10 @@ fn handle_input(interpreter: &mut Interpreter, line: String) {
 
     let result = dang_parser::parse(&line);
     if let Ok(pairs) = result {
-        let val = interpreter.eval(&pairs);
-        println!("{:?}", val);
+        match interpreter.eval(&pairs) {
+            Ok(value) => println!("{:?}", value),
+            Err(exception) => println!("{}", exception),
+        }
     } else {
         println!("{}", result.unwrap_err());
     }
