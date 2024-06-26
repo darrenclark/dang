@@ -4,7 +4,9 @@ source_file = _{ SOI ~ "\n"* ~ (stmt ~ "\n"+) * ~ stmt? ~ EOI }
 
 identifier = @{ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
 
-stmt = _{ expr }
+stmt = _{ let_stmt | expr }
+
+let_stmt = { "let" ~ identifier ~ "=" ~ expr }
 
 expr = _{ function_call | identifier | string_literal | number_literal }
 

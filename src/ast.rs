@@ -6,6 +6,10 @@ pub struct Node {
 #[derive(Clone, Debug)]
 pub enum NodeKind {
     SourceFile(Vec<Node>),
+    Let {
+        identifier: Box<Node>,
+        expr: Box<Node>,
+    },
     FunctionCall {
         function: Box<Node>,
         args: Vec<Node>,

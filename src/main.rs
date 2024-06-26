@@ -3,13 +3,15 @@ mod dang_parser;
 mod interpreter;
 
 use dirs::home_dir;
-use interpreter::interpret;
+use interpreter::Interpreter;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
 const HISTORY_FILE: &str = ".dang_history";
 
 fn main() -> Result<()> {
+    let mut interpreter = Interpreter::new();
+
     let history_file = home_dir().map(|p| {
         let mut path = p.clone();
         path.push(HISTORY_FILE);
@@ -26,7 +28,7 @@ fn main() -> Result<()> {
         match readline {
             Ok(line) => {
                 let _ = rl.add_history_entry(line.as_str());
-                handle_input(line);
+                handle_input(&mut interpreter, line);
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -46,7 +48,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn handle_input(line: String) {
+fn handle_input(interpreter: &mut Interpreter, line: String) {
     /*let mut parser = tree_sitter::Parser::new();
     parser
         .set_language(tree_sitter_dang::language())
@@ -56,7 +58,7 @@ fn handle_input(line: String) {
 
     let result = dang_parser::parse(&line);
     if let Ok(pairs) = result {
-        let val = interpret(pairs);
+        let val = interpreter.eval(&pairs);
         println!("{:?}", val);
     } else {
         println!("{}", result.unwrap_err());

@@ -30,6 +30,15 @@ fn to_ast(pair: Pair<Rule>) -> Option<Node> {
         Rule::source_file => panic!(),
         Rule::identifier => new_node(NodeKind::Identifier(String::from(pair.as_str()))),
         Rule::stmt => panic!(),
+        Rule::let_stmt => {
+            let mut iter = pair.into_inner();
+            let identifier = to_ast(iter.next().unwrap()).unwrap();
+            let expr = to_ast(iter.next().unwrap()).unwrap();
+            new_node(NodeKind::Let {
+                identifier: Box::new(identifier),
+                expr: Box::new(expr),
+            })
+        }
         Rule::expr => panic!(),
         Rule::function_call => {
             let mut iter = pair.into_inner();

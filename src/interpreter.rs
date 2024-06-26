@@ -11,6 +11,23 @@ pub enum Value {
 }
 
 #[derive(Debug)]
+pub struct Interpreter {
+    context: Context,
+}
+
+impl Interpreter {
+    pub fn new() -> Interpreter {
+        Interpreter {
+            context: Context::new(),
+        }
+    }
+
+    pub fn eval(&mut self, node: &Node) -> Value {
+        eval(&mut self.context, node)
+    }
+}
+
+#[derive(Debug)]
 struct Context {
     bindings: HashMap<String, Value>,
 }
@@ -37,11 +54,6 @@ impl Context {
     }
 }
 
-pub fn interpret(node: Node) -> Value {
-    let mut context = Context::new();
-    eval(&mut context, &node)
-}
-
 fn eval(context: &mut Context, node: &Node) -> Value {
     match &node.kind {
         NodeKind::SourceFile(children) => {
@@ -51,6 +63,14 @@ fn eval(context: &mut Context, node: &Node) -> Value {
             }
             result
         }
+        NodeKind::Let { identifier, expr } => match &identifier.kind {
+            NodeKind::Identifier(name) => {
+                let value = eval(context, expr);
+                context.put(name, value.clone());
+                value
+            }
+            _ => panic!(),
+        },
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref());
             if let Value::NativeFunc(name) = func {
