@@ -33,7 +33,7 @@ fn run_file(path: &std::path::PathBuf) -> Result<()> {
 }
 
 fn repl() -> Result<()> {
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new_repl();
 
     let history_file = home_dir().map(|p| {
         let mut path = p.clone();

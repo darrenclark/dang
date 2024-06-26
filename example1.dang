@@ -1,2 +1,6 @@
+let x = 1
+let y = 2
+let z = add(x, y)
+
 print("1 + 2 = ")
-println(add(1, 2))
+println(z)

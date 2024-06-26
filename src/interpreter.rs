@@ -35,7 +35,13 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
-            context: Context::new(),
+            context: Context::new(false),
+        }
+    }
+
+    pub fn new_repl() -> Interpreter {
+        Interpreter {
+            context: Context::new(true),
         }
     }
 
@@ -53,12 +59,15 @@ struct Variable {
 #[derive(Debug)]
 struct Context {
     variables: HashMap<String, Variable>,
+    /// Can variables be redefined?  Used in REPL for ergonomics.
+    allow_redefinition: bool,
 }
 
 impl Context {
-    fn new() -> Context {
+    fn new(allow_redefinition: bool) -> Context {
         let mut c = Context {
             variables: HashMap::new(),
+            allow_redefinition,
         };
 
         let _ = c.define("add", false, Value::NativeFunc("add"));
@@ -73,7 +82,7 @@ impl Context {
     }
 
     fn define(&mut self, name: &str, mutable: bool, value: Value) -> Result<(), Exception> {
-        if self.variables.contains_key(name) {
+        if self.variables.contains_key(name) && !self.allow_redefinition {
             exception!("variable '{}' already defined", name)
         }
         self.variables
