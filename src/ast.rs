@@ -1,6 +1,16 @@
+use std::rc::Rc;
+
 #[derive(Clone, Debug)]
 pub struct Node {
     pub kind: NodeKind,
+    pub source: Source,
+}
+
+#[derive(Clone, Debug)]
+pub struct Source {
+    pub file: Rc<String>,
+    pub line: usize,
+    pub col: usize,
 }
 
 #[derive(Clone, Debug)]

@@ -1,21 +1,29 @@
 use std::{collections::HashMap, fmt};
 
-use crate::{ast::Node, ast::NodeKind};
+use crate::ast::{Node, NodeKind, Source};
 
 #[derive(Debug)]
 pub struct Exception {
+    source: Option<Source>,
     message: String,
 }
 
 impl fmt::Display for Exception {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "exception: {}", self.message)
+        match &self.source {
+            Some(source) => write!(
+                f,
+                "exception at {}:{}:{}: {}",
+                source.file, source.line, source.col, self.message
+            ),
+            None => write!(f, "exception: {}", self.message),
+        }
     }
 }
 
 macro_rules! exception {
     ($($arg:tt)*) => {
-        return Err(Exception { message: format!($($arg)*) })
+        return Err(Exception { source: None, message: format!($($arg)*) })
     };
 }
 
@@ -104,6 +112,15 @@ impl Context {
 }
 
 fn eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
+    do_eval(context, node).map_err(|mut exception| {
+        if exception.source.is_none() {
+            exception.source = Some(node.source.clone())
+        }
+        exception
+    })
+}
+
+fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
     match &node.kind {
         NodeKind::SourceFile(children) => {
             let mut result = Value::Null;
