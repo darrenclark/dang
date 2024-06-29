@@ -140,11 +140,19 @@ fn print_tree(pair: Pair<Rule>, depth: usize) {
         return;
     }
 
+    let s = pair.as_str().lines().next().unwrap_or("");
+
+    let t = pair
+        .as_node_tag()
+        .map(|t| format!("[{}] ", t))
+        .unwrap_or("".to_owned());
+
     println!(
-        "{:indent$}{:?}:  {}",
+        "{:indent$}{}{:?}:  {}",
         "",
+        t,
         pair.as_rule(),
-        pair.as_str(),
+        s,
         indent = depth * 2
     );
     pair.into_inner().for_each(|p| print_tree(p, depth + 1))

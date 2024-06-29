@@ -1,0 +1,31 @@
+let a = true
+let b = false
+let c = true
+let d = false
+
+if a {
+  println("a was true")
+}
+
+if b {
+  println("ERROR: should not have taken branch")
+} else {
+  println("b was false")
+}
+
+if b {
+  println("ERROR: should not have taken branch")
+} else if c {
+  println("c was true")
+} else {
+  println("ERROR: should not have taken branch")
+}
+
+if b {
+  println("ERROR: should not have taken branch")
+} else if d {
+  println("ERROR: should not have taken branch")
+} else {
+  println("neither b or d were true")
+}
+

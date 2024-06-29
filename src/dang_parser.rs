@@ -59,6 +59,10 @@ impl ToAst {
             Rule::EOI => None,
             Rule::WHITESPACE => panic!(),
             Rule::source_file => panic!(),
+            Rule::body => {
+                let body: Vec<Node> = pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
+                self.new_node(line_col, NodeKind::Body(body))
+            }
             Rule::identifier => {
                 self.new_node(line_col, NodeKind::Identifier(String::from(pair.as_str())))
             }
@@ -96,6 +100,20 @@ impl ToAst {
                     NodeKind::Assignment {
                         identifier: Box::new(identifier),
                         expr: Box::new(expr),
+                    },
+                )
+            }
+            Rule::if_stmt => {
+                let mut iter = pair.into_inner();
+                let condition = self.to_ast(iter.next().unwrap()).unwrap();
+                let body = self.to_ast(iter.next().unwrap()).unwrap();
+                let else_branch = iter.next().map(|p| self.to_ast(p).unwrap());
+                self.new_node(
+                    line_col,
+                    NodeKind::If {
+                        condition: Box::new(condition),
+                        body: Box::new(body),
+                        else_branch: else_branch.map(Box::new),
                     },
                 )
             }

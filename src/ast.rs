@@ -17,6 +17,7 @@ pub struct Source {
 #[derive(Clone, Debug)]
 pub enum NodeKind {
     SourceFile(Vec<Node>),
+    Body(Vec<Node>),
     Let {
         identifier: Box<Node>,
         expr: Box<Node>,
@@ -28,6 +29,11 @@ pub enum NodeKind {
     Assignment {
         identifier: Box<Node>,
         expr: Box<Node>,
+    },
+    If {
+        condition: Box<Node>,
+        body: Box<Node>,
+        else_branch: Option<Box<Node>>,
     },
     FunctionLiteral {
         arg_names: Vec<Node>,
@@ -80,6 +86,12 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
                 fmt_node(n, depth + 1, "", f)?;
             }
         }
+        NodeKind::Body(nodes) => {
+            writeln!(f, "Body:")?;
+            for n in nodes {
+                fmt_node(n, depth + 1, "", f)?;
+            }
+        }
         NodeKind::Let { identifier, expr } => {
             writeln!(f, "Let:")?;
             fmt_node(identifier, depth + 1, "name", f)?;
@@ -94,6 +106,18 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             writeln!(f, "Assignment:")?;
             fmt_node(identifier, depth + 1, "name", f)?;
             fmt_node(expr, depth + 1, "value", f)?;
+        }
+        NodeKind::If {
+            condition,
+            body,
+            else_branch,
+        } => {
+            writeln!(f, "If:")?;
+            fmt_node(condition, depth + 1, "cond", f)?;
+            fmt_node(body, depth + 1, "body", f)?;
+            if let Some(else_branch) = else_branch {
+                fmt_node(else_branch, depth + 1, "else", f)?;
+            }
         }
         NodeKind::FunctionLiteral { arg_names, body } => {
             writeln!(f, "FunctionLiteral:")?;

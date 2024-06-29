@@ -3,6 +3,8 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
 source_file = _{ SOI ~ stmt* ~ EOI }
 
+body = { "{" ~ stmt* ~ "}" }
+
 keywords = {
   "false" |
   "fn" |
@@ -13,11 +15,17 @@ keywords = {
 
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
 
-stmt = _{ let_stmt | var_stmt | assignment | expr }
+stmt = _{ let_stmt | var_stmt | assignment | if_stmt | expr }
 
 let_stmt = { "let" ~ identifier ~ "=" ~ expr }
 var_stmt = { "var" ~ identifier ~ "=" ~ expr }
 assignment = { identifier ~ "=" ~ expr }
+if_stmt = {
+  "if" ~
+  #cond = expr ~
+  #if_body = body ~
+  ( "else" ~ ( #else_if = if_stmt | #else_body = body ) )?
+}
 
 expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
   infix    =  _{ add | sub | mul | div }

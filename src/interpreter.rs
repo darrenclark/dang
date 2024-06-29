@@ -36,6 +36,15 @@ pub enum Value {
     NativeFunc(&'static str),
     Func { function_literal: Rc<Node> },
 }
+impl Value {
+    fn truthy(&self) -> bool {
+        match self {
+            Self::Null => false,
+            Self::Bool(v) => *v,
+            _ => true,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Interpreter {
@@ -172,6 +181,13 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             }
             Ok(result)
         }
+        NodeKind::Body(children) => {
+            let mut result = Value::Null;
+            for n in children {
+                result = eval(context, n)?
+            }
+            Ok(result)
+        }
         NodeKind::Let { identifier, expr } => match &identifier.kind {
             NodeKind::Identifier(name) => {
                 let value = eval(context, expr)?;
@@ -196,6 +212,20 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             }
             _ => panic!(),
         },
+        NodeKind::If {
+            condition,
+            body,
+            else_branch,
+        } => {
+            let c = eval(context, condition)?;
+            if c.truthy() {
+                eval(context, body)
+            } else if let Some(else_branch) = else_branch {
+                eval(context, else_branch)
+            } else {
+                Ok(Value::Null)
+            }
+        }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;
             if let Value::NativeFunc(name) = func {
