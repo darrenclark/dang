@@ -48,7 +48,7 @@ impl PartialOrd for FunctionLiteralRc {
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum Value {
-    Null,
+    Nil,
     Bool(bool),
     String(String),
     Integer(i64),
@@ -59,7 +59,7 @@ pub enum Value {
 impl Value {
     fn truthy(&self) -> bool {
         match self {
-            Self::Null => false,
+            Self::Nil => false,
             Self::Bool(v) => *v,
             _ => true,
         }
@@ -195,14 +195,14 @@ fn eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
 fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
     match &node.kind {
         NodeKind::SourceFile(children) => {
-            let mut result = Value::Null;
+            let mut result = Value::Nil;
             for n in children {
                 result = eval(context, n)?
             }
             Ok(result)
         }
         NodeKind::Body(children) => {
-            let mut result = Value::Null;
+            let mut result = Value::Nil;
             for n in children {
                 result = eval(context, n)?
             }
@@ -243,7 +243,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             } else if let Some(else_branch) = else_branch {
                 eval(context, else_branch)
             } else {
-                Ok(Value::Null)
+                Ok(Value::Nil)
             }
         }
         NodeKind::FunctionCall { function, args } => {
@@ -268,6 +268,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             Some(v) => Ok(v.clone()),
             None => exception!("no binding {}", name),
         },
+        NodeKind::NilLiteral => Ok(Value::Nil),
         NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
         NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
         NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
@@ -315,7 +316,7 @@ fn inner_call(
         context.define(name, false, value.clone())?;
     }
 
-    let mut result = Value::Null;
+    let mut result = Value::Nil;
 
     for n in body {
         result = eval(context, n)?;
@@ -360,7 +361,7 @@ fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> 
         println!();
     }
 
-    Ok(Value::Null)
+    Ok(Value::Nil)
 }
 
 fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {

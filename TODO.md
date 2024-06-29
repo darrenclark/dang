@@ -2,7 +2,6 @@
 
 ## ./aoc2023day1.dang
 
-- Nil literal
 - Arrays
 - Enumeration
 - Built in functions:

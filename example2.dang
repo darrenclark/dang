@@ -1,6 +1,7 @@
 let a = 11
 let b = false
 let c = "g"
+let d = nil
 
 if a > 5 {
   println("a is > 5")

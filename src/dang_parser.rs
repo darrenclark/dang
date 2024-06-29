@@ -296,6 +296,7 @@ impl ToAst {
                 line_col,
                 NodeKind::BoolLiteral(pair.as_str().parse::<bool>().unwrap()),
             ),
+            Rule::nil_literal => self.new_node(line_col, NodeKind::NilLiteral),
             _ => todo!(),
         }
     }
