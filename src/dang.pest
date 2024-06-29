@@ -21,7 +21,14 @@ expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
     neg    =   { "-" } // Negation
   primary  =  _{ term | "(" ~ expr ~ ")" }
 
-term = _{ function_call | identifier | string_literal | number_literal }
+term = _{ function_literal | function_call | identifier | string_literal | number_literal }
+
+function_literal = { "fn" ~ arg_names ~ "{" ~ stmt* ~ "}" }
+
+arg_names = {
+  "(" ~ ")" |
+  "(" ~ identifier ~ ("," ~ identifier)* ~ ")"
+}
 
 function_call = { identifier ~ args }
 

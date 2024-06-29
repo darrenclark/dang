@@ -145,6 +145,19 @@ impl ToAst {
                     })
                     .parse(pair.into_inner())
             }
+            Rule::function_literal => {
+                let mut iter = pair.into_inner();
+                let arg_names: Vec<Node> = iter
+                    .next()
+                    .unwrap()
+                    .into_inner()
+                    .filter_map(|p| self.to_ast(p))
+                    .collect();
+
+                let body: Vec<Node> = iter.filter_map(|p| self.to_ast(p)).collect();
+
+                self.new_node(line_col, NodeKind::FunctionLiteral { arg_names, body })
+            }
             Rule::function_call => {
                 let mut iter = pair.into_inner();
                 let func = self.to_ast(iter.next().unwrap()).unwrap();

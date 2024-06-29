@@ -3,5 +3,9 @@ let x = 1
 let y = 2
 let z = -w + x + y * 3
 
-print("-10 + 1 + 2 * 3 = ")
-println(z)
+let output = fn(result) {
+  print("-10 + 1 + 2 * 3 = ")
+  println(result)
+}
+
+result(z)

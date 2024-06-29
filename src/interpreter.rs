@@ -176,6 +176,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::Mul { lhs, rhs } => mul_values(eval(context, lhs)?, eval(context, rhs)?),
         NodeKind::Div { lhs, rhs } => div_values(eval(context, lhs)?, eval(context, rhs)?),
         NodeKind::Negate { rhs } => negate_value(eval(context, rhs)?),
+        NodeKind::FunctionLiteral { arg_names, body } => todo!(),
     }
 }
 
