@@ -35,8 +35,6 @@ fn create_pratt_parser() -> PrattParser<Rule> {
     PrattParser::new()
         .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
         .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left))
-        .op(Op::infix(Rule::pow, Assoc::Right))
-        .op(Op::postfix(Rule::fac))
         .op(Op::prefix(Rule::neg))
 }
 
@@ -103,18 +101,14 @@ impl ToAst {
             }
             Rule::expr => {
                 self.pratt
-                    /*.map_primary(|primary| match primary.as_rule() {
-                        Rule::int => primary.as_str().parse().unwrap(),
-                        Rule::expr => parse_expr(primary.into_inner(), pratt), // from "(" ~ expr ~ ")"
-                        _ => unreachable!(),
-                    })*/
                     .map_primary(|primary| self.to_ast(primary))
-                    .map_prefix(|op, _rhs| match op.as_rule() {
-                        //Rule::neg => -rhs,
-                        _ => unreachable!(),
-                    })
-                    .map_postfix(|_lhs, op| match op.as_rule() {
-                        //Rule::fac => (1..lhs + 1).product(),
+                    .map_prefix(|op, rhs| match op.as_rule() {
+                        Rule::neg => self.new_node(
+                            op.line_col(),
+                            NodeKind::Negate {
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
                         _ => unreachable!(),
                     })
                     .map_infix(|lhs, op, rhs| match op.as_rule() {

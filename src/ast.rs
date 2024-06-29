@@ -52,6 +52,9 @@ pub enum NodeKind {
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
+    Negate {
+        rhs: Box<Node>,
+    },
 }
 
 impl fmt::Debug for Node {
@@ -121,6 +124,10 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         NodeKind::Div { lhs, rhs } => {
             writeln!(f, "Div:")?;
             fmt_node(lhs, depth + 1, "", f)?;
+            fmt_node(rhs, depth + 1, "", f)?;
+        }
+        NodeKind::Negate { rhs } => {
+            writeln!(f, "Negate:")?;
             fmt_node(rhs, depth + 1, "", f)?;
         }
     }

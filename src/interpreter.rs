@@ -175,6 +175,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::Sub { lhs, rhs } => sub_values(eval(context, lhs)?, eval(context, rhs)?),
         NodeKind::Mul { lhs, rhs } => mul_values(eval(context, lhs)?, eval(context, rhs)?),
         NodeKind::Div { lhs, rhs } => div_values(eval(context, lhs)?, eval(context, rhs)?),
+        NodeKind::Negate { rhs } => negate_value(eval(context, rhs)?),
     }
 }
 
@@ -243,5 +244,12 @@ fn div_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
     match (&lhs, &rhs) {
         (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
         (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
+    }
+}
+
+fn negate_value(rhs: Value) -> Result<Value, Exception> {
+    match &rhs {
+        Value::Integer(r) => Ok(Value::Integer(-r)),
+        v => exception!("cannot negate (`-`) {:?}", v),
     }
 }
