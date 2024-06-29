@@ -3,6 +3,7 @@ use std::rc::Rc;
 use pest::{
     error::Error,
     iterators::{Pair, Pairs},
+    pratt_parser::{Assoc, Op, PrattParser},
     Parser,
 };
 use pest_derive::Parser;
@@ -19,13 +20,29 @@ pub fn parse(input: &str, source_file_name: &str) -> Result<Node, Error<Rule>> {
     result.map(|pairs| {
         let to_ast = ToAst {
             source_file_name: Rc::new(String::from(source_file_name)),
+            pratt: create_pratt_parser(),
         };
         to_ast.to_source_file_node(pairs)
     })
 }
 
+#[allow(clippy::result_large_err)]
+pub fn parse_pest_only(input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+    DangParser::parse(Rule::source_file, input)
+}
+
+fn create_pratt_parser() -> PrattParser<Rule> {
+    PrattParser::new()
+        .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
+        .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left))
+        .op(Op::infix(Rule::pow, Assoc::Right))
+        .op(Op::postfix(Rule::fac))
+        .op(Op::prefix(Rule::neg))
+}
+
 struct ToAst {
     source_file_name: Rc<String>,
+    pratt: PrattParser<Rule>,
 }
 
 impl ToAst {
@@ -84,7 +101,56 @@ impl ToAst {
                     },
                 )
             }
-            Rule::expr => panic!(),
+            Rule::expr => {
+                self.pratt
+                    /*.map_primary(|primary| match primary.as_rule() {
+                        Rule::int => primary.as_str().parse().unwrap(),
+                        Rule::expr => parse_expr(primary.into_inner(), pratt), // from "(" ~ expr ~ ")"
+                        _ => unreachable!(),
+                    })*/
+                    .map_primary(|primary| self.to_ast(primary))
+                    .map_prefix(|op, _rhs| match op.as_rule() {
+                        //Rule::neg => -rhs,
+                        _ => unreachable!(),
+                    })
+                    .map_postfix(|_lhs, op| match op.as_rule() {
+                        //Rule::fac => (1..lhs + 1).product(),
+                        _ => unreachable!(),
+                    })
+                    .map_infix(|lhs, op, rhs| match op.as_rule() {
+                        Rule::add => self.new_node(
+                            op.line_col(),
+                            NodeKind::Add {
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::sub => self.new_node(
+                            op.line_col(),
+                            NodeKind::Sub {
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::mul => self.new_node(
+                            op.line_col(),
+                            NodeKind::Mul {
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::div => self.new_node(
+                            op.line_col(),
+                            NodeKind::Div {
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        //Rule::pow => (1..rhs + 1).map(|_| lhs).product(),
+                        _ => unreachable!(),
+                    })
+                    .parse(pair.into_inner())
+            }
             Rule::function_call => {
                 let mut iter = pair.into_inner();
                 let func = self.to_ast(iter.next().unwrap()).unwrap();
@@ -118,6 +184,7 @@ impl ToAst {
                     NodeKind::IntegerLiteral(pair.as_str().parse::<i64>().unwrap()),
                 )
             }
+            _ => todo!(),
         }
     }
 

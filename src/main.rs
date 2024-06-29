@@ -5,30 +5,59 @@ mod interpreter;
 use std::fs;
 
 use clap::Parser;
+use dang_parser::Rule;
 use dirs::home_dir;
 use interpreter::Interpreter;
+use pest::iterators::Pair;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
+/// dang programming language
 #[derive(Parser)]
 struct Cli {
+    /// path to .dang file to execute
     path: Option<std::path::PathBuf>,
+
+    /// debug: print pest parse output (instead of executing)
+    #[arg(long)]
+    print_pest_parse_output: bool,
+
+    /// debug: print ast (instead of executing)
+    #[arg(long)]
+    print_ast: bool,
 }
 
 const HISTORY_FILE: &str = ".dang_history";
 
 fn main() -> Result<()> {
     let args = Cli::parse();
-    match args.path {
-        Some(path) => run_file(&path),
+
+    if (args.print_pest_parse_output || args.print_ast) && args.path.is_none() {
+        panic!("expected a file")
+    }
+
+    match &args.path {
+        Some(path) => run_file(&args, path),
         None => repl(),
     }
 }
 
-fn run_file(path: &std::path::PathBuf) -> Result<()> {
+fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     let mut interpreter = Interpreter::new();
     let file = fs::read_to_string(path)?;
-    handle_input(&mut interpreter, file, path.to_str().unwrap(), false);
+
+    let execute = !args.print_pest_parse_output && !args.print_ast;
+
+    if args.print_pest_parse_output {
+        print_pest_parse_output(&file);
+    }
+    if args.print_ast {
+        print_ast(&file, path.to_str().unwrap());
+    }
+
+    if execute {
+        handle_input(&mut interpreter, file, path.to_str().unwrap(), false);
+    }
     Ok(())
 }
 
@@ -94,7 +123,19 @@ fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print
     }
 }
 
-/*fn print_tree(pair: Pair<Rule>, depth: usize) {
+fn print_pest_parse_output(input: &str) {
+    let result = dang_parser::parse_pest_only(input);
+    match result {
+        Ok(pairs) => {
+            for p in pairs {
+                print_tree(p, 0);
+            }
+        }
+        Err(err) => println!("{}", err),
+    }
+}
+
+fn print_tree(pair: Pair<Rule>, depth: usize) {
     if pair.as_rule() == Rule::EOI {
         return;
     }
@@ -107,4 +148,13 @@ fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print
         indent = depth * 2
     );
     pair.into_inner().for_each(|p| print_tree(p, depth + 1))
-}*/
+}
+
+fn print_ast(input: &str, source: &str) {
+    let result = dang_parser::parse(input, source);
+    if let Ok(ast) = result {
+        println!("{:#?}", ast);
+    } else {
+        println!("{}", result.unwrap_err());
+    }
+}

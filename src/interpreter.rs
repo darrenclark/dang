@@ -171,6 +171,10 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         },
         NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
         NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
+        NodeKind::Add { lhs, rhs } => add_values(eval(context, lhs)?, eval(context, rhs)?),
+        NodeKind::Sub { lhs, rhs } => sub_values(eval(context, lhs)?, eval(context, rhs)?),
+        NodeKind::Mul { lhs, rhs } => mul_values(eval(context, lhs)?, eval(context, rhs)?),
+        NodeKind::Div { lhs, rhs } => div_values(eval(context, lhs)?, eval(context, rhs)?),
     }
 }
 
@@ -211,4 +215,33 @@ fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> 
     }
 
     Ok(Value::Null)
+}
+
+fn add_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
+    match (&lhs, &rhs) {
+        (Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
+        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
+        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
+    }
+}
+
+fn sub_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
+    match (&lhs, &rhs) {
+        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
+        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
+    }
+}
+
+fn mul_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
+    match (&lhs, &rhs) {
+        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
+        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
+    }
+}
+
+fn div_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
+    match (&lhs, &rhs) {
+        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
+        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
+    }
 }

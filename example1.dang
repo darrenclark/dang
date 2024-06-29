@@ -1,6 +1,6 @@
 let x = 1
 let y = 2
-let z = add(x, y)
+let z = x + y * 3
 
-print("1 + 2 = ")
+print("1 + 2 * 3 = ")
 println(z)
