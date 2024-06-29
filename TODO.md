@@ -2,7 +2,6 @@
 
 ## ./aoc2023day1.dang
 
-- Arrays
 - Enumeration
 - Built in functions:
     - `raise`
@@ -19,3 +18,5 @@
 - big int
 - Closures
 - Iterators
+- Subscripting
+- Trailing comma in arrays

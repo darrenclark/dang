@@ -116,6 +116,13 @@ impl Value {
             _ => panic!("{:?} is not enumerable", self),
         }
     }
+
+    fn to_index(&self) -> Result<usize, Exception> {
+        match self {
+            Self::Integer(i) if *i >= 0 => Ok(*i as usize),
+            _ => exception!("invalid index: {:?}", self),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -180,6 +187,7 @@ impl Context {
         let _ = c.define("println", false, Value::NativeFunc("println"));
         let _ = c.define("inspect", false, Value::NativeFunc("inspect"));
         let _ = c.define("len", false, Value::NativeFunc("len"));
+        let _ = c.define("get", false, Value::NativeFunc("get"));
 
         c
     }
@@ -393,6 +401,7 @@ fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {
         "println" => native_call_print(&args, true),
         "inspect" => native_call_inspect(&args),
         "len" => native_call_len(&args),
+        "get" => native_call_get(&args),
         _ => exception!("native function '{}' not found", name),
     }
 }
@@ -442,6 +451,19 @@ fn native_call_len(args: &[Value]) -> Result<Value, Exception> {
     args[0].ensure_enumerable("len")?;
 
     Ok(Value::Integer(args[0].enum_len() as i64))
+}
+
+fn native_call_get(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() < 2 {
+        exception!("get(enumerable, path..) expected at least two args")
+    }
+
+    let mut res = args[0].clone();
+    for index in args.iter().skip(1) {
+        res.ensure_enumerable("get")?;
+        res = res.enum_at(index.to_index()?)?;
+    }
+    Ok(res)
 }
 
 fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
