@@ -8,7 +8,7 @@ use pest::{
 };
 use pest_derive::Parser;
 
-use crate::ast::{Node, NodeKind, Source};
+use crate::ast::{BinOp, Node, NodeKind, Source, UnaryOp};
 
 #[derive(Parser)]
 #[grammar = "dang.pest"]
@@ -130,7 +130,8 @@ impl ToAst {
                     .map_prefix(|op, rhs| match op.as_rule() {
                         Rule::neg => self.new_node(
                             op.line_col(),
-                            NodeKind::Negate {
+                            NodeKind::UnaryOp {
+                                op: UnaryOp::Neg,
                                 rhs: Box::new(rhs.unwrap()),
                             },
                         ),
@@ -139,28 +140,32 @@ impl ToAst {
                     .map_infix(|lhs, op, rhs| match op.as_rule() {
                         Rule::add => self.new_node(
                             op.line_col(),
-                            NodeKind::Add {
+                            NodeKind::BinaryOp {
+                                op: BinOp::Add,
                                 lhs: Box::new(lhs.unwrap()),
                                 rhs: Box::new(rhs.unwrap()),
                             },
                         ),
                         Rule::sub => self.new_node(
                             op.line_col(),
-                            NodeKind::Sub {
+                            NodeKind::BinaryOp {
+                                op: BinOp::Sub,
                                 lhs: Box::new(lhs.unwrap()),
                                 rhs: Box::new(rhs.unwrap()),
                             },
                         ),
                         Rule::mul => self.new_node(
                             op.line_col(),
-                            NodeKind::Mul {
+                            NodeKind::BinaryOp {
+                                op: BinOp::Mul,
                                 lhs: Box::new(lhs.unwrap()),
                                 rhs: Box::new(rhs.unwrap()),
                             },
                         ),
                         Rule::div => self.new_node(
                             op.line_col(),
-                            NodeKind::Div {
+                            NodeKind::BinaryOp {
+                                op: BinOp::Div,
                                 lhs: Box::new(lhs.unwrap()),
                                 rhs: Box::new(rhs.unwrap()),
                             },

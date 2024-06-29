@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt, rc::Rc};
 
-use crate::ast::{Node, NodeKind, Source};
+use crate::ast::{BinOp, Node, NodeKind, Source, UnaryOp};
 
 #[derive(Debug)]
 pub struct Exception {
@@ -251,11 +251,10 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
         NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
         NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
-        NodeKind::Add { lhs, rhs } => add_values(eval(context, lhs)?, eval(context, rhs)?),
-        NodeKind::Sub { lhs, rhs } => sub_values(eval(context, lhs)?, eval(context, rhs)?),
-        NodeKind::Mul { lhs, rhs } => mul_values(eval(context, lhs)?, eval(context, rhs)?),
-        NodeKind::Div { lhs, rhs } => div_values(eval(context, lhs)?, eval(context, rhs)?),
-        NodeKind::Negate { rhs } => negate_value(eval(context, rhs)?),
+        NodeKind::BinaryOp { op, lhs, rhs } => {
+            bin_op(*op, eval(context, lhs)?, eval(context, rhs)?)
+        }
+        NodeKind::UnaryOp { op, rhs } => unary_op(*op, eval(context, rhs)?),
         NodeKind::FunctionLiteral {
             arg_names: _,
             body: _,
@@ -346,38 +345,25 @@ fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> 
     Ok(Value::Null)
 }
 
-fn add_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
-    match (&lhs, &rhs) {
-        (Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
-        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
-        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
+fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
+    match (op, &lhs, &rhs) {
+        // Addition
+        (BinOp::Add, Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
+        (BinOp::Add, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
+        // Subtraction
+        (BinOp::Sub, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
+        // Multiplication
+        (BinOp::Mul, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
+        // Division
+        (BinOp::Div, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
+        // Error
+        (_, l, r) => exception!("cannot apply `{:?}` to {:?} and {:?}", op, l, r),
     }
 }
 
-fn sub_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
-    match (&lhs, &rhs) {
-        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
-        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
-    }
-}
-
-fn mul_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
-    match (&lhs, &rhs) {
-        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
-        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
-    }
-}
-
-fn div_values(lhs: Value, rhs: Value) -> Result<Value, Exception> {
-    match (&lhs, &rhs) {
-        (Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
-        (l, r) => exception!("cannot apply `+` to {:?} and {:?}", l, r),
-    }
-}
-
-fn negate_value(rhs: Value) -> Result<Value, Exception> {
-    match &rhs {
-        Value::Integer(r) => Ok(Value::Integer(-r)),
-        v => exception!("cannot negate (`-`) {:?}", v),
+fn unary_op(op: UnaryOp, rhs: Value) -> Result<Value, Exception> {
+    match (op, &rhs) {
+        (UnaryOp::Neg, Value::Integer(r)) => Ok(Value::Integer(-r)),
+        (_, v) => exception!("cannot {:?} {:?}", op, v),
     }
 }

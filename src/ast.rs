@@ -14,6 +14,19 @@ pub struct Source {
     pub col: usize,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum UnaryOp {
+    Neg,
+}
+
 #[derive(Clone, Debug)]
 pub enum NodeKind {
     SourceFile(Vec<Node>),
@@ -47,23 +60,13 @@ pub enum NodeKind {
     BoolLiteral(bool),
     StringLiteral(String),
     IntegerLiteral(i64),
-    Add {
+    BinaryOp {
+        op: BinOp,
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
-    Sub {
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-    },
-    Mul {
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-    },
-    Div {
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-    },
-    Negate {
+    UnaryOp {
+        op: UnaryOp,
         rhs: Box<Node>,
     },
 }
@@ -148,28 +151,13 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         NodeKind::IntegerLiteral(value) => {
             writeln!(f, "IntegerLiteral({})", value)?;
         }
-        NodeKind::Add { lhs, rhs } => {
-            writeln!(f, "Add:")?;
+        NodeKind::BinaryOp { op, lhs, rhs } => {
+            writeln!(f, "BinaryOp({:?}):", op)?;
             fmt_node(lhs, depth + 1, "", f)?;
             fmt_node(rhs, depth + 1, "", f)?;
         }
-        NodeKind::Sub { lhs, rhs } => {
-            writeln!(f, "Sub:")?;
-            fmt_node(lhs, depth + 1, "", f)?;
-            fmt_node(rhs, depth + 1, "", f)?;
-        }
-        NodeKind::Mul { lhs, rhs } => {
-            writeln!(f, "Mul:")?;
-            fmt_node(lhs, depth + 1, "", f)?;
-            fmt_node(rhs, depth + 1, "", f)?;
-        }
-        NodeKind::Div { lhs, rhs } => {
-            writeln!(f, "Div:")?;
-            fmt_node(lhs, depth + 1, "", f)?;
-            fmt_node(rhs, depth + 1, "", f)?;
-        }
-        NodeKind::Negate { rhs } => {
-            writeln!(f, "Negate:")?;
+        NodeKind::UnaryOp { op, rhs } => {
+            writeln!(f, "UnaryOp({:?}):", op)?;
             fmt_node(rhs, depth + 1, "", f)?;
         }
     }
