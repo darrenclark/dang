@@ -66,6 +66,7 @@ pub enum NodeKind {
         args: Vec<Node>,
     },
     Identifier(String),
+    ListLiteral(Vec<Node>),
     NilLiteral,
     BoolLiteral(bool),
     StringLiteral(String),
@@ -151,6 +152,12 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
         NodeKind::Identifier(name) => {
             writeln!(f, "Identifier({})", name)?;
+        }
+        NodeKind::ListLiteral(elements) => {
+            writeln!(f, "ListLiteral")?;
+            for e in elements {
+                fmt_node(e, depth + 1, "element", f)?;
+            }
         }
         NodeKind::NilLiteral => {
             writeln!(f, "NilLiteral(nil)")?;

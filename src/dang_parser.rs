@@ -279,6 +279,11 @@ impl ToAst {
                 )
             }
             Rule::args => panic!(),
+            Rule::list_literal => {
+                let elements: Vec<Node> =
+                    pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
+                self.new_node(line_col, NodeKind::ListLiteral(elements))
+            }
             Rule::string_literal => {
                 let string = String::from(pair.into_inner().next().unwrap().as_str());
                 self.new_node(line_col, NodeKind::StringLiteral(string))

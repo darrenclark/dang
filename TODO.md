@@ -17,3 +17,5 @@
 - Tuples?
 - Bitwise operators / functions
 - big int
+- Closures
+- Iterators

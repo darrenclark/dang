@@ -53,6 +53,7 @@ term = _{
   function_literal |
   function_call |
   identifier |
+  list_literal |
   nil_literal |
   bool_literal |
   string_literal |
@@ -71,6 +72,11 @@ function_call = { identifier ~ args }
 args = {
   "(" ~ ")" |
   "(" ~ expr ~ ("," ~ expr)* ~ ")"
+}
+
+list_literal = {
+  "[" ~ "]" |
+  "[" ~ expr ~ ("," ~ expr)* ~ "]"
 }
 
 string_literal = ${ "\"" ~ string_contents ~ "\"" }

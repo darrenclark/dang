@@ -1,0 +1,3 @@
+let items = [false, 1, "two", 3]
+
+inspect(items)

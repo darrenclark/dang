@@ -54,6 +54,7 @@ pub enum Value {
     Integer(i64),
     NativeFunc(&'static str),
     Func(FunctionLiteralRc),
+    List(Vec<Value>),
 }
 
 impl Value {
@@ -126,6 +127,7 @@ impl Context {
         let _ = c.define("add", false, Value::NativeFunc("add"));
         let _ = c.define("print", false, Value::NativeFunc("print"));
         let _ = c.define("println", false, Value::NativeFunc("println"));
+        let _ = c.define("inspect", false, Value::NativeFunc("inspect"));
 
         c
     }
@@ -268,6 +270,13 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             Some(v) => Ok(v.clone()),
             None => exception!("no binding {}", name),
         },
+        NodeKind::ListLiteral(elements) => {
+            let mut evaled_elements = Vec::with_capacity(elements.len());
+            for e in elements {
+                evaled_elements.push(eval(context, e)?);
+            }
+            Ok(Value::List(evaled_elements))
+        }
         NodeKind::NilLiteral => Ok(Value::Nil),
         NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
         NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
@@ -330,6 +339,7 @@ fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {
         "add" => native_call_add(&args),
         "print" => native_call_print(&args, false),
         "println" => native_call_print(&args, true),
+        "inspect" => native_call_inspect(&args),
         _ => exception!("native function '{}' not found", name),
     }
 }
@@ -362,6 +372,14 @@ fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> 
     }
 
     Ok(Value::Nil)
+}
+
+fn native_call_inspect(args: &[Value]) -> Result<Value, Exception> {
+    for v in args {
+        println!("{:?}", v)
+    }
+
+    Ok(args.first().cloned().unwrap_or(Value::Nil))
 }
 
 fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
