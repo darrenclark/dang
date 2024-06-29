@@ -1,3 +1,8 @@
-let items = [false, 1, "two", 3]
+let items = [false, 1] + ["two", 3]
 
 inspect(items)
+print("Length: ")
+inspect(len(items))
+
+print("Length of 'hello, world': ")
+inspect(len("hello, world"))

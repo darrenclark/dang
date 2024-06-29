@@ -65,6 +65,57 @@ impl Value {
             _ => true,
         }
     }
+
+    fn is_enumerable(&self) -> bool {
+        matches!(self, Self::String(_) | Self::List(_))
+    }
+
+    fn ensure_enumerable(&self, info: &'static str) -> Result<Value, Exception> {
+        if self.is_enumerable() {
+            Ok(Value::Nil)
+        } else {
+            exception!("{}: {:?} is not enumerable", info, self)
+        }
+    }
+
+    fn enum_len(&self) -> usize {
+        match self {
+            Self::String(v) => v.chars().count(),
+            Self::List(v) => v.len(),
+            _ => panic!("{:?} is not enumerable", self),
+        }
+    }
+
+    fn enum_at(&self, index: usize) -> Result<Value, Exception> {
+        match self {
+            Self::String(v) => {
+                let result = v.chars().nth(index).map(|c| Value::String(String::from(c)));
+                if let Some(result) = result {
+                    Ok(result)
+                } else {
+                    let length = v.chars().count();
+                    exception!(
+                        "index {} out of bounds for string of length {}",
+                        index,
+                        length
+                    )
+                }
+            }
+            Self::List(v) => {
+                let result = v.get(index);
+                if let Some(result) = result {
+                    Ok(result.clone())
+                } else {
+                    exception!(
+                        "index {} out of bounds for string of length {}",
+                        index,
+                        v.len()
+                    )
+                }
+            }
+            _ => panic!("{:?} is not enumerable", self),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -128,6 +179,7 @@ impl Context {
         let _ = c.define("print", false, Value::NativeFunc("print"));
         let _ = c.define("println", false, Value::NativeFunc("println"));
         let _ = c.define("inspect", false, Value::NativeFunc("inspect"));
+        let _ = c.define("len", false, Value::NativeFunc("len"));
 
         c
     }
@@ -340,6 +392,7 @@ fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {
         "print" => native_call_print(&args, false),
         "println" => native_call_print(&args, true),
         "inspect" => native_call_inspect(&args),
+        "len" => native_call_len(&args),
         _ => exception!("native function '{}' not found", name),
     }
 }
@@ -382,11 +435,25 @@ fn native_call_inspect(args: &[Value]) -> Result<Value, Exception> {
     Ok(args.first().cloned().unwrap_or(Value::Nil))
 }
 
+fn native_call_len(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("len(enumerable) expected one arg")
+    }
+    args[0].ensure_enumerable("len")?;
+
+    Ok(Value::Integer(args[0].enum_len() as i64))
+}
+
 fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
     match (op, &lhs, &rhs) {
         // Addition
         (BinOp::Add, Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
         (BinOp::Add, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
+        (BinOp::Add, Value::List(l), Value::List(r)) => {
+            let mut res = l.to_owned();
+            res.extend(r.iter().cloned());
+            Ok(Value::List(res))
+        }
         // Subtraction
         (BinOp::Sub, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
         // Multiplication
