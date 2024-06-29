@@ -191,6 +191,10 @@ impl ToAst {
                     NodeKind::IntegerLiteral(pair.as_str().parse::<i64>().unwrap()),
                 )
             }
+            Rule::bool_literal => self.new_node(
+                line_col,
+                NodeKind::BoolLiteral(pair.as_str().parse::<bool>().unwrap()),
+            ),
             _ => todo!(),
         }
     }

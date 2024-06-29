@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt, rc::Rc};
 
 use crate::ast::{Node, NodeKind, Source};
 
@@ -30,9 +30,11 @@ macro_rules! exception {
 #[derive(Debug, Clone)]
 pub enum Value {
     Null,
+    Bool(bool),
     String(String),
     Integer(i64),
     NativeFunc(&'static str),
+    Func { function_literal: Rc<Node> },
 }
 
 #[derive(Debug)]
@@ -66,15 +68,29 @@ struct Variable {
 
 #[derive(Debug)]
 struct Context {
-    variables: HashMap<String, Variable>,
+    /// Stack frames.  Frame at 0 is also global scope.
+    frames: Vec<Frame>,
     /// Can variables be redefined?  Used in REPL for ergonomics.
     allow_redefinition: bool,
+}
+
+#[derive(Debug)]
+struct Frame {
+    variables: HashMap<String, Variable>,
+}
+
+impl Frame {
+    fn new() -> Frame {
+        Frame {
+            variables: HashMap::new(),
+        }
+    }
 }
 
 impl Context {
     fn new(allow_redefinition: bool) -> Context {
         let mut c = Context {
-            variables: HashMap::new(),
+            frames: vec![Frame::new()],
             allow_redefinition,
         };
 
@@ -86,20 +102,31 @@ impl Context {
     }
 
     fn get(&self, name: &str) -> Option<&Value> {
-        self.variables.get(name).map(|v| &v.value)
+        self.current_frame()
+            .variables
+            .get(name)
+            .or_else(|| self.global_frame().variables.get(name))
+            .map(|v| &v.value)
     }
 
     fn define(&mut self, name: &str, mutable: bool, value: Value) -> Result<(), Exception> {
-        if self.variables.contains_key(name) && !self.allow_redefinition {
+        if self.current_frame().variables.contains_key(name) && !self.allow_redefinition {
             exception!("variable '{}' already defined", name)
         }
-        self.variables
+        self.current_frame_mut()
+            .variables
             .insert(String::from(name), Variable { value, mutable });
         Ok(())
     }
 
     fn assign(&mut self, name: &str, value: Value) -> Result<(), Exception> {
-        if let Some(v) = self.variables.get_mut(name) {
+        if let Some(v) = self.current_frame_mut().variables.get_mut(name) {
+            if !v.mutable {
+                exception!("variable '{}' is not mutable", name)
+            }
+            v.value = value;
+            Ok(())
+        } else if let Some(v) = self.global_frame_mut().variables.get_mut(name) {
             if !v.mutable {
                 exception!("variable '{}' is not mutable", name)
             }
@@ -108,6 +135,22 @@ impl Context {
         } else {
             exception!("variable '{}' is not defined", name)
         }
+    }
+
+    fn global_frame(&self) -> &Frame {
+        self.frames.first().unwrap()
+    }
+
+    fn global_frame_mut(&mut self) -> &mut Frame {
+        self.frames.first_mut().unwrap()
+    }
+
+    fn current_frame(&self) -> &Frame {
+        self.frames.last().unwrap()
+    }
+
+    fn current_frame_mut(&mut self) -> &mut Frame {
+        self.frames.last_mut().unwrap()
     }
 }
 
@@ -161,6 +204,12 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
                     evaled_args.push(eval(context, n)?)
                 }
                 native_call(name, evaled_args)
+            } else if let Value::Func { function_literal } = func {
+                let mut evaled_args = Vec::with_capacity(args.len());
+                for n in args {
+                    evaled_args.push(eval(context, n)?)
+                }
+                call(context, function_literal.as_ref(), &evaled_args)
             } else {
                 exception!("tried to call a non-function value: {:?}", func)
             }
@@ -169,6 +218,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             Some(v) => Ok(v.clone()),
             None => exception!("no binding {}", name),
         },
+        NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
         NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
         NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
         NodeKind::Add { lhs, rhs } => add_values(eval(context, lhs)?, eval(context, rhs)?),
@@ -176,8 +226,55 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::Mul { lhs, rhs } => mul_values(eval(context, lhs)?, eval(context, rhs)?),
         NodeKind::Div { lhs, rhs } => div_values(eval(context, lhs)?, eval(context, rhs)?),
         NodeKind::Negate { rhs } => negate_value(eval(context, rhs)?),
-        NodeKind::FunctionLiteral { arg_names, body } => todo!(),
+        NodeKind::FunctionLiteral {
+            arg_names: _,
+            body: _,
+        } => Ok(Value::Func {
+            function_literal: Rc::new(node.clone()),
+        }),
     }
+}
+
+fn call(
+    context: &mut Context,
+    function_literal: &Node,
+    args: &[Value],
+) -> Result<Value, Exception> {
+    context.frames.push(Frame::new());
+    let result = inner_call(context, function_literal, args);
+    context.frames.pop();
+    result
+}
+
+fn inner_call(
+    context: &mut Context,
+    function_literal: &Node,
+    args: &[Value],
+) -> Result<Value, Exception> {
+    let (arg_names, body) = match &function_literal.kind {
+        NodeKind::FunctionLiteral { arg_names, body } => (arg_names, body),
+        _ => panic!(),
+    };
+
+    if arg_names.len() != args.len() {
+        exception!("expected {} args, got {}", arg_names.len(), args.len())
+    }
+
+    for (arg_name, value) in arg_names.iter().zip(args.iter()) {
+        let name = match &arg_name.kind {
+            NodeKind::Identifier(name) => name,
+            _ => panic!(),
+        };
+        context.define(name, false, value.clone())?;
+    }
+
+    let mut result = Value::Null;
+
+    for n in body {
+        result = eval(context, n)?;
+    }
+
+    Ok(result)
 }
 
 fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {

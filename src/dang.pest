@@ -3,7 +3,15 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
 source_file = _{ SOI ~ stmt* ~ EOI }
 
-identifier = @{ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
+keywords = {
+  "false" |
+  "fn" |
+  "let" |
+  "true" |
+  "var"
+}
+
+identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
 
 stmt = _{ let_stmt | var_stmt | assignment | expr }
 
@@ -21,7 +29,14 @@ expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
     neg    =   { "-" } // Negation
   primary  =  _{ term | "(" ~ expr ~ ")" }
 
-term = _{ function_literal | function_call | identifier | string_literal | number_literal }
+term = _{
+  function_literal |
+  function_call |
+  identifier |
+  bool_literal |
+  string_literal |
+  number_literal
+}
 
 function_literal = { "fn" ~ arg_names ~ "{" ~ stmt* ~ "}" }
 
@@ -51,3 +66,5 @@ number_literal = @{
     ~ ("." ~ ASCII_DIGIT*)?
     ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
 }
+
+bool_literal = { "true" | "false" }
