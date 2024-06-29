@@ -1,4 +1,4 @@
-let w = 10
+let w = 10  // testing if comments work
 let x = 1
 let y = 2
 let z = -w + x + y * 3
