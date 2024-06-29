@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, rc::Rc};
+use std::{collections::HashMap, fmt, mem::discriminant, rc::Rc};
 
 use crate::ast::{BinOp, Node, NodeKind, Source, UnaryOp};
 
@@ -28,14 +28,34 @@ macro_rules! exception {
 }
 
 #[derive(Debug, Clone)]
+pub struct FunctionLiteralRc(Rc<Node>);
+
+impl PartialEq for FunctionLiteralRc {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl PartialOrd for FunctionLiteralRc {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self == other {
+            Some(std::cmp::Ordering::Equal)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum Value {
     Null,
     Bool(bool),
     String(String),
     Integer(i64),
     NativeFunc(&'static str),
-    Func { function_literal: Rc<Node> },
+    Func(FunctionLiteralRc),
 }
+
 impl Value {
     fn truthy(&self) -> bool {
         match self {
@@ -234,12 +254,12 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
                     evaled_args.push(eval(context, n)?)
                 }
                 native_call(name, evaled_args)
-            } else if let Value::Func { function_literal } = func {
+            } else if let Value::Func(function_literal_rc) = func {
                 let mut evaled_args = Vec::with_capacity(args.len());
                 for n in args {
                     evaled_args.push(eval(context, n)?)
                 }
-                call(context, function_literal.as_ref(), &evaled_args)
+                call(context, function_literal_rc.0.as_ref(), &evaled_args)
             } else {
                 exception!("tried to call a non-function value: {:?}", func)
             }
@@ -258,9 +278,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::FunctionLiteral {
             arg_names: _,
             body: _,
-        } => Ok(Value::Func {
-            function_literal: Rc::new(node.clone()),
-        }),
+        } => Ok(Value::Func(FunctionLiteralRc(Rc::new(node.clone())))),
     }
 }
 
@@ -356,14 +374,30 @@ fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
         (BinOp::Mul, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
         // Division
         (BinOp::Div, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
+        // ||
+        (BinOp::LogicalOr, l, _) if l.truthy() => Ok(l.clone()),
+        (BinOp::LogicalOr, l, r) if !l.truthy() => Ok(r.clone()),
+        // &&
+        (BinOp::LogicalAnd, l, r) => Ok(Value::Bool(l.truthy() && r.truthy())),
+        // == / !=
+        (BinOp::Eq, l, r) => Ok(Value::Bool(l == r)),
+        (BinOp::Neq, l, r) => Ok(Value::Bool(l == r)),
+        // >=, <, etc.
+        (BinOp::Gt, l, r) if discriminant(l) == discriminant(r) => Ok(Value::Bool(l > r)),
+        (BinOp::Gte, l, r) if discriminant(l) == discriminant(r) => Ok(Value::Bool(l >= r)),
+        (BinOp::Lt, l, r) if discriminant(l) == discriminant(r) => Ok(Value::Bool(l < r)),
+        (BinOp::Lte, l, r) if discriminant(l) == discriminant(r) => Ok(Value::Bool(l <= r)),
         // Error
-        (_, l, r) => exception!("cannot apply `{:?}` to {:?} and {:?}", op, l, r),
+        (_, l, r) => {
+            exception!("cannot apply `{:?}` to {:?} and {:?}", op, l, r)
+        }
     }
 }
 
 fn unary_op(op: UnaryOp, rhs: Value) -> Result<Value, Exception> {
     match (op, &rhs) {
         (UnaryOp::Neg, Value::Integer(r)) => Ok(Value::Integer(-r)),
+        (UnaryOp::LogicalNeg, v) => Ok(Value::Bool(!v.truthy())),
         (_, v) => exception!("cannot {:?} {:?}", op, v),
     }
 }

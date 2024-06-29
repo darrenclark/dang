@@ -20,11 +20,20 @@ pub enum BinOp {
     Sub,
     Mul,
     Div,
+    LogicalOr,
+    LogicalAnd,
+    Eq,
+    Neq,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
     Neg,
+    LogicalNeg,
 }
 
 #[derive(Clone, Debug)]

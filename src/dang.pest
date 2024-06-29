@@ -28,20 +28,20 @@ if_stmt = {
 }
 
 expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
-  infix    =  _{ mul | div | add | sub | gt | gte | lt | lte | eq | neq | logical_and | logical_or }
+  infix    =  _{ mul | div | add | sub | gte | gt | lte | lt | eq | neq | logical_and | logical_or }
     mul    =   { "*" } // Multiplication
     div    =   { "/" } // Division
     add    =   { "+" } // Addition
     sub    =   { "-" } // Subtraction
-    gt     =   { ">" }
     gte    =   { ">=" }
-    lt     =   { "<" }
+    gt     =   { ">" }
     lte    =   { "<=" }
+    lt     =   { "<" }
     eq     =   { "==" }
     neq    =   { "!=" }
     logical_and = { "&&" }
     logical_or  = { "||" }
-  prefix   =  _{ neg }
+  prefix   =  _{ neg | logical_neg }
     neg    =   { "-" } // Integer regation
     logical_neg = { "!" } // logical negation
   primary  =  _{ term | "(" ~ expr ~ ")" }

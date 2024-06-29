@@ -128,6 +128,13 @@ impl ToAst {
                 self.pratt
                     .map_primary(|primary| self.to_ast(primary))
                     .map_prefix(|op, rhs| match op.as_rule() {
+                        Rule::logical_neg => self.new_node(
+                            op.line_col(),
+                            NodeKind::UnaryOp {
+                                op: UnaryOp::LogicalNeg,
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
                         Rule::neg => self.new_node(
                             op.line_col(),
                             NodeKind::UnaryOp {
@@ -138,6 +145,70 @@ impl ToAst {
                         _ => unreachable!(),
                     })
                     .map_infix(|lhs, op, rhs| match op.as_rule() {
+                        Rule::logical_or => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::LogicalOr,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::logical_and => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::LogicalAnd,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::eq => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::Eq,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::neq => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::Neq,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::gt => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::Gt,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::gte => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::Gte,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::lt => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::Lt,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::lte => self.new_node(
+                            op.line_col(),
+                            NodeKind::BinaryOp {
+                                op: BinOp::Lte,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
                         Rule::add => self.new_node(
                             op.line_col(),
                             NodeKind::BinaryOp {

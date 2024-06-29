@@ -1,12 +1,9 @@
-let a = true
+let a = 11
 let b = false
-let c = true
-let d = false
+let c = "g"
 
-let z = a == b || a > b || (a && c)
-
-if a {
-  println("a was true")
+if a > 5 {
+  println("a is > 5")
 }
 
 if b {
@@ -15,19 +12,19 @@ if b {
   println("b was false")
 }
 
-if b {
+if c > "b" && (c <= "f" || !c) {
   println("ERROR: should not have taken branch")
-} else if c {
-  println("c was true")
+} else if c > "c" {
+  println("c was > 'c'")
 } else {
   println("ERROR: should not have taken branch")
 }
 
 if b {
   println("ERROR: should not have taken branch")
-} else if d {
+} else if a == "bob" {
   println("ERROR: should not have taken branch")
 } else {
-  println("neither b or d were true")
+  println("neither b was true or a == 'bob'")
 }
 
