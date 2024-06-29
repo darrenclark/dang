@@ -8,6 +8,7 @@ body = { "{" ~ stmt* ~ "}" }
 keywords = {
   "false" |
   "fn" |
+  "for" |
   "let" |
   "true" |
   "var" |
@@ -18,7 +19,7 @@ keywords = {
 
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
 
-stmt = _{ let_stmt | var_stmt | assignment | if_stmt | expr }
+stmt = _{ let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr }
 
 let_stmt = { "let" ~ identifier ~ "=" ~ expr }
 var_stmt = { "var" ~ identifier ~ "=" ~ expr }
@@ -29,6 +30,7 @@ if_stmt = {
   #if_body = body ~
   ( "else" ~ ( #else_if = if_stmt | #else_body = body ) )?
 }
+for_stmt = { "for" ~ identifier ~ "in" ~ expr ~ body }
 
 expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
   infix    =  _{ mul | div | add | sub | gte | gt | lte | lt | eq | neq | logical_and | logical_or }

@@ -124,6 +124,20 @@ impl ToAst {
                     },
                 )
             }
+            Rule::for_stmt => {
+                let mut iter = pair.into_inner();
+                let var_name = self.to_ast(iter.next().unwrap()).unwrap();
+                let enumerable = self.to_ast(iter.next().unwrap()).unwrap();
+                let body = self.to_ast(iter.next().unwrap()).unwrap();
+                self.new_node(
+                    line_col,
+                    NodeKind::For {
+                        var_name: Box::new(var_name),
+                        enumerable: Box::new(enumerable),
+                        body: Box::new(body),
+                    },
+                )
+            }
             Rule::expr => {
                 self.pratt
                     .map_primary(|primary| self.to_ast(primary))

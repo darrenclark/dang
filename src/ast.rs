@@ -57,6 +57,11 @@ pub enum NodeKind {
         body: Box<Node>,
         else_branch: Option<Box<Node>>,
     },
+    For {
+        var_name: Box<Node>,
+        enumerable: Box<Node>,
+        body: Box<Node>,
+    },
     FunctionLiteral {
         arg_names: Vec<Node>,
         body: Vec<Node>,
@@ -132,6 +137,16 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             if let Some(else_branch) = else_branch {
                 fmt_node(else_branch, depth + 1, "else", f)?;
             }
+        }
+        NodeKind::For {
+            var_name,
+            enumerable,
+            body,
+        } => {
+            writeln!(f, "For:")?;
+            fmt_node(var_name, depth + 1, "var_name", f)?;
+            fmt_node(enumerable, depth + 1, "enumerable", f)?;
+            fmt_node(body, depth + 1, "body", f)?;
         }
         NodeKind::FunctionLiteral { arg_names, body } => {
             writeln!(f, "FunctionLiteral:")?;

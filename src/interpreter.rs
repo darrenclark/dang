@@ -72,7 +72,7 @@ impl Value {
 
     fn ensure_enumerable(&self, info: &'static str) -> Result<Value, Exception> {
         if self.is_enumerable() {
-            Ok(Value::Nil)
+            Ok(self.clone())
         } else {
             exception!("{}: {:?} is not enumerable", info, self)
         }
@@ -300,6 +300,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             else_branch,
         } => {
             let c = eval(context, condition)?;
+            // TODO: This should push a new context
             if c.truthy() {
                 eval(context, body)
             } else if let Some(else_branch) = else_branch {
@@ -307,6 +308,26 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             } else {
                 Ok(Value::Nil)
             }
+        }
+        NodeKind::For {
+            var_name,
+            enumerable,
+            body,
+        } => {
+            let var_name = match &var_name.kind {
+                NodeKind::Identifier(name) => name,
+                _ => panic!(),
+            };
+
+            let e = eval(context, enumerable)?.ensure_enumerable("for")?;
+            // TODO: This should push a new context
+            context.define(var_name, true, Value::Nil)?;
+            for i in 0..e.enum_len() {
+                context.assign(var_name, e.enum_at(i).unwrap())?;
+                eval(context, body)?;
+            }
+
+            Ok(Value::Nil)
         }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;
