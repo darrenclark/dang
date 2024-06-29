@@ -33,9 +33,16 @@ pub fn parse_pest_only(input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
 
 fn create_pratt_parser() -> PrattParser<Rule> {
     PrattParser::new()
+        .op(Op::infix(Rule::logical_or, Assoc::Left))
+        .op(Op::infix(Rule::logical_and, Assoc::Left))
+        .op(Op::infix(Rule::eq, Assoc::Left) | Op::infix(Rule::neq, Assoc::Left))
+        .op(Op::infix(Rule::gt, Assoc::Left)
+            | Op::infix(Rule::gte, Assoc::Left)
+            | Op::infix(Rule::lte, Assoc::Left)
+            | Op::infix(Rule::lte, Assoc::Left))
         .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
         .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left))
-        .op(Op::prefix(Rule::neg))
+        .op(Op::prefix(Rule::neg) | Op::prefix(Rule::logical_neg))
 }
 
 struct ToAst {

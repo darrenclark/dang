@@ -3,6 +3,8 @@ let b = false
 let c = true
 let d = false
 
+let z = a == b || a > b || (a && c)
+
 if a {
   println("a was true")
 }
