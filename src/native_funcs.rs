@@ -1,4 +1,5 @@
 use crate::interpreter::{exception, Exception, Value};
+use crate::string_utils::byte_to_char_index;
 
 type NativeFuncPtr = fn(&[Value]) -> Result<Value, Exception>;
 
@@ -14,6 +15,9 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("get", get),
         // strings
         ("split", split),
+        ("str_replace", str_replace),
+        ("str_find", str_find),
+        ("str_rfind", str_rfind),
         // casts
         ("int", int),
         // misc
@@ -113,6 +117,69 @@ fn split(args: &[Value]) -> Result<Value, Exception> {
         .collect();
 
     Ok(Value::List(res))
+}
+
+fn str_replace(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 3 {
+        exception!("str_replace(string, pattern, replacement) expected three args")
+    }
+    let string = match &args[0] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 0"),
+    };
+    let pattern = match &args[1] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 1"),
+    };
+    let replacement = match &args[2] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 2"),
+    };
+
+    let res = string.replace(pattern, replacement);
+    Ok(Value::String(res))
+}
+
+fn str_find(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("str_find(string, pattern) expected two args")
+    }
+    let string = match &args[0] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 0"),
+    };
+    let pattern = match &args[1] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 1"),
+    };
+
+    let res = string
+        .find(pattern)
+        .and_then(|i| byte_to_char_index(string, i))
+        .map(|i| Value::Integer(i as i64))
+        .unwrap_or(Value::Nil);
+    Ok(res)
+}
+
+fn str_rfind(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("str_find(string, pattern) expected two args")
+    }
+    let string = match &args[0] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 0"),
+    };
+    let pattern = match &args[1] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 1"),
+    };
+
+    let res = string
+        .rfind(pattern)
+        .and_then(|i| byte_to_char_index(string, i))
+        .map(|i| Value::Integer(i as i64))
+        .unwrap_or(Value::Nil);
+    Ok(res)
 }
 
 fn int(args: &[Value]) -> Result<Value, Exception> {

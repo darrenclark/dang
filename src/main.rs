@@ -3,6 +3,7 @@ mod dang_parser;
 mod interpreter;
 mod native_funcs;
 mod stdlib;
+mod string_utils;
 
 use std::fs;
 
