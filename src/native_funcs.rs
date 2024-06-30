@@ -1,5 +1,6 @@
-use crate::interpreter::{exception, Exception, Value};
+use crate::interpreter::{exception, Exception};
 use crate::string_utils::byte_to_char_index;
+use crate::value::Value;
 
 type NativeFuncPtr = fn(&[Value]) -> Result<Value, Exception>;
 

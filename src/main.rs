@@ -4,6 +4,7 @@ mod interpreter;
 mod native_funcs;
 mod stdlib;
 mod string_utils;
+mod value;
 
 use std::fs;
 

@@ -4,6 +4,7 @@ use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
     native_funcs,
     stdlib::load_stdlib,
+    value::{FunctionLiteralRc, Value},
 };
 
 #[derive(Debug)]
@@ -40,117 +41,6 @@ macro_rules! exception {
     };
 }
 pub(crate) use exception;
-
-#[derive(Debug, Clone)]
-pub struct FunctionLiteralRc(Rc<Node>);
-
-impl PartialEq for FunctionLiteralRc {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.0, &other.0)
-    }
-}
-
-impl PartialOrd for FunctionLiteralRc {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        if self == other {
-            Some(std::cmp::Ordering::Equal)
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialOrd, PartialEq)]
-pub enum Value {
-    Nil,
-    Bool(bool),
-    String(String),
-    Integer(i64),
-    NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
-    Func(FunctionLiteralRc),
-    List(Vec<Value>),
-}
-
-impl Value {
-    pub fn truthy(&self) -> bool {
-        match self {
-            Self::Nil => false,
-            Self::Bool(v) => *v,
-            _ => true,
-        }
-    }
-
-    pub fn is_enumerable(&self) -> bool {
-        matches!(self, Self::String(_) | Self::List(_))
-    }
-
-    pub fn ensure_enumerable(&self, info: &'static str) -> Result<Value, Exception> {
-        if self.is_enumerable() {
-            Ok(self.clone())
-        } else {
-            exception!("{}: {:?} is not enumerable", info, self)
-        }
-    }
-
-    pub fn enum_len(&self) -> usize {
-        match self {
-            Self::String(v) => v.chars().count(),
-            Self::List(v) => v.len(),
-            _ => panic!("{:?} is not enumerable", self),
-        }
-    }
-
-    pub fn enum_at(&self, index: usize) -> Result<Value, Exception> {
-        match self {
-            Self::String(v) => {
-                let result = v.chars().nth(index).map(|c| Value::String(String::from(c)));
-                if let Some(result) = result {
-                    Ok(result)
-                } else {
-                    let length = v.chars().count();
-                    exception!(
-                        "index {} out of bounds for string of length {}",
-                        index,
-                        length
-                    )
-                }
-            }
-            Self::List(v) => {
-                let result = v.get(index);
-                if let Some(result) = result {
-                    Ok(result.clone())
-                } else {
-                    exception!(
-                        "index {} out of bounds for string of length {}",
-                        index,
-                        v.len()
-                    )
-                }
-            }
-            _ => panic!("{:?} is not enumerable", self),
-        }
-    }
-
-    pub fn to_index(&self) -> Result<usize, Exception> {
-        match self {
-            Self::Integer(i) if *i >= 0 => Ok(*i as usize),
-            _ => exception!("invalid index: {:?}", self),
-        }
-    }
-
-    pub fn cast_to_int(&self) -> Result<Value, Exception> {
-        match self {
-            Self::Integer(_) => Ok(self.clone()),
-            Self::Bool(true) => Ok(Value::Integer(1)),
-            Self::Bool(false) => Ok(Value::Integer(0)),
-            Self::String(contents) => match contents.parse::<i64>() {
-                Ok(i) => Ok(Value::Integer(i)),
-                Err(err) => exception!("failed to parse string to int: {}", err),
-            },
-            _ => exception!("cannot cast {:?} to int", self), // TODO: should nil convert to 0?
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Interpreter {
