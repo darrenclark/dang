@@ -1,6 +1,7 @@
 mod ast;
 mod dang_parser;
 mod interpreter;
+mod stdlib;
 
 use std::fs;
 

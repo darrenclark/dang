@@ -1,6 +1,9 @@
 use std::{collections::HashMap, fmt, mem::discriminant, rc::Rc};
 
-use crate::ast::{BinOp, Node, NodeKind, Source, UnaryOp};
+use crate::{
+    ast::{BinOp, Node, NodeKind, Source, UnaryOp},
+    stdlib::load_stdlib,
+};
 
 #[derive(Debug)]
 pub struct Exception {
@@ -212,6 +215,12 @@ impl Context {
         let _ = c.define("split", false, Value::NativeFunc("split"));
         let _ = c.define("int", false, Value::NativeFunc("int"));
         let _ = c.define("raise", false, Value::NativeFunc("raise"));
+
+        for module in load_stdlib() {
+            if let Err(exception) = eval(&mut c, &module) {
+                panic!("exception while loading standard library: {}", exception)
+            }
+        }
 
         c
     }
