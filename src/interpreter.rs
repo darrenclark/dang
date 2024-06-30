@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt, mem::discriminant, rc::Rc};
 
 use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
+    native_funcs,
     stdlib::load_stdlib,
 };
 
@@ -9,6 +10,15 @@ use crate::{
 pub struct Exception {
     source: Option<Source>,
     message: String,
+}
+
+impl Exception {
+    pub fn new(message: String) -> Exception {
+        Exception {
+            source: None,
+            message,
+        }
+    }
 }
 
 impl fmt::Display for Exception {
@@ -26,9 +36,10 @@ impl fmt::Display for Exception {
 
 macro_rules! exception {
     ($($arg:tt)*) => {
-        return Err(Exception { source: None, message: format!($($arg)*) })
+        return Err(Exception::new(format!($($arg)*)))
     };
 }
+pub(crate) use exception;
 
 #[derive(Debug, Clone)]
 pub struct FunctionLiteralRc(Rc<Node>);
@@ -61,7 +72,7 @@ pub enum Value {
 }
 
 impl Value {
-    fn truthy(&self) -> bool {
+    pub fn truthy(&self) -> bool {
         match self {
             Self::Nil => false,
             Self::Bool(v) => *v,
@@ -69,11 +80,11 @@ impl Value {
         }
     }
 
-    fn is_enumerable(&self) -> bool {
+    pub fn is_enumerable(&self) -> bool {
         matches!(self, Self::String(_) | Self::List(_))
     }
 
-    fn ensure_enumerable(&self, info: &'static str) -> Result<Value, Exception> {
+    pub fn ensure_enumerable(&self, info: &'static str) -> Result<Value, Exception> {
         if self.is_enumerable() {
             Ok(self.clone())
         } else {
@@ -81,7 +92,7 @@ impl Value {
         }
     }
 
-    fn enum_len(&self) -> usize {
+    pub fn enum_len(&self) -> usize {
         match self {
             Self::String(v) => v.chars().count(),
             Self::List(v) => v.len(),
@@ -89,7 +100,7 @@ impl Value {
         }
     }
 
-    fn enum_at(&self, index: usize) -> Result<Value, Exception> {
+    pub fn enum_at(&self, index: usize) -> Result<Value, Exception> {
         match self {
             Self::String(v) => {
                 let result = v.chars().nth(index).map(|c| Value::String(String::from(c)));
@@ -120,14 +131,14 @@ impl Value {
         }
     }
 
-    fn to_index(&self) -> Result<usize, Exception> {
+    pub fn to_index(&self) -> Result<usize, Exception> {
         match self {
             Self::Integer(i) if *i >= 0 => Ok(*i as usize),
             _ => exception!("invalid index: {:?}", self),
         }
     }
 
-    fn cast_to_int(&self) -> Result<Value, Exception> {
+    pub fn cast_to_int(&self) -> Result<Value, Exception> {
         match self {
             Self::Integer(_) => Ok(self.clone()),
             Self::Bool(true) => Ok(Value::Integer(1)),
@@ -205,24 +216,9 @@ impl Context {
             allow_redefinition,
         };
 
-        let _ = c.define("add", false, Value::NativeFunc(native_call_add));
-        let _ = c.define(
-            "print",
-            false,
-            Value::NativeFunc(|args| native_call_print(args, false)),
-        );
-        let _ = c.define(
-            "println",
-            false,
-            Value::NativeFunc(|args| native_call_print(args, true)),
-        );
-        let _ = c.define("inspect", false, Value::NativeFunc(native_call_inspect));
-        let _ = c.define("len", false, Value::NativeFunc(native_call_len));
-        let _ = c.define("get", false, Value::NativeFunc(native_call_get));
-        let _ = c.define("readfile", false, Value::NativeFunc(native_call_readfile));
-        let _ = c.define("split", false, Value::NativeFunc(native_call_split));
-        let _ = c.define("int", false, Value::NativeFunc(native_call_int));
-        let _ = c.define("raise", false, Value::NativeFunc(native_call_raise));
+        for (name, ptr) in native_funcs::funcs() {
+            let _ = c.define(name, false, Value::NativeFunc(ptr));
+        }
 
         for module in load_stdlib() {
             if let Err(exception) = eval(&mut c, &module) {
@@ -454,121 +450,6 @@ fn inner_call(
     }
 
     Ok(result)
-}
-
-fn native_call_add(args: &[Value]) -> Result<Value, Exception> {
-    let sum = args.iter().try_fold(0, |acc, v| {
-        if let Value::Integer(int) = v {
-            Ok(acc + int)
-        } else {
-            exception!("add: arg is not a number: {:?}", v)
-        }
-    })?;
-
-    Ok(Value::Integer(sum))
-}
-
-fn native_call_print(args: &[Value], newline: bool) -> Result<Value, Exception> {
-    for v in args {
-        if let Value::String(s) = v {
-            print!("{}", s)
-        } else if let Value::Integer(i) = v {
-            print!("{}", i)
-        } else {
-            exception!("print: arg is not printable: {:?}", v)
-        }
-    }
-
-    if newline {
-        println!();
-    }
-
-    Ok(Value::Nil)
-}
-
-fn native_call_inspect(args: &[Value]) -> Result<Value, Exception> {
-    for v in args {
-        println!("{:?}", v)
-    }
-
-    Ok(args.first().cloned().unwrap_or(Value::Nil))
-}
-
-fn native_call_len(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() != 1 {
-        exception!("len(enumerable) expected one arg")
-    }
-    args[0].ensure_enumerable("len")?;
-
-    Ok(Value::Integer(args[0].enum_len() as i64))
-}
-
-fn native_call_get(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() < 2 {
-        exception!("get(enumerable, path..) expected at least two args")
-    }
-
-    let mut res = args[0].clone();
-    for index in args.iter().skip(1) {
-        res.ensure_enumerable("get")?;
-        res = res.enum_at(index.to_index()?)?;
-    }
-    Ok(res)
-}
-
-fn native_call_readfile(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() != 1 {
-        exception!("readfile(path) expected one arg")
-    }
-    let path = match &args[0] {
-        Value::String(p) => p,
-        _ => exception!("expected path as a string"),
-    };
-
-    match std::fs::read_to_string(path) {
-        Ok(contents) => Ok(Value::String(contents)),
-        Err(reason) => {
-            exception!("failed to read {}: {}", path, reason)
-        }
-    }
-}
-
-fn native_call_split(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() != 2 {
-        exception!("split(string, splitter) expected two args")
-    }
-    let string = match &args[0] {
-        Value::String(s) => s,
-        _ => exception!("expected string at arg 0"),
-    };
-    let splitter = match &args[1] {
-        Value::String(s) => s,
-        _ => exception!("expected string at arg 1"),
-    };
-
-    let res: Vec<Value> = string
-        .split(splitter)
-        .map(|s| Value::String(s.to_owned()))
-        .collect();
-
-    Ok(Value::List(res))
-}
-
-fn native_call_int(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() != 1 {
-        exception!("int(other) expected one arg")
-    }
-    args[0].cast_to_int()
-}
-
-fn native_call_raise(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() != 1 {
-        exception!("expected one string arg to raise")
-    }
-    if let Value::String(s) = &args[0] {
-        exception!("{}", s)
-    }
-    exception!("expected one string arg to raise")
 }
 
 fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
