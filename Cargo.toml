@@ -11,3 +11,4 @@ dirs = "5.0.1"
 pest = "2.7.10"
 pest_derive = { version = "2.7.10", features = ["grammar-extras"] }
 clap = { version = "4.5.7", features = ["derive"] }
+unescape = "0.1.0"

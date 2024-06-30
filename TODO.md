@@ -1,13 +1,5 @@
 # Todo
 
-## ./aoc2023day1.dang
-
-- Enumeration
-- Built in functions:
-    - `raise`
-    - type casting
-    - `readfile`
-
 ## Future
 
 - Maps
@@ -20,3 +12,4 @@
 - Iterators
 - Subscripting
 - Trailing comma in arrays
+- more type casting

@@ -7,6 +7,7 @@ use pest::{
     Parser,
 };
 use pest_derive::Parser;
+use unescape::unescape;
 
 use crate::ast::{BinOp, Node, NodeKind, Source, UnaryOp};
 
@@ -299,7 +300,7 @@ impl ToAst {
                 self.new_node(line_col, NodeKind::ListLiteral(elements))
             }
             Rule::string_literal => {
-                let string = String::from(pair.into_inner().next().unwrap().as_str());
+                let string = unescape(pair.into_inner().next().unwrap().as_str()).unwrap();
                 self.new_node(line_col, NodeKind::StringLiteral(string))
             }
             Rule::string_contents => panic!(),

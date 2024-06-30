@@ -15,9 +15,6 @@ use rustyline::{DefaultEditor, Result};
 /// dang programming language
 #[derive(Parser)]
 struct Cli {
-    /// path to .dang file to execute
-    path: Option<std::path::PathBuf>,
-
     /// debug: print pest parse output (instead of executing)
     #[arg(long)]
     print_pest_parse_output: bool,
@@ -25,6 +22,13 @@ struct Cli {
     /// debug: print ast (instead of executing)
     #[arg(long)]
     print_ast: bool,
+
+    /// path to .dang file to execute
+    path: Option<std::path::PathBuf>,
+
+    /// args passed to the dang program
+    #[arg(last(false))]
+    args: Vec<String>,
 }
 
 const HISTORY_FILE: &str = ".dang_history";
@@ -38,12 +42,14 @@ fn main() -> Result<()> {
 
     match &args.path {
         Some(path) => run_file(&args, path),
-        None => repl(),
+        None => repl(&args),
     }
 }
 
 fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     let mut interpreter = Interpreter::new();
+    interpreter.set_argv(args.args.clone());
+
     let file = fs::read_to_string(path)?;
 
     let execute = !args.print_pest_parse_output && !args.print_ast;
@@ -61,8 +67,9 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn repl() -> Result<()> {
+fn repl(args: &Cli) -> Result<()> {
     let mut interpreter = Interpreter::new_repl();
+    interpreter.set_argv(args.args.clone());
 
     let history_file = home_dir().map(|p| {
         let mut path = p.clone();

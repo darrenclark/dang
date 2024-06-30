@@ -123,6 +123,19 @@ impl Value {
             _ => exception!("invalid index: {:?}", self),
         }
     }
+
+    fn cast_to_int(&self) -> Result<Value, Exception> {
+        match self {
+            Self::Integer(_) => Ok(self.clone()),
+            Self::Bool(true) => Ok(Value::Integer(1)),
+            Self::Bool(false) => Ok(Value::Integer(0)),
+            Self::String(contents) => match contents.parse::<i64>() {
+                Ok(i) => Ok(Value::Integer(i)),
+                Err(err) => exception!("failed to parse string to int: {}", err),
+            },
+            _ => exception!("cannot cast {:?} to int", self), // TODO: should nil convert to 0?
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -141,6 +154,13 @@ impl Interpreter {
         Interpreter {
             context: Context::new(true),
         }
+    }
+
+    pub fn set_argv(&mut self, argv: Vec<String>) {
+        let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
+        self.context
+            .define("argv", false, Value::List(converted))
+            .unwrap();
     }
 
     pub fn eval(&mut self, node: &Node) -> Result<Value, Exception> {
@@ -188,6 +208,10 @@ impl Context {
         let _ = c.define("inspect", false, Value::NativeFunc("inspect"));
         let _ = c.define("len", false, Value::NativeFunc("len"));
         let _ = c.define("get", false, Value::NativeFunc("get"));
+        let _ = c.define("readfile", false, Value::NativeFunc("readfile"));
+        let _ = c.define("split", false, Value::NativeFunc("split"));
+        let _ = c.define("int", false, Value::NativeFunc("int"));
+        let _ = c.define("raise", false, Value::NativeFunc("raise"));
 
         c
     }
@@ -423,6 +447,10 @@ fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {
         "inspect" => native_call_inspect(&args),
         "len" => native_call_len(&args),
         "get" => native_call_get(&args),
+        "readfile" => native_call_readfile(&args),
+        "split" => native_call_split(&args),
+        "int" => native_call_int(&args),
+        "raise" => native_call_raise(&args),
         _ => exception!("native function '{}' not found", name),
     }
 }
@@ -485,6 +513,61 @@ fn native_call_get(args: &[Value]) -> Result<Value, Exception> {
         res = res.enum_at(index.to_index()?)?;
     }
     Ok(res)
+}
+
+fn native_call_readfile(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("readfile(path) expected one arg")
+    }
+    let path = match &args[0] {
+        Value::String(p) => p,
+        _ => exception!("expected path as a string"),
+    };
+
+    match std::fs::read_to_string(path) {
+        Ok(contents) => Ok(Value::String(contents)),
+        Err(reason) => {
+            exception!("failed to read {}: {}", path, reason)
+        }
+    }
+}
+
+fn native_call_split(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("split(string, splitter) expected two args")
+    }
+    let string = match &args[0] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 0"),
+    };
+    let splitter = match &args[1] {
+        Value::String(s) => s,
+        _ => exception!("expected string at arg 1"),
+    };
+
+    let res: Vec<Value> = string
+        .split(splitter)
+        .map(|s| Value::String(s.to_owned()))
+        .collect();
+
+    Ok(Value::List(res))
+}
+
+fn native_call_int(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("int(other) expected one arg")
+    }
+    args[0].cast_to_int()
+}
+
+fn native_call_raise(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("expected one string arg to raise")
+    }
+    if let Value::String(s) = &args[0] {
+        exception!("{}", s)
+    }
+    exception!("expected one string arg to raise")
 }
 
 fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
