@@ -55,7 +55,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Integer(i64),
-    NativeFunc(&'static str),
+    NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
     Func(FunctionLiteralRc),
     List(Vec<Value>),
 }
@@ -205,16 +205,24 @@ impl Context {
             allow_redefinition,
         };
 
-        let _ = c.define("add", false, Value::NativeFunc("add"));
-        let _ = c.define("print", false, Value::NativeFunc("print"));
-        let _ = c.define("println", false, Value::NativeFunc("println"));
-        let _ = c.define("inspect", false, Value::NativeFunc("inspect"));
-        let _ = c.define("len", false, Value::NativeFunc("len"));
-        let _ = c.define("get", false, Value::NativeFunc("get"));
-        let _ = c.define("readfile", false, Value::NativeFunc("readfile"));
-        let _ = c.define("split", false, Value::NativeFunc("split"));
-        let _ = c.define("int", false, Value::NativeFunc("int"));
-        let _ = c.define("raise", false, Value::NativeFunc("raise"));
+        let _ = c.define("add", false, Value::NativeFunc(native_call_add));
+        let _ = c.define(
+            "print",
+            false,
+            Value::NativeFunc(|args| native_call_print(args, false)),
+        );
+        let _ = c.define(
+            "println",
+            false,
+            Value::NativeFunc(|args| native_call_print(args, true)),
+        );
+        let _ = c.define("inspect", false, Value::NativeFunc(native_call_inspect));
+        let _ = c.define("len", false, Value::NativeFunc(native_call_len));
+        let _ = c.define("get", false, Value::NativeFunc(native_call_get));
+        let _ = c.define("readfile", false, Value::NativeFunc(native_call_readfile));
+        let _ = c.define("split", false, Value::NativeFunc(native_call_split));
+        let _ = c.define("int", false, Value::NativeFunc(native_call_int));
+        let _ = c.define("raise", false, Value::NativeFunc(native_call_raise));
 
         for module in load_stdlib() {
             if let Err(exception) = eval(&mut c, &module) {
@@ -364,12 +372,12 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;
-            if let Value::NativeFunc(name) = func {
+            if let Value::NativeFunc(ptr) = func {
                 let mut evaled_args = Vec::with_capacity(args.len());
                 for n in args {
                     evaled_args.push(eval(context, n)?)
                 }
-                native_call(name, evaled_args)
+                ptr(&evaled_args)
             } else if let Value::Func(function_literal_rc) = func {
                 let mut evaled_args = Vec::with_capacity(args.len());
                 for n in args {
@@ -446,22 +454,6 @@ fn inner_call(
     }
 
     Ok(result)
-}
-
-fn native_call(name: &str, args: Vec<Value>) -> Result<Value, Exception> {
-    match name {
-        "add" => native_call_add(&args),
-        "print" => native_call_print(&args, false),
-        "println" => native_call_print(&args, true),
-        "inspect" => native_call_inspect(&args),
-        "len" => native_call_len(&args),
-        "get" => native_call_get(&args),
-        "readfile" => native_call_readfile(&args),
-        "split" => native_call_split(&args),
-        "int" => native_call_int(&args),
-        "raise" => native_call_raise(&args),
-        _ => exception!("native function '{}' not found", name),
-    }
 }
 
 fn native_call_add(args: &[Value]) -> Result<Value, Exception> {
