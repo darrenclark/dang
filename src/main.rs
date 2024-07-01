@@ -1,17 +1,9 @@
-mod ast;
-mod dang_parser;
-mod interpreter;
-mod native_funcs;
-mod stdlib;
-mod string_utils;
-mod value;
-
 use std::fs;
 
 use clap::Parser;
-use dang_parser::Rule;
+use dang::dang_parser::Rule;
+use dang::interpreter::Interpreter;
 use dirs::home_dir;
-use interpreter::Interpreter;
 use pest::iterators::Pair;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
@@ -119,7 +111,7 @@ fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print
     let tree = parser.parse(line, None).unwrap();
     println!("{}", tree.root_node().to_sexp());*/
 
-    let result = dang_parser::parse(&line, source);
+    let result = dang::dang_parser::parse(&line, source);
     if let Ok(pairs) = result {
         match interpreter.eval(&pairs) {
             Ok(value) => {
@@ -135,7 +127,7 @@ fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print
 }
 
 fn print_pest_parse_output(input: &str) {
-    let result = dang_parser::parse_pest_only(input);
+    let result = dang::dang_parser::parse_pest_only(input);
     match result {
         Ok(pairs) => {
             for p in pairs {
@@ -170,7 +162,7 @@ fn print_tree(pair: Pair<Rule>, depth: usize) {
 }
 
 fn print_ast(input: &str, source: &str) {
-    let result = dang_parser::parse(input, source);
+    let result = dang::dang_parser::parse(input, source);
     if let Ok(ast) = result {
         println!("{:#?}", ast);
     } else {
