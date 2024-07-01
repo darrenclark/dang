@@ -16,6 +16,48 @@ pub enum Value {
     List(Vec<Value>),
 }
 
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Self::Nil
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Self::Bool(value)
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl<'a> From<&'a str> for Value {
+    fn from(value: &'a str) -> Self {
+        Self::String(value.to_owned())
+    }
+}
+
+impl From<i32> for Value {
+    fn from(value: i32) -> Self {
+        Self::Integer(value as i64)
+    }
+}
+
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Self::Integer(value)
+    }
+}
+
+impl From<usize> for Value {
+    fn from(value: usize) -> Self {
+        Self::Integer(value as i64)
+    }
+}
+
 impl Value {
     pub fn truthy(&self) -> bool {
         match self {

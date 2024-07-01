@@ -2,6 +2,16 @@ use dang::interpreter::Exception;
 use dang::interpreter::Interpreter;
 use dang::value::Value;
 
+macro_rules! assert_runs {
+    ($c:expr) => {
+        match common::run($c) {
+            Ok(_) => {}
+            Err(reason) => panic!("{}", reason),
+        }
+    };
+}
+pub(crate) use assert_runs;
+
 pub fn run(code: &str) -> Result<Value, Exception> {
     let mut interpreter = Interpreter::new();
     let result = dang::dang_parser::parse(code, "(run)");

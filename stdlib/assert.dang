@@ -1,0 +1,5 @@
+let assert = fn(pass) {
+  if !pass {
+    raise("assertion failed")
+  }
+}
