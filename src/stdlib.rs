@@ -3,6 +3,8 @@ use include_dir::{include_dir, Dir, File};
 use crate::{ast::Node, dang_parser};
 
 static STDLIB_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/stdlib");
+#[allow(dead_code)]
+static STDLIB_LAST_MODIFIED: &str = env!("DANG_STDLIB_LAST_MODIFIED");
 
 pub fn load_stdlib() -> Vec<Node> {
     STDLIB_DIR.files().map(load_file).collect()
