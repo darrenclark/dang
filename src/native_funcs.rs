@@ -19,6 +19,7 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         // strings
         ("split", split),
         ("str_replace", str_replace),
+        ("str_reverse", str_reverse),
         ("str_find", str_find),
         ("str_rfind", str_rfind),
         // regex
@@ -145,6 +146,16 @@ fn str_replace(args: &[Value]) -> Result<Value, Exception> {
 
     let res = string.replace(pattern, replacement);
     Ok(Value::String(res))
+}
+
+fn str_reverse(args: &[Value]) -> Result<Value, Exception> {
+    let string = match args {
+        [Value::String(string)] => string,
+        _ => exception!("str_reverse(string) expected 1 string"),
+    };
+
+    let reversed: String = string.chars().rev().collect();
+    Ok(reversed.into())
 }
 
 fn str_find(args: &[Value]) -> Result<Value, Exception> {

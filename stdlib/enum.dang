@@ -39,3 +39,7 @@ let last = fn(enum) {
     nil
   }
 }
+
+let sum = fn(enum) {
+  reduce(enum, 0, fn(x, acc) { acc + x })
+}

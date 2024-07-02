@@ -1,21 +1,49 @@
-let is_digit = fn(ch) {
-  ch >= "0" && ch <= "9"
+let parse = fn(input) {
+  let lines = split(input, "\n")
+  filter(lines, fn(l) { len(l) > 0 })
+}
+
+let part1 = fn(parsed) {
+  let values = map(parsed, fn(line) { calibration_value(line, pt1_regex, pt1_regex) })
+  sum(values)
+}
+
+let part2 = fn(parsed) {
+  let values = map(parsed, fn(line) { calibration_value(line, pt2_regex, pt2_regex_rev) })
+  sum(values)
+}
+
+let pt1_regex = "\\d"
+let pt2_regex = "(one|two|three|four|five|six|seven|eight|nine|\\d)"
+let pt2_regex_rev = "(eno|owt|eerht|ruof|evif|xis|neves|thgie|enin|\\d)"
+
+let to_digit = fn(match) {
+  if match == "1" || match == "one" || match == "eno" { "1" }
+  else if match == "2" || match == "two" || match == "owt" { "2" }
+  else if match == "3" || match == "three" || match == "eerht" { "3" }
+  else if match == "4" || match == "four" || match == "ruof" { "4" }
+  else if match == "5" || match == "five" || match == "evif" { "5" }
+  else if match == "6" || match == "six" || match == "xis" { "6" }
+  else if match == "7" || match == "seven" || match == "neves" { "7" }
+  else if match == "8" || match == "eight" || match == "thgie" { "8" }
+  else if match == "9" || match == "nine" || match == "enin" { "9" }
+  else { raise("not a digit: " + match) }
+}
+
+let calibration_value = fn(line, regex, regex_rev) {
+  // TODO: Fix || short circuiting
+  let first = regex_find(line, regex) //|| raise("line doesn't have a digit: " + line)
+  let last = regex_find(str_reverse(line), regex_rev) //|| raise("line doesn't have a digit: " + line)
+
+  let value = to_digit(first) + to_digit(last)
+  int(value)
 }
 
 let input_path = first(argv)
 if input_path == nil { raise("Expected path to input as first arg") }
-
 let input = readfile(input_path)
 
-var parsed = split(input, "\n")
-parsed = filter(parsed, fn(l) { len(l) > 0 })
+let parsed = parse(input)
 
-let calibration_value = fn(line) {
-  let digits_only = filter(line, is_digit)
-  let value = first(digits_only) + last(digits_only)
-  int(value)
-}
-
-let values = map(parsed, calibration_value)
-
-println("Sum of calibration values: ", reduce(values, 0, fn(x, acc) { x + acc }))
+println("Part one: ", part1(parsed))
+println("Part two: ", part2(parsed))
