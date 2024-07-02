@@ -1,5 +1,9 @@
 # Todo
 
+## AoC2023 Day 1
+
+- regex
+
 ## Future
 
 - Maps
@@ -13,3 +17,4 @@
 - Subscripting
 - Trailing comma in arrays
 - more type casting
+    - "try" casts
