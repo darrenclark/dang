@@ -31,9 +31,8 @@ let to_digit = fn(match) {
 }
 
 let calibration_value = fn(line, regex, regex_rev) {
-  // TODO: Fix || short circuiting
-  let first = regex_find(line, regex) //|| raise("line doesn't have a digit: " + line)
-  let last = regex_find(str_reverse(line), regex_rev) //|| raise("line doesn't have a digit: " + line)
+  let first = regex_find(line, regex) || raise("line doesn't have a digit: " + line)
+  let last = regex_find(str_reverse(line), regex_rev) || raise("line doesn't have a digit: " + line)
 
   let value = to_digit(first) + to_digit(last)
   int(value)

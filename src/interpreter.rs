@@ -289,6 +289,30 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
         NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
         NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
+        NodeKind::BinaryOp {
+            op: BinOp::LogicalOr,
+            lhs,
+            rhs,
+        } => {
+            let evaled_lhs = eval(context, lhs)?;
+            if evaled_lhs.truthy() {
+                Ok(evaled_lhs)
+            } else {
+                eval(context, rhs)
+            }
+        }
+        NodeKind::BinaryOp {
+            op: BinOp::LogicalAnd,
+            lhs,
+            rhs,
+        } => {
+            let evaled_lhs = eval(context, lhs)?;
+            if evaled_lhs.truthy() {
+                eval(context, rhs)
+            } else {
+                Ok(evaled_lhs)
+            }
+        }
         NodeKind::BinaryOp { op, lhs, rhs } => {
             bin_op(*op, eval(context, lhs)?, eval(context, rhs)?)
         }
@@ -358,11 +382,8 @@ fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
         (BinOp::Mul, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
         // Division
         (BinOp::Div, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
-        // ||
-        (BinOp::LogicalOr, l, _) if l.truthy() => Ok(l.clone()),
-        (BinOp::LogicalOr, l, r) if !l.truthy() => Ok(r.clone()),
-        // &&
-        (BinOp::LogicalAnd, l, r) => Ok(Value::Bool(l.truthy() && r.truthy())),
+        // || &&
+        (BinOp::LogicalOr | BinOp::LogicalAnd, _, _) => unreachable!("handled in caller"),
         // == / !=
         (BinOp::Eq, l, r) => Ok(Value::Bool(l == r)),
         (BinOp::Neq, l, r) => Ok(Value::Bool(l == r)),

@@ -14,7 +14,7 @@ pub struct Source {
     pub col: usize,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinOp {
     Add,
     Sub,

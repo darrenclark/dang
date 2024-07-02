@@ -137,3 +137,21 @@ fn test_regex() {
         "#
     };
 }
+
+#[test]
+fn test_logical_and_or() {
+    assert_runs! {
+        r#"
+        assert((5 || 2) == 5)
+        assert((nil || 2) == 2)
+        assert((nil || false) == false)
+
+        assert((5 && 2) == 2)
+        assert((nil && 2) == nil)
+        assert((false && nil) == false)
+
+        // short circuiting
+        5 || raise("this raise should not be evaluated")
+        "#
+    };
+}
