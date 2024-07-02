@@ -176,6 +176,7 @@ dependencies = [
  "include_dir",
  "pest",
  "pest_derive",
+ "regex",
  "rustyline",
  "tree-sitter",
  "tree-sitter-dang",

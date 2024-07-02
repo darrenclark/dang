@@ -13,5 +13,6 @@ pest_derive = { version = "2.7.10", features = ["grammar-extras"] }
 clap = { version = "4.5.7", features = ["derive"] }
 unescape = "0.1.0"
 include_dir = "0.7.4"
+regex = "1.10.5"
 
 [[tests]]

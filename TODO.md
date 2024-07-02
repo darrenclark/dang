@@ -18,3 +18,5 @@
 - Trailing comma in arrays
 - more type casting
     - "try" casts
+- Regex captures
+- descriptive assert (show different parts of expression)

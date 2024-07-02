@@ -1,3 +1,5 @@
+use regex::Regex;
+
 use crate::interpreter::{exception, Exception};
 use crate::string_utils::byte_to_char_index;
 use crate::value::Value;
@@ -19,6 +21,10 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("str_replace", str_replace),
         ("str_find", str_find),
         ("str_rfind", str_rfind),
+        // regex
+        ("regex_match", regex_match),
+        ("regex_find", regex_find),
+        ("regex_find_index", regex_find_index),
         // casts
         ("int", int),
         // misc
@@ -181,6 +187,36 @@ fn str_rfind(args: &[Value]) -> Result<Value, Exception> {
         .map(|i| Value::Integer(i as i64))
         .unwrap_or(Value::Nil);
     Ok(res)
+}
+
+fn regex_match(args: &[Value]) -> Result<Value, Exception> {
+    let (string, pattern) = match args {
+        [Value::String(string), Value::String(pattern)] => (string, pattern),
+        _ => exception!("regex_match(string, pattern) expected 2 strings"),
+    };
+
+    let regex = Regex::new(pattern).map_err(|e| Exception::new(format!("{}", e)))?;
+    Ok(regex.is_match(string).into())
+}
+
+fn regex_find(args: &[Value]) -> Result<Value, Exception> {
+    let (string, pattern) = match args {
+        [Value::String(string), Value::String(pattern)] => (string, pattern),
+        _ => exception!("regex_find(string, pattern) expected 2 strings"),
+    };
+
+    let regex = Regex::new(pattern).map_err(|e| Exception::new(format!("{}", e)))?;
+    Ok(regex.find(string).map(|m| m.as_str()).into())
+}
+
+fn regex_find_index(args: &[Value]) -> Result<Value, Exception> {
+    let (string, pattern) = match args {
+        [Value::String(string), Value::String(pattern)] => (string, pattern),
+        _ => exception!("regex_find_index(string, pattern) expected 2 strings"),
+    };
+
+    let regex = Regex::new(pattern).map_err(|e| Exception::new(format!("{}", e)))?;
+    Ok(regex.find(string).map(|m| vec![m.start(), m.end()]).into())
 }
 
 fn int(args: &[Value]) -> Result<Value, Exception> {

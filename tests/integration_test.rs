@@ -118,3 +118,22 @@ fn test_scoping() {
         "#
     };
 }
+
+#[test]
+fn test_regex() {
+    assert_runs! {
+        r#"
+        assert(regex_match("hello", "hel+o"))
+
+        // TODO: support capture groups
+
+        assert(regex_find("hello", "l{2}") == "ll")
+        assert(regex_find("hello", "he(l+)o") == "hello")
+        assert(regex_find("hello", "h{2}") == nil)
+
+        assert(regex_find_index("hello", "l{2}") == [2, 4])
+        assert(regex_find_index("hello", "he(l+)o") == [0, 5])
+        assert(regex_find_index("hello", "zzz") == nil)
+        "#
+    };
+}

@@ -58,6 +58,22 @@ impl From<usize> for Value {
     }
 }
 
+impl<T: Into<Value>> From<Option<T>> for Value {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(v) => v.into(),
+            None => Self::Nil,
+        }
+    }
+}
+
+impl<T: Into<Value> + Clone> From<Vec<T>> for Value {
+    fn from(value: Vec<T>) -> Self {
+        let values = value.iter().map(|v| v.clone().into()).collect();
+        Self::List(values)
+    }
+}
+
 impl Value {
     pub fn truthy(&self) -> bool {
         match self {
