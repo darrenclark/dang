@@ -256,6 +256,12 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
 
             Ok(Value::Nil)
         }
+        NodeKind::Subscript { object, key } => {
+            let object = eval(context, object)?;
+            let key = eval(context, key)?;
+            object.ensure_enumerable("subscript")?;
+            object.enum_at(key.to_index()?)
+        }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;
             if let Value::NativeFunc(ptr) = func {

@@ -169,6 +169,29 @@ fn test_newline_scenarios() {
             y ==
             17
         )
+
+        // ensure the array [5] isn't interpreted as a subscript
+        let a = [1, 2, 3]
+        [5]
+        assert(a == [1, 2, 3])
+        "#
+    };
+}
+
+#[test]
+fn test_subscripting() {
+    assert_runs! {
+        r#"
+        let x = [
+            "abc",
+            "def",
+            "ghi"
+        ]
+
+        assert(x[2] == "ghi")
+        assert(x[0][1] == "b")
+        assert(x[1][0] == "d")
+        assert(x[1][2] == "f")
         "#
     };
 }

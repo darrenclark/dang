@@ -261,6 +261,24 @@ impl ToAst {
                     })
                     .parse(pair.into_inner())
             }
+            Rule::term => {
+                let mut iter = pair.into_inner();
+                let result = self.to_ast(iter.next().unwrap()).unwrap();
+
+                Some(iter.fold(result, |acc, p| {
+                    let line_col = p.line_col();
+                    assert!(p.as_rule() == Rule::subscript);
+                    let key = self.to_ast(p.into_inner().next().unwrap()).unwrap();
+                    self.new_node(
+                        line_col,
+                        NodeKind::Subscript {
+                            object: Box::new(acc),
+                            key: Box::new(key),
+                        },
+                    )
+                    .unwrap()
+                }))
+            }
             Rule::function_literal => {
                 let mut iter = pair.into_inner();
                 let arg_names: Vec<Node> = iter

@@ -62,6 +62,11 @@ pub enum NodeKind {
         enumerable: Box<Node>,
         body: Box<Node>,
     },
+    Subscript {
+        // object[key]
+        object: Box<Node>,
+        key: Box<Node>,
+    },
     FunctionLiteral {
         arg_names: Vec<Node>,
         body: Vec<Node>,
@@ -147,6 +152,11 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             fmt_node(var_name, depth + 1, "var_name", f)?;
             fmt_node(enumerable, depth + 1, "enumerable", f)?;
             fmt_node(body, depth + 1, "body", f)?;
+        }
+        NodeKind::Subscript { object, key } => {
+            writeln!(f, "Subscript:")?;
+            fmt_node(object, depth + 1, "object", f)?;
+            fmt_node(key, depth + 1, "key", f)?;
         }
         NodeKind::FunctionLiteral { arg_names, body } => {
             writeln!(f, "FunctionLiteral:")?;
