@@ -2,6 +2,7 @@
 
 ## Future
 
+- overloading based on number of arguments, i.e. `min(enum)` and `min(a, b)`
 - Maps
     - Symbols/atoms for keys?
 - Structs? - or should everything be a map?
