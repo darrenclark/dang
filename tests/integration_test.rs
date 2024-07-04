@@ -47,11 +47,11 @@ fn test_for_iteration() {
     assert_runs! {
         r#"
         // lists
-        var sum = 0
+        var s = 0
         for x in [1, 2, 3, 4] {
-            sum = sum + x
+            s = s + x
         }
-        assert(sum == 10)
+        assert(s == 10)
 
         // strings
         var chars = []
@@ -152,6 +152,23 @@ fn test_logical_and_or() {
 
         // short circuiting
         5 || raise("this raise should not be evaluated")
+        "#
+    };
+}
+
+#[test]
+fn test_newline_scenarios() {
+    assert_runs! {
+        r#"
+        let x =
+            5 +
+            3; let y = 9
+
+        assert(
+            x +
+            y ==
+            17
+        )
         "#
     };
 }

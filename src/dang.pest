@@ -1,9 +1,12 @@
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+WHITESPACE = _{ " " | "\t" }
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
-source_file = _{ SOI ~ stmt* ~ EOI }
+// Places where optional newlines can go
+nl = _{ NEWLINE* }
 
-body = { "{" ~ stmt* ~ "}" }
+source_file = _{ SOI ~ nl ~ stmt* ~ nl ~ EOI }
+
+body = { nl ~ "{" ~ nl ~ stmt* ~ nl ~ "}" ~ nl }
 
 keywords = {
   "false" |
@@ -19,11 +22,15 @@ keywords = {
 
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
 
-stmt = _{ let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr }
+stmt = _{
+  (let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr) ~ stmt_end
+}
 
-let_stmt = { "let" ~ identifier ~ "=" ~ expr }
-var_stmt = { "var" ~ identifier ~ "=" ~ expr }
-assignment = { identifier ~ "=" ~ expr }
+stmt_end = _{ NEWLINE* ~ ";"? }
+
+let_stmt = { "let" ~ identifier ~ "=" ~ nl ~ expr }
+var_stmt = { "var" ~ identifier ~ "=" ~ nl ~ expr }
+assignment = { identifier ~ "=" ~ nl ~ expr }
 if_stmt = {
   "if" ~
   #cond = expr ~
@@ -32,7 +39,7 @@ if_stmt = {
 }
 for_stmt = { "for" ~ identifier ~ "in" ~ expr ~ body }
 
-expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
+expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
   infix    =  _{ mul | div | add | sub | gte | gt | lte | lt | eq | neq | logical_and | logical_or }
     mul    =   { "*" } // Multiplication
     div    =   { "/" } // Division
@@ -49,7 +56,7 @@ expr = { prefix? ~ primary ~ (infix ~ prefix? ~ primary )* }
   prefix   =  _{ neg | logical_neg }
     neg    =   { "-" } // Integer regation
     logical_neg = { "!" } // logical negation
-  primary  =  _{ term | "(" ~ expr ~ ")" }
+  primary  =  _{ term | "(" ~ nl ~ expr ~ nl ~ ")" }
 
 term = _{
   function_literal |
@@ -62,23 +69,23 @@ term = _{
   number_literal
 }
 
-function_literal = { "fn" ~ arg_names ~ "{" ~ stmt* ~ "}" }
+function_literal = { "fn" ~ nl ~ arg_names ~ nl ~ body }
 
 arg_names = {
-  "(" ~ ")" |
-  "(" ~ identifier ~ ("," ~ identifier)* ~ ")"
+  "(" ~ nl ~ ")" |
+  "(" ~ nl ~ identifier ~ nl ~ ("," ~ nl ~ identifier ~ nl )* ~ ")"
 }
 
 function_call = { identifier ~ args }
 
 args = {
-  "(" ~ ")" |
-  "(" ~ expr ~ ("," ~ expr)* ~ ")"
+  "(" ~ nl ~ ")" |
+  "(" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl )* ~ ")"
 }
 
 list_literal = {
-  "[" ~ "]" |
-  "[" ~ expr ~ ("," ~ expr)* ~ "]"
+  "[" ~ nl ~ "]" |
+  "[" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)* ~ "]"
 }
 
 string_literal = ${ "\"" ~ string_contents ~ "\"" }

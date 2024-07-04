@@ -1,9 +1,5 @@
 # Todo
 
-## AoC2023 Day 1
-
-- regex
-
 ## Future
 
 - Maps
@@ -20,3 +16,4 @@
     - "try" casts
 - Regex captures
 - descriptive assert (show different parts of expression)
+- Shadowing library provided functions (perhaps it gives a warning instead?)
