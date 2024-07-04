@@ -28,7 +28,7 @@ syntax match dangOperator "\v\<\=?"
 syntax match dangOperator "\v\+"
 syntax match dangOperator "\v\-"
 syntax match dangOperator "\v\*"
-syntax match dangOperator "\v\/"
+syntax match dangOperator "\v\/\/@!"
 
 syntax match dangFunction "\<\k\+\ze("
 

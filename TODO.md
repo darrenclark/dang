@@ -2,7 +2,6 @@
 
 ## Future
 
-- vim plugin - fix comments
 - Maps
     - Symbols/atoms for keys?
 - Structs? - or should everything be a map?
