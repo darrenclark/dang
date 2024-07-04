@@ -2,6 +2,7 @@
 
 ## Future
 
+- vim plugin - fix comments
 - Maps
     - Symbols/atoms for keys?
 - Structs? - or should everything be a map?
@@ -10,7 +11,6 @@
 - big int
 - Closures
 - Iterators
-- Subscripting
 - Trailing comma in arrays
 - more type casting
     - "try" casts

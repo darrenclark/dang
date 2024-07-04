@@ -31,6 +31,8 @@ fn test_string_functions() {
         r#"
         assert(split("a,,c", ",") == ["a", "", "c"])
 
+        assert(trim("   hello world ") == "hello world")
+
         assert(str_replace("hello world", "world", "bob") == "hello bob")
 
         assert(str_find("hello world", "world") == 6)

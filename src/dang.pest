@@ -20,7 +20,7 @@ keywords = {
   "nil"
 }
 
-identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
+identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ ~ "?"? }
 
 stmt = _{
   (let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr) ~ stmt_end

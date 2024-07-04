@@ -28,14 +28,14 @@
 
  let check_valid_game = fn(line) {
    let parts = split(line, ":")
-   let pulls = parts[1] |> replace(";", ",") |> split(",") |> map(trim)
+   let pulls = parts[1] |> str_replace(";", ",") |> split(",") |> map(trim)
 
    if all?(pulls, valid_pull?) {
-     return parts[0] |> split(" ") |> int()
+     parts[0] |> split(" ") |> get(1) |> int()
    } else {
-     return 0
+     0
    }
  }
 
  let game_ids = parsed |> map(check_valid_game)
- print ("Sum of valid game IDs: ", reduce(game_ids, 0, +))
+ print("Sum of valid game IDs: ", sum(game_ids))

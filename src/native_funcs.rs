@@ -18,6 +18,7 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("get", get),
         // strings
         ("split", split),
+        ("trim", trim),
         ("str_replace", str_replace),
         ("str_reverse", str_reverse),
         ("str_find", str_find),
@@ -125,6 +126,15 @@ fn split(args: &[Value]) -> Result<Value, Exception> {
         .collect();
 
     Ok(Value::List(res))
+}
+
+fn trim(args: &[Value]) -> Result<Value, Exception> {
+    let string = match args {
+        [Value::String(string)] => string,
+        _ => exception!("trim(string) expected 1 string"),
+    };
+
+    Ok(string.trim().into())
 }
 
 fn str_replace(args: &[Value]) -> Result<Value, Exception> {
