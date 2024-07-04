@@ -40,7 +40,8 @@ if_stmt = {
 for_stmt = { "for" ~ identifier ~ "in" ~ expr ~ body }
 
 expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
-  infix    =  _{ mul | div | add | sub | gte | gt | lte | lt | eq | neq | logical_and | logical_or }
+  infix    =  _{ pipe | mul | div | add | sub | gte | gt | lte | lt | eq | neq | logical_and | logical_or }
+    pipe   =   { NEWLINE* ~ "|>" }  // Elixir style pipe operator
     mul    =   { "*" } // Multiplication
     div    =   { "/" } // Division
     add    =   { "+" } // Addition

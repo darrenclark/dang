@@ -90,6 +90,10 @@ pub enum NodeKind {
         op: UnaryOp,
         rhs: Box<Node>,
     },
+    Pipe {
+        lhs: Box<Node>,
+        rhs: Box<Node>,
+    },
 }
 
 impl fmt::Debug for Node {
@@ -204,6 +208,11 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         NodeKind::UnaryOp { op, rhs } => {
             writeln!(f, "UnaryOp({:?}):", op)?;
             fmt_node(rhs, depth + 1, "", f)?;
+        }
+        NodeKind::Pipe { lhs, rhs } => {
+            writeln!(f, "Pipe(|>)")?;
+            fmt_node(lhs, depth + 1, "lhs", f)?;
+            fmt_node(rhs, depth + 1, "rhs", f)?;
         }
     }
     Ok(())

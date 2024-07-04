@@ -327,6 +327,31 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             arg_names: _,
             body: _,
         } => Ok(Value::Func(FunctionLiteralRc(Rc::new(node.clone())))),
+        NodeKind::Pipe { lhs, rhs } => {
+            let lhs = eval(context, lhs)?;
+
+            let (func, mut rest_args) = match &rhs.kind {
+                NodeKind::FunctionCall { function, args } => {
+                    let mut evaled_args = Vec::with_capacity(args.len());
+                    for n in args {
+                        evaled_args.push(eval(context, n)?)
+                    }
+                    (eval(context, function.as_ref())?, evaled_args)
+                }
+                _ => exception!("not piping in to a function"),
+            };
+
+            let mut args = vec![lhs];
+            args.append(&mut rest_args);
+
+            if let Value::NativeFunc(ptr) = func {
+                ptr(&args)
+            } else if let Value::Func(function_literal_rc) = func {
+                call(context, function_literal_rc.0.as_ref(), &args)
+            } else {
+                exception!("tried to call a non-function value: {:?}", func)
+            }
+        }
     }
 }
 

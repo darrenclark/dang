@@ -43,6 +43,7 @@ fn create_pratt_parser() -> PrattParser<Rule> {
             | Op::infix(Rule::lte, Assoc::Left))
         .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
         .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left))
+        .op(Op::infix(Rule::pipe, Assoc::Left))
         .op(Op::prefix(Rule::neg) | Op::prefix(Rule::logical_neg))
 }
 
@@ -252,6 +253,13 @@ impl ToAst {
                             op.line_col(),
                             NodeKind::BinaryOp {
                                 op: BinOp::Div,
+                                lhs: Box::new(lhs.unwrap()),
+                                rhs: Box::new(rhs.unwrap()),
+                            },
+                        ),
+                        Rule::pipe => self.new_node(
+                            op.line_col(),
+                            NodeKind::Pipe {
                                 lhs: Box::new(lhs.unwrap()),
                                 rhs: Box::new(rhs.unwrap()),
                             },

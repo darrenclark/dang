@@ -195,3 +195,24 @@ fn test_subscripting() {
         "#
     };
 }
+
+#[test]
+fn test_piping() {
+    assert_runs! {
+        r#"
+        let numbers = [
+            "one",
+            "two",
+            "three",
+            "four"
+        ]
+
+        let r =
+            numbers
+            |> filter(fn(x) { len(x) == 3 })
+            |> map(str_reverse)
+
+        assert(r == ["eno", "owt"])
+        "#
+    };
+}
