@@ -147,6 +147,17 @@ impl Value {
         }
     }
 
+    pub fn at_field(&self, key: &str) -> Result<Value, Exception> {
+        if let Self::Dict(v) = self {
+            match v.get(&Value::from(key)) {
+                None => exception!("field {:?} not found in {:?}", key, self),
+                Some(v) => Ok(v.clone()),
+            }
+        } else {
+            exception!("cannot access field {:?} on {:?}", key, self)
+        }
+    }
+
     pub fn to_index(&self) -> Result<usize, Exception> {
         match self {
             Self::Integer(i) if *i >= 0 => Ok(*i as usize),

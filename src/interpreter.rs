@@ -266,6 +266,14 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
             let key = eval(context, key)?;
             object.at(&key)
         }
+        NodeKind::FieldAccess { object, key } => {
+            let object = eval(context, object)?;
+            let key = match &key.kind {
+                NodeKind::Identifier(name) => name,
+                _ => unreachable!(),
+            };
+            object.at_field(&key)
+        }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;
             if let Value::NativeFunc(ptr) = func {

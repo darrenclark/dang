@@ -67,6 +67,11 @@ pub enum NodeKind {
         object: Box<Node>,
         key: Box<Node>,
     },
+    FieldAccess {
+        // object.key
+        object: Box<Node>,
+        key: Box<Node>,
+    },
     FunctionLiteral {
         arg_names: Vec<Node>,
         body: Vec<Node>,
@@ -160,6 +165,11 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
         NodeKind::Subscript { object, key } => {
             writeln!(f, "Subscript:")?;
+            fmt_node(object, depth + 1, "object", f)?;
+            fmt_node(key, depth + 1, "key", f)?;
+        }
+        NodeKind::FieldAccess { object, key } => {
+            writeln!(f, "FieldAccess:")?;
             fmt_node(object, depth + 1, "object", f)?;
             fmt_node(key, depth + 1, "key", f)?;
         }

@@ -3,8 +3,8 @@ let parse = fn(input) {
   |> split("\n")
   |> filter(fn (l) { len(l) > 0 })
   |> map(fn (l) {
-    let parts = split(line, ":")
-    let game_id = parts[0] |> split(" ") |> get(1) |> int()
+    let parts = split(l, ":")
+    let id = parts[0] |> split(" ") |> get(1) |> int()
 
     let pulls = parts[1] |> str_replace(";", ",") |> split(",") |> map(trim) |> map(fn (p) {
       let ps = split(p, " ")
@@ -28,27 +28,20 @@ let max_green = 13
 let max_blue = 14
 
 let valid_pull? = fn(pull) {
-  let parts = split(pull, " ")
-  let count = int(parts[0])
-  let color = parts[1]
-
-  if color == "red" {
-    count <= max_red
-  } else if color == "blue" {
-    count <= max_blue
-  } else if color == "green" {
-    count <= max_green
+  if pull.color == "red" {
+    pull.count <= max_red
+  } else if pull.color == "blue" {
+    pull.count <= max_blue
+  } else if pull.color == "green" {
+    pull.count <= max_green
   } else {
     raise("unexpected color: " + color)
   }
 }
 
-let check_valid_game = fn(line) {
-  let parts = split(line, ":")
-  let pulls = parts[1] |> str_replace(";", ",") |> split(",") |> map(trim)
-
-  if all?(pulls, valid_pull?) {
-    parts[0] |> split(" ") |> get(1) |> int()
+let check_valid_game = fn(game) {
+  if all?(game.pulls, valid_pull?) {
+    game.id
   } else {
     0
   }

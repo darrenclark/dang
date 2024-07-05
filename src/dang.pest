@@ -68,10 +68,11 @@ term = {
     nil_literal |
     bool_literal |
     string_literal |
-    number_literal ) ~ subscript*
+    number_literal ) ~ (subscript | field_access)*
 }
 
 subscript = { "[" ~ nl ~ expr ~ nl ~ "]" }
+field_access = { "." ~ identifier }
 
 function_literal = { "fn" ~ nl ~ arg_names ~ nl ~ body }
 

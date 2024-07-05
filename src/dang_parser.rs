@@ -275,13 +275,20 @@ impl ToAst {
 
                 Some(iter.fold(result, |acc, p| {
                     let line_col = p.line_col();
-                    assert!(p.as_rule() == Rule::subscript);
+                    let rule = p.as_rule();
                     let key = self.to_ast(p.into_inner().next().unwrap()).unwrap();
                     self.new_node(
                         line_col,
-                        NodeKind::Subscript {
-                            object: Box::new(acc),
-                            key: Box::new(key),
+                        match rule {
+                            Rule::subscript => NodeKind::Subscript {
+                                object: Box::new(acc),
+                                key: Box::new(key),
+                            },
+                            Rule::field_access => NodeKind::FieldAccess {
+                                object: Box::new(acc),
+                                key: Box::new(key),
+                            },
+                            _ => unreachable!(),
                         },
                     )
                     .unwrap()

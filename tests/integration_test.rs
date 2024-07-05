@@ -233,6 +233,7 @@ fn test_dicts() {
         }
 
         assert(d["a"] == 1)
+        assert(d.a == 1)
         assert(d[" b "] == 2)
         assert(d["c"] == 3)
         assert(d[[1, 2]] == 4)
