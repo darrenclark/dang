@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+use std::hash::Hash;
 use std::rc::Rc;
 
 use crate::{
@@ -5,7 +7,7 @@ use crate::{
     interpreter::{exception, Exception},
 };
 
-#[derive(Debug, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Value {
     Nil,
     Bool(bool),
@@ -14,6 +16,7 @@ pub enum Value {
     NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
     Func(FunctionLiteralRc),
     List(Vec<Value>),
+    Dict(BTreeMap<Value, Value>),
 }
 
 impl From<()> for Value {
@@ -158,18 +161,30 @@ impl Value {
 #[derive(Debug, Clone)]
 pub struct FunctionLiteralRc(pub Rc<Node>);
 
+impl Eq for FunctionLiteralRc {}
+
 impl PartialEq for FunctionLiteralRc {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
     }
 }
 
+impl Hash for FunctionLiteralRc {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        Rc::as_ptr(&self.0).hash(state)
+    }
+}
+
+impl Ord for FunctionLiteralRc {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let self_ptr = Rc::as_ptr(&self.0);
+        let other_ptr = Rc::as_ptr(&other.0);
+        self_ptr.cmp(&other_ptr)
+    }
+}
+
 impl PartialOrd for FunctionLiteralRc {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        if self == other {
-            Some(std::cmp::Ordering::Equal)
-        } else {
-            None
-        }
+        Some(self.cmp(other))
     }
 }

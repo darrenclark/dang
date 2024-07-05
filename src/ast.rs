@@ -77,6 +77,7 @@ pub enum NodeKind {
     },
     Identifier(String),
     ListLiteral(Vec<Node>),
+    DictLiteral(Vec<(Node, Node)>),
     NilLiteral,
     BoolLiteral(bool),
     StringLiteral(String),
@@ -186,6 +187,13 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             writeln!(f, "ListLiteral")?;
             for e in elements {
                 fmt_node(e, depth + 1, "element", f)?;
+            }
+        }
+        NodeKind::DictLiteral(pairs) => {
+            writeln!(f, "DictLiteral")?;
+            for (k, v) in pairs {
+                fmt_node(k, depth + 1, "key", f)?;
+                fmt_node(v, depth + 1, "value", f)?;
             }
         }
         NodeKind::NilLiteral => {

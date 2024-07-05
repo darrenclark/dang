@@ -1,6 +1,18 @@
 let parse = fn(input) {
-  let lines = split(input, "\n")
-  filter(lines, fn(l) { len(l) > 0 })
+  input
+  |> split("\n")
+  |> filter(fn (l) { len(l) > 0 })
+  |> map(fn (l) {
+    let parts = split(line, ":")
+    let game_id = parts[0] |> split(" ") |> get(1) |> int()
+
+    let pulls = parts[1] |> str_replace(";", ",") |> split(",") |> map(trim) |> map(fn (p) {
+      let ps = split(p, " ")
+      {color: ps[1], count: int(ps[0])}
+    })
+
+    {id: id, pulls: pulls}
+  })
 }
 
 let part1 = fn(parsed) {

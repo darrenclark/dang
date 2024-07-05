@@ -325,6 +325,22 @@ impl ToAst {
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
                 self.new_node(line_col, NodeKind::ListLiteral(elements))
             }
+            Rule::dict_literal => {
+                let elements: Vec<(Node, Node)> = pair
+                    .into_inner()
+                    .map(|p| {
+                        let mut iter = p.into_inner();
+                        let key = self.to_ast(iter.next().unwrap()).unwrap();
+                        let value = self.to_ast(iter.next().unwrap()).unwrap();
+                        (key, value)
+                    })
+                    .collect();
+                self.new_node(line_col, NodeKind::DictLiteral(elements))
+            }
+            Rule::unquoted_dict_key_string => {
+                let string = pair.into_inner().next().unwrap().as_str().to_owned();
+                self.new_node(line_col, NodeKind::StringLiteral(string))
+            }
             Rule::string_literal => {
                 let string = unescape(pair.into_inner().next().unwrap().as_str()).unwrap();
                 self.new_node(line_col, NodeKind::StringLiteral(string))

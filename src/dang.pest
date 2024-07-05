@@ -64,6 +64,7 @@ term = {
     function_call |
     identifier |
     list_literal |
+    dict_literal |
     nil_literal |
     bool_literal |
     string_literal |
@@ -90,6 +91,16 @@ list_literal = {
   "[" ~ nl ~ "]" |
   "[" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)* ~ "]"
 }
+
+dict_literal = {
+  "{" ~ nl ~ "}" |
+  "{" ~ dict_kv ~ ("," ~ dict_kv)* ~ "}"
+}
+dict_kv = {
+  nl ~ (unquoted_dict_key_string | string_literal) ~ nl ~ ":" ~ nl ~ expr ~ nl |
+  nl ~ expr ~ nl ~ "=>" ~ nl ~ expr ~ nl
+}
+unquoted_dict_key_string = { identifier }
 
 string_literal = ${ "\"" ~ string_contents ~ "\"" }
 string_contents = @{ char* }

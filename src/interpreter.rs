@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fmt, mem::discriminant, rc::Rc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+    mem::discriminant,
+    rc::Rc,
+};
 
 use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
@@ -290,6 +295,13 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
                 evaled_elements.push(eval(context, e)?);
             }
             Ok(Value::List(evaled_elements))
+        }
+        NodeKind::DictLiteral(key_values) => {
+            let mut map = BTreeMap::new();
+            for (k, v) in key_values {
+                map.insert(eval(context, k)?, eval(context, v)?);
+            }
+            Ok(Value::Dict(map))
         }
         NodeKind::NilLiteral => Ok(Value::Nil),
         NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
