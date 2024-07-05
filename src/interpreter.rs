@@ -264,8 +264,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
         NodeKind::Subscript { object, key } => {
             let object = eval(context, object)?;
             let key = eval(context, key)?;
-            object.ensure_enumerable("subscript")?;
-            object.enum_at(key.to_index()?)
+            object.at(&key)
         }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;

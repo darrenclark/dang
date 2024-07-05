@@ -101,8 +101,7 @@ fn get(args: &[Value]) -> Result<Value, Exception> {
 
     let mut res = args[0].clone();
     for index in args.iter().skip(1) {
-        res.ensure_enumerable("get")?;
-        res = res.enum_at(index.to_index()?)?;
+        res = res.at(index)?;
     }
     Ok(res)
 }

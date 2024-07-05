@@ -137,6 +137,16 @@ impl Value {
         }
     }
 
+    pub fn at(&self, index: &Value) -> Result<Value, Exception> {
+        if self.is_enumerable() {
+            self.enum_at(index.to_index()?)
+        } else if let Self::Dict(v) = self {
+            Ok(v.get(index).cloned().into())
+        } else {
+            exception!("cannot index in to {:?}", self)
+        }
+    }
+
     pub fn to_index(&self) -> Result<usize, Exception> {
         match self {
             Self::Integer(i) if *i >= 0 => Ok(*i as usize),

@@ -218,3 +218,24 @@ fn test_piping() {
         "#
     };
 }
+
+#[test]
+fn test_dicts() {
+    assert_runs! {
+        r#"
+        let k = "c"
+
+        let d = {
+            a: 1,
+            " b ": 2,
+            k => 3,
+            [1,2] => 4
+        }
+
+        assert(d["a"] == 1)
+        assert(d[" b "] == 2)
+        assert(d["c"] == 3)
+        assert(d[[1, 2]] == 4)
+        "#
+    };
+}
