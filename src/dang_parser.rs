@@ -39,7 +39,7 @@ fn create_pratt_parser() -> PrattParser<Rule> {
         .op(Op::infix(Rule::eq, Assoc::Left) | Op::infix(Rule::neq, Assoc::Left))
         .op(Op::infix(Rule::gt, Assoc::Left)
             | Op::infix(Rule::gte, Assoc::Left)
-            | Op::infix(Rule::lte, Assoc::Left)
+            | Op::infix(Rule::lt, Assoc::Left)
             | Op::infix(Rule::lte, Assoc::Left))
         .op(Op::infix(Rule::add, Assoc::Left) | Op::infix(Rule::sub, Assoc::Left))
         .op(Op::infix(Rule::mul, Assoc::Left) | Op::infix(Rule::div, Assoc::Left))

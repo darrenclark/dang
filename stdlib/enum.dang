@@ -54,3 +54,19 @@ let all? = fn(enum, func) {
   }
   result
 }
+
+let min = fn(enum) {
+  var result = first(enum)
+  for x in enum {
+    if x < result { result = x }
+  }
+  result
+}
+
+let max = fn(enum) {
+  var result = first(enum)
+  for x in enum {
+    if x > result { result = x }
+  }
+  result
+}

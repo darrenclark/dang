@@ -20,7 +20,7 @@ let part1 = fn(parsed) {
 }
 
 let part2 = fn(parsed) {
-  0
+  parsed |> map(min_power_for_game) |> sum()
 }
 
 let max_red = 12
@@ -45,6 +45,18 @@ let check_valid_game = fn(game) {
   } else {
     0
   }
+}
+
+let min_power_for_game = fn(game) {
+  println("game ", game.id)
+  inspect(min_cubes(game, "red") * min_cubes(game, "green") * min_cubes(game, "blue"))
+}
+
+let min_cubes = fn(game, color) {
+  game.pulls
+  |> filter(fn (p) { p.color == color })
+  |> map(fn (p) { p.count })
+  |> max()
 }
 
 let input_path = first(argv)

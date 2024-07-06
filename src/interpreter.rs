@@ -272,7 +272,7 @@ fn do_eval(context: &mut Context, node: &Node) -> Result<Value, Exception> {
                 NodeKind::Identifier(name) => name,
                 _ => unreachable!(),
             };
-            object.at_field(&key)
+            object.at_field(key)
         }
         NodeKind::FunctionCall { function, args } => {
             let func = eval(context, function.as_ref())?;
