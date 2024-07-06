@@ -48,8 +48,7 @@ let check_valid_game = fn(game) {
 }
 
 let min_power_for_game = fn(game) {
-  println("game ", game.id)
-  inspect(min_cubes(game, "red") * min_cubes(game, "green") * min_cubes(game, "blue"))
+  min_cubes(game, "red") * min_cubes(game, "green") * min_cubes(game, "blue")
 }
 
 let min_cubes = fn(game, color) {

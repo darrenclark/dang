@@ -9,7 +9,6 @@
 - Tuples?
 - Bitwise operators / functions
 - big int
-- Closures
 - Iterators
 - Trailing comma in arrays
 - more type casting

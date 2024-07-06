@@ -10,7 +10,7 @@ use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
     native_funcs,
     stdlib::load_stdlib,
-    value::{FunctionLiteralRc, Value},
+    value::{FunctionLiteral, Value},
 };
 
 #[derive(Debug)]
@@ -101,6 +101,12 @@ impl Interpreter {
     fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
         let prev_env = self.environment.clone();
         self.environment = Rc::new(RefCell::new(Environment::new_child(prev_env.clone())));
+        prev_env
+    }
+
+    fn switch_to_env(&mut self, env: Rc<RefCell<Environment>>) -> Rc<RefCell<Environment>> {
+        let prev_env = self.environment.clone();
+        self.environment = env;
         prev_env
     }
 
@@ -233,12 +239,12 @@ impl Interpreter {
                         evaled_args.push(self.eval(n)?)
                     }
                     ptr(&evaled_args)
-                } else if let Value::Func(function_literal_rc) = func {
+                } else if let Value::Func(function_literal) = func {
                     let mut evaled_args = Vec::with_capacity(args.len());
                     for n in args {
                         evaled_args.push(self.eval(n)?)
                     }
-                    self.call(function_literal_rc.0.as_ref(), &evaled_args)
+                    self.call(&function_literal, &evaled_args)
                 } else {
                     exception!("tried to call a non-function value: {:?}", func)
                 }
@@ -294,7 +300,12 @@ impl Interpreter {
             NodeKind::FunctionLiteral {
                 arg_names: _,
                 body: _,
-            } => Ok(Value::Func(FunctionLiteralRc(Rc::new(node.clone())))),
+            } => {
+                let body = Rc::new(node.clone());
+                let environment = self.environment.clone();
+                let func_literal = FunctionLiteral { body, environment };
+                Ok(Value::Func(func_literal))
+            }
             NodeKind::Pipe { lhs, rhs } => {
                 let lhs = self.eval(lhs)?;
 
@@ -314,8 +325,8 @@ impl Interpreter {
 
                 if let Value::NativeFunc(ptr) = func {
                     ptr(&args)
-                } else if let Value::Func(function_literal_rc) = func {
-                    self.call(function_literal_rc.0.as_ref(), &args)
+                } else if let Value::Func(function_literal) = func {
+                    self.call(&function_literal, &args)
                 } else {
                     exception!("tried to call a non-function value: {:?}", func)
                 }
@@ -323,10 +334,16 @@ impl Interpreter {
         }
     }
 
-    fn call(&mut self, function_literal: &Node, args: &[Value]) -> Result<Value, Exception> {
-        // TODO: use function's environment
-        let prev_env = self.switch_to_new_env();
-        let result = self.inner_call(function_literal, args);
+    fn call(
+        &mut self,
+        function_literal: &FunctionLiteral,
+        args: &[Value],
+    ) -> Result<Value, Exception> {
+        // push env for closures
+        let prev_env = self.switch_to_env(function_literal.environment.clone());
+        // push an empty env for this call's args & locals
+        let _ = self.switch_to_new_env();
+        let result = self.inner_call(function_literal.body.as_ref(), args);
         self.restore_env(prev_env);
         result
     }
@@ -362,7 +379,7 @@ struct Variable {
 }
 
 #[derive(Debug)]
-struct Environment {
+pub struct Environment {
     parent: Option<Rc<RefCell<Environment>>>,
     /// Variables
     variables: HashMap<String, Variable>,

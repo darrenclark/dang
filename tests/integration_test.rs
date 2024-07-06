@@ -124,6 +124,16 @@ fn test_scoping() {
           assert(y == 6)
         }
         assert(y == 1)
+
+        let curry_add = fn(a) {
+            fn(b) {
+                a + b
+            }
+        }
+        let add3 = curry_add(3)
+        let add5 = curry_add(5)
+        assert(add3(1) == 4)
+        assert(add5(8) == 13)
         "#
     };
 }
