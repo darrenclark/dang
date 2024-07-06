@@ -90,12 +90,12 @@ args = {
 
 list_literal = {
   "[" ~ nl ~ "]" |
-  "[" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)* ~ "]"
+  "[" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)* ~ ","? ~ nl ~ "]"
 }
 
 dict_literal = {
   "{" ~ nl ~ "}" |
-  "{" ~ dict_kv ~ ("," ~ dict_kv)* ~ "}"
+  "{" ~ dict_kv ~ ("," ~ dict_kv)* ~ ","? ~ nl ~ "}"
 }
 dict_kv = {
   nl ~ (unquoted_dict_key_string | string_literal) ~ nl ~ ":" ~ nl ~ expr ~ nl |

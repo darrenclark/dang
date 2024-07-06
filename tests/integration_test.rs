@@ -257,3 +257,27 @@ fn test_dicts() {
         "#
     };
 }
+
+#[test]
+fn test_trailing_commas_in_literals() {
+    assert_runs! {
+        r#"
+        let a1 = [1, 2, 3,]
+        let a2 = [
+            1,
+            2,
+            3,
+        ]
+        assert(a1 == [1, 2, 3])
+        assert(a2 == [1, 2, 3])
+
+        let b1 = {a: 1, b: 2,}
+        let b2 = {
+            a: 1,
+            b: 2,
+        }
+        assert(b1 == {a: 1, b: 2})
+        assert(b2 == {a: 1, b: 2})
+        "#
+    };
+}

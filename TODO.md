@@ -10,7 +10,6 @@
 - Bitwise operators / functions
 - big int
 - Iterators
-- Trailing comma in arrays
 - more type casting
     - "try" casts
 - Regex captures
