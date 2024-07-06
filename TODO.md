@@ -1,5 +1,12 @@
 # Todo
 
+## Modules
+
+- Module type & support in Interpretor for tracking modules
+- Globals namespaced by module
+- Passes after receiving AST
+- ???
+
 ## Future
 
 - overloading based on number of arguments, i.e. `min(enum)` and `min(a, b)`
