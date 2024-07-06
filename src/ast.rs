@@ -74,7 +74,7 @@ pub enum NodeKind {
     },
     FunctionLiteral {
         arg_names: Vec<Node>,
-        body: Vec<Node>,
+        body: Box<Node>,
     },
     FunctionCall {
         function: Box<Node>,
@@ -178,10 +178,7 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             for a in arg_names {
                 fmt_node(a, depth + 1, "arg_name", f)?;
             }
-            writeln!(f, "{}body:", " ".repeat((depth + 1) * 2))?;
-            for n in body {
-                fmt_node(n, depth + 2, "", f)?;
-            }
+            fmt_node(body, depth + 1, "body", f)?;
         }
         NodeKind::FunctionCall { function, args } => {
             writeln!(f, "FunctionCall:")?;

@@ -43,9 +43,6 @@ fn main() -> Result<()> {
 }
 
 fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
-    let mut interpreter = Interpreter::new();
-    interpreter.set_argv(args.args.clone());
-
     let file = fs::read_to_string(path)?;
 
     let execute = !args.print_pest_parse_output && !args.print_ast;
@@ -58,6 +55,9 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     }
 
     if execute {
+        let mut interpreter = Interpreter::new();
+        interpreter.set_argv(args.args.clone());
+
         handle_input(&mut interpreter, file, path.to_str().unwrap(), false);
     }
     Ok(())

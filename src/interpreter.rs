@@ -98,6 +98,16 @@ impl Interpreter {
             .unwrap();
     }
 
+    fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
+        let prev_env = self.environment.clone();
+        self.environment = Rc::new(RefCell::new(Environment::new_child(prev_env.clone())));
+        prev_env
+    }
+
+    fn restore_env(&mut self, env: Rc<RefCell<Environment>>) {
+        self.environment = env
+    }
+
     pub fn eval(&mut self, node: &Node) -> Result<Value, Exception> {
         self.do_eval(node).map_err(|mut exception| {
             if exception.source.is_none() {
@@ -117,10 +127,18 @@ impl Interpreter {
                 Ok(result)
             }
             NodeKind::Body(children) => {
+                let prev_env = self.switch_to_new_env();
                 let mut result = Value::Nil;
                 for n in children {
-                    result = self.eval(n)?
+                    result = match self.eval(n) {
+                        Ok(r) => r,
+                        err => {
+                            self.restore_env(prev_env);
+                            return err;
+                        }
+                    }
                 }
+                self.restore_env(prev_env);
                 Ok(result)
             }
             NodeKind::Let { identifier, expr } => match &identifier.kind {
@@ -177,18 +195,22 @@ impl Interpreter {
                 };
 
                 let e = self.eval(enumerable)?.ensure_enumerable("for")?;
-                // TODO: This should push a new context
-                self.environment
-                    .borrow_mut()
-                    .define(var_name, true, Value::Nil)?;
-                for i in 0..e.enum_len() {
+                let env = self.switch_to_new_env();
+                let res = (|| {
                     self.environment
                         .borrow_mut()
-                        .assign(var_name, e.enum_at(i).unwrap())?;
-                    self.eval(body)?;
-                }
+                        .define(var_name, true, Value::Nil)?;
+                    for i in 0..e.enum_len() {
+                        self.environment
+                            .borrow_mut()
+                            .assign(var_name, e.enum_at(i).unwrap())?;
+                        self.eval(body)?;
+                    }
 
-                Ok(Value::Nil)
+                    Ok(Value::Nil)
+                })();
+                self.restore_env(env);
+                res
             }
             NodeKind::Subscript { object, key } => {
                 let object = self.eval(object)?;
@@ -303,10 +325,9 @@ impl Interpreter {
 
     fn call(&mut self, function_literal: &Node, args: &[Value]) -> Result<Value, Exception> {
         // TODO: use function's environment
-        let prev_env = self.environment.clone();
-        self.environment = Rc::new(RefCell::new(Environment::new_child(prev_env.clone())));
+        let prev_env = self.switch_to_new_env();
         let result = self.inner_call(function_literal, args);
-        self.environment = prev_env;
+        self.restore_env(prev_env);
         result
     }
 
@@ -330,13 +351,7 @@ impl Interpreter {
                 .define(name, false, value.clone())?;
         }
 
-        let mut result = Value::Nil;
-
-        for n in body {
-            result = self.eval(n)?;
-        }
-
-        Ok(result)
+        self.eval(body)
     }
 }
 

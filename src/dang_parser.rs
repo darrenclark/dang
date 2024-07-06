@@ -303,9 +303,15 @@ impl ToAst {
                     .filter_map(|p| self.to_ast(p))
                     .collect();
 
-                let body: Vec<Node> = iter.filter_map(|p| self.to_ast(p)).collect();
+                let body = self.to_ast(iter.next().unwrap())?;
 
-                self.new_node(line_col, NodeKind::FunctionLiteral { arg_names, body })
+                self.new_node(
+                    line_col,
+                    NodeKind::FunctionLiteral {
+                        arg_names,
+                        body: Box::new(body),
+                    },
+                )
             }
             Rule::function_call => {
                 let mut iter = pair.into_inner();

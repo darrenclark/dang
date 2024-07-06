@@ -111,12 +111,19 @@ fn test_casting() {
 }
 
 #[test]
-#[ignore = "test fails, x from first loop isn't removed from scope"]
 fn test_scoping() {
     assert_runs! {
         r#"
         for x in [1, 2, 3] { print(x) }
         for x in ["a", "b", "c"] { print(x) }
+
+        var y = 1
+        if true {
+          var y = 5
+          y = y + 1
+          assert(y == 6)
+        }
+        assert(y == 1)
         "#
     };
 }
