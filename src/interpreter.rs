@@ -8,6 +8,8 @@ use std::{
 
 use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
+    compiler::Compiler,
+    module::ModulesMap,
     native_funcs,
     stdlib::load_stdlib,
     value::{FunctionLiteral, Value},
@@ -52,6 +54,8 @@ pub(crate) use exception;
 pub struct Interpreter {
     globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
+    modules: ModulesMap,
+    compiler: Compiler,
 }
 
 impl Interpreter {
@@ -60,6 +64,8 @@ impl Interpreter {
         let mut i = Interpreter {
             globals: globals.clone(),
             environment: globals,
+            modules: ModulesMap::default(),
+            compiler: Compiler::default(),
         };
         i.load_stdlib();
         i
@@ -70,6 +76,8 @@ impl Interpreter {
         let mut i = Interpreter {
             globals: globals.clone(),
             environment: globals,
+            modules: ModulesMap::default(),
+            compiler: Compiler::default(),
         };
         i.load_stdlib();
         i
@@ -83,9 +91,17 @@ impl Interpreter {
                 .define(name, false, Value::NativeFunc(ptr));
         }
 
-        for module in load_stdlib() {
-            if let Err(exception) = self.eval(&module) {
-                panic!("exception while loading standard library: {}", exception)
+        for (module_name, ast) in load_stdlib() {
+            let module_ids = self
+                .compiler
+                .compile(module_name, ast, &mut self.modules)
+                .unwrap();
+
+            for id in module_ids {
+                let module = self.modules.get_by_id(id);
+                if let Err(exception) = self.eval(module.ast.as_ref()) {
+                    panic!("exception while loading standard library: {}", exception)
+                }
             }
         }
     }
