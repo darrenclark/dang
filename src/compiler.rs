@@ -7,12 +7,15 @@ use crate::{
     ast::{Node, NodeKind},
     dang_parser,
     interpreter::{exception, Exception},
-    module::{module_name_to_file_path, Module, ModuleId, ModulesMap},
+    module::{module_name_to_file_path, Module, ModuleId},
+    program::Program,
     stdlib::load_stdlib_file,
 };
 
 #[derive(Debug, Default)]
-pub struct Compiler {}
+pub struct Compiler {
+    pub program: Program,
+}
 
 #[derive(Debug)]
 enum ModuleLocation {
@@ -21,12 +24,8 @@ enum ModuleLocation {
 }
 
 impl Compiler {
-    pub fn compile_module(
-        &self,
-        module_name: &str,
-        modules: &mut ModulesMap,
-    ) -> Result<Vec<ModuleId>, Exception> {
-        let mut ast = match self.lookup(module_name, modules)? {
+    pub fn compile_module(&mut self, module_name: &str) -> Result<Vec<ModuleId>, Exception> {
+        let mut ast = match self.lookup(module_name)? {
             ModuleLocation::Loaded => return Ok(vec![]),
             ModuleLocation::StdLib { path } => self.parse_stdlib(&path)?,
         };
@@ -40,24 +39,24 @@ impl Compiler {
         });
 
         for m in imported_modules {
-            let mut ids = self.compile_module(&m, modules)?;
+            let mut ids = self.compile_module(&m)?;
             loaded_modules.append(&mut ids)
         }
 
-        self.process_ast(&mut ast, modules.next_id())?;
+        self.process_ast(&mut ast, self.program.modules.next_id())?;
 
         let module = Module {
             name: module_name.to_owned(),
             ast: Box::new(ast),
         };
-        let id = modules.insert(module)?;
+        let id = self.program.modules.insert(module)?;
         loaded_modules.push(id);
 
         Ok(loaded_modules)
     }
 
-    fn lookup(&self, name: &str, modules: &mut ModulesMap) -> Result<ModuleLocation, Exception> {
-        if modules.get_id_by_name(name).is_some() {
+    fn lookup(&self, name: &str) -> Result<ModuleLocation, Exception> {
+        if self.program.modules.get_id_by_name(name).is_some() {
             return Ok(ModuleLocation::Loaded);
         }
 
