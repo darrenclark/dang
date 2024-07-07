@@ -90,17 +90,16 @@ impl Interpreter {
                 .define(name, false, Value::NativeFunc(ptr));
         }
 
-        for module_name in ["Std/Enum", "Std/Assert"] {
-            let module_ids = self
-                .compiler
-                .compile_module(module_name, &mut self.modules)
-                .unwrap();
+        // Load Std
+        let module_ids = self
+            .compiler
+            .compile_module("Std", &mut self.modules)
+            .unwrap();
 
-            for id in module_ids {
-                let module = self.modules.get_by_id(id);
-                if let Err(exception) = self.eval(module.ast.as_ref()) {
-                    panic!("exception while loading standard library: {}", exception)
-                }
+        for id in module_ids {
+            let module = self.modules.get_by_id(id);
+            if let Err(exception) = self.eval(module.ast.as_ref()) {
+                panic!("exception while loading standard library: {}", exception)
             }
         }
     }

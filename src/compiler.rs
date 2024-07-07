@@ -1,5 +1,5 @@
 use crate::{
-    ast::Node,
+    ast::{Node, NodeKind},
     dang_parser,
     interpreter::{exception, Exception},
     module::{module_name_to_file_path, Module, ModuleId, ModulesMap},
@@ -26,15 +26,27 @@ impl Compiler {
             ModuleLocation::StdLib { path } => self.parse_stdlib(&path)?,
         };
 
-        ast.iter().for_each(|n| println!("{:?}", n));
+        let mut loaded_modules: Vec<ModuleId> = vec![];
+
+        // load any imports
+        let imported_modules = ast.iter().filter_map(|n| match &n.kind {
+            NodeKind::Import(import_kind) => Some(import_kind.module_name().to_owned()),
+            _ => None,
+        });
+
+        for m in imported_modules {
+            let mut ids = self.compile_module(&m, modules)?;
+            loaded_modules.append(&mut ids)
+        }
 
         let module = Module {
             name: module_name.to_owned(),
             ast: Box::new(ast),
         };
         let id = modules.insert(module)?;
+        loaded_modules.push(id);
 
-        Ok(vec![id])
+        Ok(loaded_modules)
     }
 
     fn lookup(&self, name: &str, modules: &mut ModulesMap) -> Result<ModuleLocation, Exception> {

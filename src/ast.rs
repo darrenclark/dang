@@ -50,6 +50,19 @@ pub enum ImportKind {
     },
 }
 
+impl ImportKind {
+    pub fn module_name(&self) -> &str {
+        match self {
+            ImportKind::Module { module_name } => &module_name,
+            ImportKind::Field {
+                module_name,
+                field_name: _,
+            } => &module_name,
+            ImportKind::AllFields { module_name } => &module_name,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum NodeKind {
     SourceFile(Vec<Node>),
