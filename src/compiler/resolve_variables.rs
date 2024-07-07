@@ -6,8 +6,10 @@ use crate::{
     module::ModuleId,
 };
 
+#[derive(Default)]
 struct Scope {
     definitions: HashMap<String, NodeId>,
+    definition_indices: Vec<String>,
 }
 
 pub struct ResolveVariablesPass {
@@ -34,9 +36,7 @@ impl ResolveVariablesPass {
     }
 
     fn push_scope(&mut self) {
-        self.scopes.push(Scope {
-            definitions: HashMap::new(),
-        })
+        self.scopes.push(Scope::default());
     }
 
     fn pop_scope(&mut self) -> Option<Scope> {
@@ -57,6 +57,7 @@ impl ResolveVariablesPass {
             });
         } else {
             scope.definitions.insert(name.to_owned(), node.id);
+            scope.definition_indices.push(name.to_owned());
         }
     }
 
