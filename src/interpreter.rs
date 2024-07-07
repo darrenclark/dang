@@ -16,8 +16,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Exception {
-    source: Option<Source>,
-    message: String,
+    pub source: Option<Source>,
+    pub message: String,
 }
 
 impl Exception {
@@ -265,10 +265,15 @@ impl Interpreter {
                     exception!("tried to call a non-function value: {:?}", func)
                 }
             }
-            NodeKind::Identifier(name) => match self.environment.borrow().get(name) {
+            NodeKind::VariableRef { identifier } => match self
+                .environment
+                .borrow()
+                .get(identifier.unwrap_identifier())
+            {
                 Some(v) => Ok(v.clone()),
-                None => exception!("no binding {}", name),
+                None => exception!("no binding {}", identifier.unwrap_identifier()),
             },
+            NodeKind::Identifier(_) => unreachable!(),
             NodeKind::ListLiteral(elements) => {
                 let mut evaled_elements = Vec::with_capacity(elements.len());
                 for e in elements {

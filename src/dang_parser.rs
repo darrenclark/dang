@@ -356,7 +356,16 @@ impl ToAst {
                     },
                 )
             }
-            Rule::args => panic!(),
+            Rule::args => unreachable!(),
+            Rule::variable_ref => {
+                let identifier = self.to_ast(pair.into_inner().next().unwrap()).unwrap();
+                self.new_node(
+                    line_col,
+                    NodeKind::VariableRef {
+                        identifier: Box::new(identifier),
+                    },
+                )
+            }
             Rule::list_literal => {
                 let elements: Vec<Node> =
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();

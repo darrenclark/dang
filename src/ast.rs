@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::module::ModuleId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId {
     module_id: ModuleId,
     local_id: u32,
@@ -149,6 +149,9 @@ pub enum NodeKind {
         function: Box<Node>,
         args: Vec<Node>,
     },
+    VariableRef {
+        identifier: Box<Node>,
+    },
     Identifier(String),
     ListLiteral(Vec<Node>),
     DictLiteral(Vec<(Node, Node)>),
@@ -172,6 +175,7 @@ pub enum NodeKind {
 }
 
 impl Node {
+    /// Iterates over every node in tree
     pub fn iter(&self) -> NodeIterator {
         NodeIterator {
             node: self,
@@ -252,6 +256,13 @@ impl Node {
                     Some(function.as_ref())
                 } else if index < args.len() + 1 {
                     args.get(index - 1)
+                } else {
+                    None
+                }
+            }
+            NodeKind::VariableRef { identifier } => {
+                if index == 0 {
+                    Some(identifier.as_ref())
                 } else {
                     None
                 }
@@ -355,6 +366,13 @@ impl Node {
                     None
                 }
             }
+            NodeKind::VariableRef { identifier } => {
+                if index == 0 {
+                    Some(identifier.as_mut())
+                } else {
+                    None
+                }
+            }
             NodeKind::Identifier(_) => None,
             NodeKind::ListLiteral(_) => None,
             NodeKind::DictLiteral(_) => None,
@@ -376,6 +394,27 @@ impl Node {
                 1 => Some(rhs.as_mut()),
                 _ => None,
             },
+        }
+    }
+
+    pub fn unwrap_identifier(&self) -> &str {
+        if let NodeKind::Identifier(name) = &self.kind {
+            name
+        } else {
+            panic!("not an identifier: {:?}", self)
+        }
+    }
+
+    pub fn is_function_literal(&self) -> bool {
+        matches!(self.kind, NodeKind::FunctionLiteral { .. })
+    }
+
+    pub fn find_by_id(&self, id: NodeId) -> Option<&Node> {
+        // TOOD: binary-ish search instead?
+        if self.id.module_id == id.module_id {
+            self.iter().find(|n| n.id == id)
+        } else {
+            None
         }
     }
 }
@@ -479,6 +518,10 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             for a in args {
                 fmt_node(a, depth + 1, "arg", f)?;
             }
+        }
+        NodeKind::VariableRef { identifier } => {
+            writeln!(f, "VariableRef:")?;
+            fmt_node(identifier, depth + 1, "identifier", f)?;
         }
         NodeKind::Identifier(name) => {
             writeln!(f, "Identifier({})", name)?;

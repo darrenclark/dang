@@ -75,7 +75,7 @@ expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
 term = {
   ( function_literal |
     function_call |
-    identifier |
+    variable_ref |
     list_literal |
     dict_literal |
     nil_literal |
@@ -83,6 +83,8 @@ term = {
     string_literal |
     number_literal ) ~ (subscript | field_access)*
 }
+
+variable_ref = { identifier }
 
 subscript = { "[" ~ nl ~ expr ~ nl ~ "]" }
 field_access = { "." ~ identifier }
@@ -94,7 +96,7 @@ arg_names = {
   "(" ~ nl ~ identifier ~ nl ~ ("," ~ nl ~ identifier ~ nl )* ~ ")"
 }
 
-function_call = { identifier ~ args }
+function_call = { variable_ref ~ args }
 
 args = {
   "(" ~ nl ~ ")" |

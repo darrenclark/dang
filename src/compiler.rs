@@ -1,4 +1,5 @@
 pub mod node_ids_pass;
+pub mod resolve_variables;
 
 use node_ids_pass::NodeIdsPass;
 
