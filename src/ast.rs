@@ -1,8 +1,48 @@
 use core::fmt;
 use std::rc::Rc;
 
+use crate::module::ModuleId;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct NodeId {
+    module_id: ModuleId,
+    local_id: u32,
+}
+
+pub const UNSPECIFIED_NODE_LOCAL_ID: u32 = u32::MAX;
+
+impl NodeId {
+    pub fn first_in_module(module_id: ModuleId) -> NodeId {
+        NodeId {
+            module_id,
+            local_id: 0,
+        }
+    }
+
+    pub fn next_id(&self) -> NodeId {
+        NodeId {
+            module_id: self.module_id,
+            local_id: self.local_id + 1,
+        }
+    }
+
+    pub fn raw_id(&self) -> (u32, u32) {
+        (self.module_id.raw_id(), self.local_id)
+    }
+}
+
+impl Default for NodeId {
+    fn default() -> Self {
+        NodeId {
+            module_id: ModuleId::default(),
+            local_id: UNSPECIFIED_NODE_LOCAL_ID,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Node {
+    pub id: NodeId,
     pub kind: NodeKind,
     pub source: Source,
 }
@@ -53,12 +93,12 @@ pub enum ImportKind {
 impl ImportKind {
     pub fn module_name(&self) -> &str {
         match self {
-            ImportKind::Module { module_name } => &module_name,
+            ImportKind::Module { module_name } => module_name,
             ImportKind::Field {
                 module_name,
                 field_name: _,
-            } => &module_name,
-            ImportKind::AllFields { module_name } => &module_name,
+            } => module_name,
+            ImportKind::AllFields { module_name } => module_name,
         }
     }
 }
@@ -235,6 +275,105 @@ impl Node {
             NodeKind::Pipe { lhs, rhs } => match index {
                 0 => Some(lhs.as_ref()),
                 1 => Some(rhs.as_ref()),
+                _ => None,
+            },
+        }
+    }
+
+    pub fn child_at_index_mut(&mut self, index: usize) -> Option<&mut Node> {
+        match &mut self.kind {
+            NodeKind::SourceFile(nodes) => nodes.get_mut(index),
+            NodeKind::Module(_) => None,
+            NodeKind::Import(_) => None,
+            NodeKind::Body(nodes) => nodes.get_mut(index),
+            NodeKind::Let { identifier, expr } => match index {
+                0 => Some(identifier.as_mut()),
+                1 => Some(expr.as_mut()),
+                _ => None,
+            },
+            NodeKind::Var { identifier, expr } => match index {
+                0 => Some(identifier.as_mut()),
+                1 => Some(expr.as_mut()),
+                _ => None,
+            },
+            NodeKind::Assignment { identifier, expr } => match index {
+                0 => Some(identifier.as_mut()),
+                1 => Some(expr.as_mut()),
+                _ => None,
+            },
+            NodeKind::If {
+                condition,
+                body,
+                else_branch: Some(else_branch),
+            } => match index {
+                0 => Some(condition.as_mut()),
+                1 => Some(body.as_mut()),
+                2 => Some(else_branch.as_mut()),
+                _ => None,
+            },
+            NodeKind::If {
+                condition,
+                body,
+                else_branch: None,
+            } => match index {
+                0 => Some(condition.as_mut()),
+                1 => Some(body.as_mut()),
+                _ => None,
+            },
+            NodeKind::For {
+                var_name,
+                enumerable,
+                body,
+            } => match index {
+                0 => Some(var_name.as_mut()),
+                1 => Some(enumerable.as_mut()),
+                2 => Some(body.as_mut()),
+                _ => None,
+            },
+            NodeKind::Subscript { object, key } | NodeKind::FieldAccess { object, key } => {
+                match index {
+                    0 => Some(object.as_mut()),
+                    1 => Some(key.as_mut()),
+                    _ => None,
+                }
+            }
+            NodeKind::FunctionLiteral { arg_names, body } => {
+                if index < arg_names.len() {
+                    arg_names.get_mut(index)
+                } else if index == arg_names.len() {
+                    Some(body.as_mut())
+                } else {
+                    None
+                }
+            }
+            NodeKind::FunctionCall { function, args } => {
+                if index == 0 {
+                    Some(function.as_mut())
+                } else if index < args.len() + 1 {
+                    args.get_mut(index - 1)
+                } else {
+                    None
+                }
+            }
+            NodeKind::Identifier(_) => None,
+            NodeKind::ListLiteral(_) => None,
+            NodeKind::DictLiteral(_) => None,
+            NodeKind::NilLiteral => None,
+            NodeKind::BoolLiteral(_) => None,
+            NodeKind::StringLiteral(_) => None,
+            NodeKind::IntegerLiteral(_) => None,
+            NodeKind::BinaryOp { op: _, lhs, rhs } => match index {
+                0 => Some(lhs.as_mut()),
+                1 => Some(rhs.as_mut()),
+                _ => None,
+            },
+            NodeKind::UnaryOp { op: _, rhs } => match index {
+                0 => Some(rhs.as_mut()),
+                _ => None,
+            },
+            NodeKind::Pipe { lhs, rhs } => match index {
+                0 => Some(lhs.as_mut()),
+                1 => Some(rhs.as_mut()),
                 _ => None,
             },
         }
@@ -428,5 +567,41 @@ impl<'a> NodeIterator<'a> {
             .child_at_index(self.next_child_index)
             .map(|n| Box::new(n.iter()));
         self.next_child_index += 1;
+    }
+}
+
+pub trait AstWalker {
+    fn enter_node(&mut self, node: &Node);
+    fn exit_node(&mut self, _node: &Node) {}
+}
+
+pub trait AstWalkerMut {
+    fn enter_node(&mut self, node: &mut Node);
+    fn exit_node(&mut self, _node: &mut Node) {}
+}
+
+impl Node {
+    pub fn walk<W: AstWalker>(&self, walker: &mut W) {
+        walker.enter_node(self);
+
+        let mut i = 0;
+        while let Some(child) = self.child_at_index(i) {
+            child.walk(walker);
+            i += 1;
+        }
+
+        walker.exit_node(self);
+    }
+
+    pub fn walk_mut<W: AstWalkerMut>(&mut self, walker: &mut W) {
+        walker.enter_node(self);
+
+        let mut i = 0;
+        while let Some(child) = self.child_at_index_mut(i) {
+            child.walk_mut(walker);
+            i += 1;
+        }
+
+        walker.exit_node(self);
     }
 }

@@ -1,3 +1,4 @@
+use dang::ast::Node;
 use dang::interpreter::Exception;
 use dang::interpreter::Interpreter;
 use dang::value::Value;
@@ -20,4 +21,9 @@ pub fn run(code: &str) -> Result<Value, Exception> {
     } else {
         panic!("{}", result.unwrap_err());
     }
+}
+
+pub fn parse(code: &str) -> Node {
+    let result = dang::dang_parser::parse(code, "(parse)");
+    result.unwrap()
 }

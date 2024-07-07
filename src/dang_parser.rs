@@ -9,7 +9,7 @@ use pest::{
 use pest_derive::Parser;
 use unescape::unescape;
 
-use crate::ast::{BinOp, ImportKind, Node, NodeKind, Source, UnaryOp};
+use crate::ast::{BinOp, ImportKind, Node, NodeId, NodeKind, Source, UnaryOp};
 
 #[derive(Parser)]
 #[grammar = "dang.pest"]
@@ -402,6 +402,7 @@ impl ToAst {
 
     fn new_node(&self, line_col: (usize, usize), kind: NodeKind) -> Option<Node> {
         let node = Node {
+            id: NodeId::default(),
             kind,
             source: Source {
                 file: self.source_file_name.clone(),

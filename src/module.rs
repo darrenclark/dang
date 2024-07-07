@@ -35,6 +35,10 @@ impl ModulesMap {
         self.get_id_by_name(name).map(|id| self.get_by_id(id))
     }
 
+    pub fn next_id(&self) -> ModuleId {
+        ModuleId(self.modules.len() as u32)
+    }
+
     pub fn insert(&mut self, module: Module) -> Result<ModuleId, Exception> {
         let name = module.name.clone();
 
@@ -51,3 +55,21 @@ impl ModulesMap {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModuleId(u32);
+
+impl ModuleId {
+    pub fn from_raw(id: u32) -> ModuleId {
+        ModuleId(id)
+    }
+
+    pub fn raw_id(&self) -> u32 {
+        self.0
+    }
+}
+
+pub const UNSPECIFIED_MODULE_ID: u32 = u32::MAX;
+
+impl Default for ModuleId {
+    fn default() -> Self {
+        ModuleId(UNSPECIFIED_MODULE_ID)
+    }
+}

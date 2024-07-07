@@ -1,3 +1,7 @@
+pub mod node_ids_pass;
+
+use node_ids_pass::NodeIdsPass;
+
 use crate::{
     ast::{Node, NodeKind},
     dang_parser,
@@ -21,7 +25,7 @@ impl Compiler {
         module_name: &str,
         modules: &mut ModulesMap,
     ) -> Result<Vec<ModuleId>, Exception> {
-        let ast = match self.lookup(module_name, modules)? {
+        let mut ast = match self.lookup(module_name, modules)? {
             ModuleLocation::Loaded => return Ok(vec![]),
             ModuleLocation::StdLib { path } => self.parse_stdlib(&path)?,
         };
@@ -38,6 +42,8 @@ impl Compiler {
             let mut ids = self.compile_module(&m, modules)?;
             loaded_modules.append(&mut ids)
         }
+
+        self.process_ast(&mut ast, modules.next_id())?;
 
         let module = Module {
             name: module_name.to_owned(),
@@ -70,5 +76,10 @@ impl Compiler {
                 exception!("Failed to load standard library module {}:\n{}", path, err)
             }
         }
+    }
+
+    fn process_ast(&self, ast: &mut Node, module_id: ModuleId) -> Result<(), Exception> {
+        NodeIdsPass::new(module_id).run(ast);
+        Ok(())
     }
 }
