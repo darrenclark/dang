@@ -11,7 +11,6 @@ use crate::{
     compiler::Compiler,
     module::ModulesMap,
     native_funcs,
-    stdlib::load_stdlib,
     value::{FunctionLiteral, Value},
 };
 
@@ -91,10 +90,10 @@ impl Interpreter {
                 .define(name, false, Value::NativeFunc(ptr));
         }
 
-        for (module_name, ast) in load_stdlib() {
+        for module_name in ["Std/Enum", "Std/Assert"] {
             let module_ids = self
                 .compiler
-                .compile(module_name, ast, &mut self.modules)
+                .compile_module(module_name, &mut self.modules)
                 .unwrap();
 
             for id in module_ids {

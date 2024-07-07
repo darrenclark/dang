@@ -10,6 +10,12 @@ pub fn load_stdlib() -> Vec<(String, Node)> {
     STDLIB_DIR.files().map(load_file).collect()
 }
 
+pub fn load_stdlib_file(path: &str) -> Option<&'static str> {
+    STDLIB_DIR
+        .get_file(path)
+        .map(|f| f.contents_utf8().unwrap())
+}
+
 fn load_file(file: &File) -> (String, Node) {
     let module = file.path().to_str().unwrap().to_owned();
     match dang_parser::parse(file.contents_utf8().unwrap(), file.path().to_str().unwrap()) {

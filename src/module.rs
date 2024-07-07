@@ -18,9 +18,21 @@ pub struct ModulesMap {
     modules: Vec<Rc<Module>>,
 }
 
+pub fn module_name_to_file_path(name: &str) -> String {
+    format!("{}.dang", name)
+}
+
 impl ModulesMap {
     pub fn get_by_id(&self, id: ModuleId) -> Rc<Module> {
         self.modules[id.0 as usize].clone()
+    }
+
+    pub fn get_id_by_name(&self, name: &str) -> Option<ModuleId> {
+        self.name_to_id.get(name).cloned()
+    }
+
+    pub fn get_by_name(&self, name: &str) -> Option<Rc<Module>> {
+        self.get_id_by_name(name).map(|id| self.get_by_id(id))
     }
 
     pub fn insert(&mut self, module: Module) -> Result<ModuleId, Exception> {
