@@ -4,7 +4,7 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 // Places where optional newlines can go
 nl = _{ NEWLINE* }
 
-source_file = _{ SOI ~ nl ~ stmt* ~ nl ~ EOI }
+source_file = _{ SOI ~ nl ~ module? ~ nl ~ import* ~ nl ~ stmt* ~ nl ~ EOI }
 
 body = { nl ~ "{" ~ nl ~ stmt* ~ nl ~ "}" ~ nl }
 
@@ -17,8 +17,21 @@ keywords = {
   "var" |
   "if" |
   "else" |
-  "nil"
+  "nil" |
+  "import" |
+  "module"
 }
+
+// module Std/Enum
+module = { "module" ~ full_module_name ~ stmt_end }
+full_module_name = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_" | "/")+ }
+
+// import Std/Enum
+// import Std/Enum.run
+// import Std/Enum.*
+import = { "import" ~ import_ref ~ stmt_end }
+import_ref = ${ full_module_name ~ (import_all | ("." ~ identifier))? }
+import_all = { ".*" }
 
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ ~ "?"? }
 

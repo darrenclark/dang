@@ -9,7 +9,7 @@ use pest::{
 use pest_derive::Parser;
 use unescape::unescape;
 
-use crate::ast::{BinOp, Node, NodeKind, Source, UnaryOp};
+use crate::ast::{BinOp, ImportKind, Node, NodeKind, Source, UnaryOp};
 
 #[derive(Parser)]
 #[grammar = "dang.pest"]
@@ -68,6 +68,30 @@ impl ToAst {
             Rule::EOI => None,
             Rule::WHITESPACE => panic!(),
             Rule::source_file => panic!(),
+            Rule::module => {
+                let module_name = pair.into_inner().next().unwrap().as_str().to_owned();
+                self.new_node(line_col, NodeKind::Module(module_name))
+            }
+            Rule::import => {
+                let mut iter = pair.into_inner().next().unwrap().into_inner();
+                let module_name = iter.next().unwrap().as_str().to_string();
+
+                let next = iter.next();
+                let import_kind = if let Some(next) = next {
+                    match next.as_rule() {
+                        Rule::identifier => ImportKind::Field {
+                            module_name,
+                            field_name: next.as_str().to_owned(),
+                        },
+                        Rule::import_all => ImportKind::AllFields { module_name },
+                        _ => unreachable!(),
+                    }
+                } else {
+                    ImportKind::Module { module_name }
+                };
+
+                self.new_node(line_col, NodeKind::Import(import_kind))
+            }
             Rule::body => {
                 let body: Vec<Node> = pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
                 self.new_node(line_col, NodeKind::Body(body))

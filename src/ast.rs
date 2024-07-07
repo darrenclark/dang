@@ -36,9 +36,25 @@ pub enum UnaryOp {
     LogicalNeg,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ImportKind {
+    Module {
+        module_name: String,
+    },
+    Field {
+        module_name: String,
+        field_name: String,
+    },
+    AllFields {
+        module_name: String,
+    },
+}
+
 #[derive(Clone, Debug)]
 pub enum NodeKind {
     SourceFile(Vec<Node>),
+    Module(String),
+    Import(ImportKind),
     Body(Vec<Node>),
     Let {
         identifier: Box<Node>,
@@ -119,6 +135,21 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             for n in nodes {
                 fmt_node(n, depth + 1, "", f)?;
             }
+        }
+        NodeKind::Module(module_name) => {
+            writeln!(f, "Module: {}", module_name)?;
+        }
+        NodeKind::Import(ImportKind::Module { module_name }) => {
+            writeln!(f, "Import: Module {}", module_name)?;
+        }
+        NodeKind::Import(ImportKind::Field {
+            module_name,
+            field_name,
+        }) => {
+            writeln!(f, "Import: Field {}.{}", module_name, field_name)?;
+        }
+        NodeKind::Import(ImportKind::AllFields { module_name }) => {
+            writeln!(f, "Import: AllFields {}.*", module_name)?;
         }
         NodeKind::Body(nodes) => {
             writeln!(f, "Body:")?;
