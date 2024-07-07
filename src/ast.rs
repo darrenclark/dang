@@ -118,6 +118,116 @@ pub enum NodeKind {
     },
 }
 
+impl Node {
+    pub fn iter(&self) -> NodeIterator {
+        NodeIterator {
+            node: self,
+            returned_node: false,
+            next_child_index: 0,
+            inner_iter: None,
+        }
+    }
+
+    pub fn child_at_index(&self, index: usize) -> Option<&Node> {
+        match &self.kind {
+            NodeKind::SourceFile(nodes) => nodes.get(index),
+            NodeKind::Module(_) => None,
+            NodeKind::Import(_) => None,
+            NodeKind::Body(nodes) => nodes.get(index),
+            NodeKind::Let { identifier, expr } => match index {
+                0 => Some(identifier.as_ref()),
+                1 => Some(expr.as_ref()),
+                _ => None,
+            },
+            NodeKind::Var { identifier, expr } => match index {
+                0 => Some(identifier.as_ref()),
+                1 => Some(expr.as_ref()),
+                _ => None,
+            },
+            NodeKind::Assignment { identifier, expr } => match index {
+                0 => Some(identifier.as_ref()),
+                1 => Some(expr.as_ref()),
+                _ => None,
+            },
+            NodeKind::If {
+                condition,
+                body,
+                else_branch: Some(else_branch),
+            } => match index {
+                0 => Some(condition.as_ref()),
+                1 => Some(body.as_ref()),
+                2 => Some(else_branch.as_ref()),
+                _ => None,
+            },
+            NodeKind::If {
+                condition,
+                body,
+                else_branch: None,
+            } => match index {
+                0 => Some(condition.as_ref()),
+                1 => Some(body.as_ref()),
+                _ => None,
+            },
+            NodeKind::For {
+                var_name,
+                enumerable,
+                body,
+            } => match index {
+                0 => Some(var_name.as_ref()),
+                1 => Some(enumerable.as_ref()),
+                2 => Some(body.as_ref()),
+                _ => None,
+            },
+            NodeKind::Subscript { object, key } | NodeKind::FieldAccess { object, key } => {
+                match index {
+                    0 => Some(object.as_ref()),
+                    1 => Some(key.as_ref()),
+                    _ => None,
+                }
+            }
+            NodeKind::FunctionLiteral { arg_names, body } => {
+                if index < arg_names.len() {
+                    Some(&arg_names[index])
+                } else if index == arg_names.len() {
+                    Some(body.as_ref())
+                } else {
+                    None
+                }
+            }
+            NodeKind::FunctionCall { function, args } => {
+                if index == 0 {
+                    Some(function.as_ref())
+                } else if index < args.len() + 1 {
+                    args.get(index - 1)
+                } else {
+                    None
+                }
+            }
+            NodeKind::Identifier(_) => None,
+            NodeKind::ListLiteral(_) => None,
+            NodeKind::DictLiteral(_) => None,
+            NodeKind::NilLiteral => None,
+            NodeKind::BoolLiteral(_) => None,
+            NodeKind::StringLiteral(_) => None,
+            NodeKind::IntegerLiteral(_) => None,
+            NodeKind::BinaryOp { op: _, lhs, rhs } => match index {
+                0 => Some(lhs.as_ref()),
+                1 => Some(rhs.as_ref()),
+                _ => None,
+            },
+            NodeKind::UnaryOp { op: _, rhs } => match index {
+                0 => Some(rhs.as_ref()),
+                _ => None,
+            },
+            NodeKind::Pipe { lhs, rhs } => match index {
+                0 => Some(lhs.as_ref()),
+                1 => Some(rhs.as_ref()),
+                _ => None,
+            },
+        }
+    }
+}
+
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_node(self, 0, "", f)
@@ -262,4 +372,48 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
     }
     Ok(())
+}
+
+pub struct NodeIterator<'a> {
+    node: &'a Node,
+    returned_node: bool,
+    next_child_index: usize,
+    inner_iter: Option<Box<NodeIterator<'a>>>,
+}
+
+impl<'a> Iterator for NodeIterator<'a> {
+    type Item = &'a Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.returned_node {
+            self.returned_node = true;
+            self.next_child();
+            return Some(self.node);
+        }
+
+        let mut result = None;
+
+        if let Some(inner_iter) = &mut self.inner_iter {
+            result = inner_iter.next();
+        }
+
+        if result.is_none() {
+            self.next_child();
+            if let Some(inner_iter) = &mut self.inner_iter {
+                result = inner_iter.next();
+            }
+        }
+
+        result
+    }
+}
+
+impl<'a> NodeIterator<'a> {
+    fn next_child(&mut self) {
+        self.inner_iter = self
+            .node
+            .child_at_index(self.next_child_index)
+            .map(|n| Box::new(n.iter()));
+        self.next_child_index += 1;
+    }
 }

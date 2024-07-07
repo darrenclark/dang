@@ -26,6 +26,8 @@ impl Compiler {
             ModuleLocation::StdLib { path } => self.parse_stdlib(&path)?,
         };
 
+        ast.iter().for_each(|n| println!("{:?}", n));
+
         let module = Module {
             name: module_name.to_owned(),
             ast: Box::new(ast),
