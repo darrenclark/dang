@@ -1,6 +1,8 @@
 pub mod node_ids_pass;
 pub mod resolve_variables;
 
+use std::collections::HashMap;
+
 use node_ids_pass::NodeIdsPass;
 
 use crate::{
@@ -48,6 +50,8 @@ impl Compiler {
         let module = Module {
             name: module_name.to_owned(),
             ast: Box::new(ast),
+            // TODO: Copy globals across
+            globals: HashMap::default(),
         };
         let id = self.program.modules.insert(module)?;
         loaded_modules.push(id);

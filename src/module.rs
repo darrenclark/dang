@@ -1,7 +1,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    ast::Node,
+    ast::{Node, NodeId},
     interpreter::{exception, Exception},
 };
 
@@ -9,6 +9,7 @@ use crate::{
 pub struct Module {
     pub name: String,
     pub ast: Box<Node>,
+    pub globals: HashMap<String, NodeId>,
 }
 
 #[derive(Debug, Default)]
