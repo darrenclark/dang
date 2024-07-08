@@ -1,9 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    ast::{AstWalker, AstWalkerMut, Node, NodeId, NodeKind},
+    ast::{AstWalker, Node, NodeId, NodeKind},
     interpreter::Exception,
     module::ModuleId,
+    program::Program,
 };
 
 #[derive(Default)]
@@ -12,7 +13,10 @@ struct Scope {
     definition_indices: Vec<String>,
 }
 
-pub struct ResolveVariablesPass {
+pub struct ResolveVariablesPass<'a> {
+    program: &'a mut Program,
+    // Assumes .* imports currently.  TODO: Support other import styles.
+    pub imports: Vec<ModuleId>,
     pub definitions_to_usages: HashMap<NodeId, HashSet<NodeId>>,
     pub usages_to_definition: HashMap<NodeId, NodeId>,
     pub globals: HashMap<String, NodeId>,
@@ -20,9 +24,11 @@ pub struct ResolveVariablesPass {
     pub errors: Vec<Exception>,
 }
 
-impl ResolveVariablesPass {
-    pub fn new() -> ResolveVariablesPass {
+impl<'a> ResolveVariablesPass<'a> {
+    pub fn new(program: &'a mut Program) -> ResolveVariablesPass {
         ResolveVariablesPass {
+            program,
+            imports: Vec::new(),
             definitions_to_usages: HashMap::new(),
             usages_to_definition: HashMap::new(),
             globals: HashMap::new(),
@@ -93,14 +99,24 @@ impl ResolveVariablesPass {
             }
         }
     }
+
+    fn add_default_imports_if_needed(&mut self, source_file_children: &[Node]) {
+        for node in source_file_children {
+            if matches!(&node.kind, NodeKind::Module(name) if name.starts_with("Std")) {
+                // module in Std, don't add default imports
+                return;
+            }
+        }
+    }
 }
 
-impl AstWalker for ResolveVariablesPass {
+impl<'a> AstWalker for ResolveVariablesPass<'a> {
     fn enter_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(children) => {
                 self.push_scope();
-                self.scan_ahead_for_global_functions(children)
+                self.scan_ahead_for_global_functions(children);
+                self.add_default_imports_if_needed(children);
             }
             NodeKind::Body(_) => {
                 self.push_scope();

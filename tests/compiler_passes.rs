@@ -4,6 +4,7 @@ use dang::{
     ast::NodeKind,
     compiler::{node_ids_pass::NodeIdsPass, resolve_variables::ResolveVariablesPass},
     module::ModuleId,
+    program::Program,
 };
 
 mod common;
@@ -83,9 +84,11 @@ fn resolve_variables_pass() {
         "#,
     );
 
+    let mut program = Program::default();
+
     NodeIdsPass::new(ModuleId::from_raw(0)).run(&mut ast);
 
-    let mut pass = ResolveVariablesPass::new();
+    let mut pass = ResolveVariablesPass::new(&mut program);
     pass.run(&ast);
 
     assert_eq!(pass.errors.len(), 0);
