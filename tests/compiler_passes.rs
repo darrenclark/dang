@@ -1,9 +1,7 @@
 use assert_matches::assert_matches;
-use common::parse;
 use dang::{
     ast::NodeKind,
-    compiler::{node_ids_pass::NodeIdsPass, resolve_variables::ResolveVariablesPass},
-    module::ModuleId,
+    compiler::{resolve_variables::ResolveVariablesPass, CompilationState, Compiler, Input, Phase},
     program::Program,
 };
 
@@ -11,7 +9,8 @@ mod common;
 
 #[test]
 fn node_ids_pass() {
-    let mut ast = parse(
+    let compilation_state = run_until(
+        Phase::NodeIds,
         r#"
         for x in [1, 2, 3] { print(x) }
         for x in ["a", "b", "c"] { print(x) }
@@ -36,16 +35,15 @@ fn node_ids_pass() {
         "#,
     );
 
-    NodeIdsPass::new(ModuleId::from_raw(0)).run(&mut ast);
-
-    for (i, node) in ast.iter().enumerate() {
+    for (i, node) in compilation_state.ast().iter().enumerate() {
         assert_eq!(node.id.raw_id(), (0, i as u32));
     }
 }
 
 #[test]
 fn resolve_variables_pass() {
-    let mut ast = parse(
+    let compilation_state = run_until(
+        Phase::NodeIds,
         r#"
         let fib = fn (n) {
             if n < 2 {
@@ -86,33 +84,57 @@ fn resolve_variables_pass() {
 
     let mut program = Program::default();
 
-    NodeIdsPass::new(ModuleId::from_raw(0)).run(&mut ast);
-
     let mut pass = ResolveVariablesPass::new(&mut program);
-    pass.run(&ast);
+    pass.run(compilation_state.ast());
 
     assert_eq!(pass.errors.len(), 0);
 
     assert_matches!(
-        ast.find_by_id(pass.globals["fib"]).unwrap().kind,
+        compilation_state
+            .ast()
+            .find_by_id(pass.globals["fib"])
+            .unwrap()
+            .kind,
         NodeKind::Let { .. }
     );
 
     assert_matches!(
-        ast.find_by_id(pass.globals["double"]).unwrap().kind,
+        compilation_state
+            .ast()
+            .find_by_id(pass.globals["double"])
+            .unwrap()
+            .kind,
         NodeKind::Let { .. }
     );
 
     assert_matches!(
-        ast.find_by_id(pass.globals["add"]).unwrap().kind,
+        compilation_state
+            .ast()
+            .find_by_id(pass.globals["add"])
+            .unwrap()
+            .kind,
         NodeKind::Let { .. }
     );
 
-    for node in ast.iter() {
+    for node in compilation_state.ast().iter() {
         if matches!(node.kind, NodeKind::VariableRef { .. }) {
             let definition_id = pass.usages_to_definition.get(&node.id);
             assert!(definition_id.is_some());
             assert!(pass.definitions_to_usages[definition_id.unwrap()].contains(&node.id))
         }
     }
+}
+
+fn run_until(phase: Phase, text: &str) -> CompilationState {
+    let mut program = Program::default();
+    Compiler::default()
+        .run_until(
+            phase,
+            Input::SourceCode {
+                text: text.to_owned(),
+                name: "(test)".to_owned(),
+            },
+            &mut program,
+        )
+        .unwrap()
 }
