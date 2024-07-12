@@ -1,12 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    ast::NodeKind,
-    dang_parser,
-    interpreter::{exception, Exception},
-    module::Module,
-    program::Program,
-};
+use crate::{interpreter::Exception, module::Module, program::Program};
 
 use super::{CompilationState, Compiler, PhaseImpl};
 
@@ -38,7 +32,7 @@ impl<'a> PhaseImpl for FinishPhase<'a> {
             // TODO: Copy globals across
             globals: HashMap::default(),
         };
-        let id = self.program.modules.insert(module)?;
+        let _id = self.program.modules.insert(module)?;
         Ok(())
     }
 }

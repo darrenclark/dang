@@ -5,22 +5,12 @@ pub mod parse_ast_phase;
 pub mod read_file_phase;
 pub mod resolve_variables;
 
-use std::collections::HashMap;
-
 use compile_dependencies_phase::CompileDependenciesPhase;
 use finish_phase::FinishPhase;
-use node_ids_pass::NodeIdsPass;
 use parse_ast_phase::ParseAstPhase;
 use read_file_phase::ReadFilePhase;
 
-use crate::{
-    ast::{Node, NodeKind},
-    dang_parser,
-    interpreter::{exception, Exception},
-    module::{module_name_to_file_path, Module, ModuleId},
-    program::Program,
-    stdlib::load_stdlib_file,
-};
+use crate::{ast::Node, interpreter::Exception, program::Program};
 
 #[derive(Debug)]
 pub enum Input {
@@ -99,12 +89,6 @@ impl Phase {
 #[derive(Debug, Default)]
 pub struct Compiler {}
 
-#[derive(Debug)]
-enum ModuleLocation {
-    Loaded,
-    StdLib { path: String },
-}
-
 impl Compiler {
     pub fn compile(&self, module_name: &str, program: &mut Program) -> Result<(), Vec<Exception>> {
         if program.modules.get_by_name(module_name).is_some() {
@@ -114,7 +98,7 @@ impl Compiler {
         let mut state = CompilationState::new(Input::ModuleName(module_name.to_owned()));
 
         for phase in Phase::PHASES {
-            let result = { phase.new_impl(&self, &mut state, program).run() };
+            let result = { phase.new_impl(self, &mut state, program).run() };
             match result {
                 Ok(_) => {}
                 Err(exception) => {

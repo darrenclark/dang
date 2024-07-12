@@ -1,3 +1,7 @@
+#![allow(unused_macros)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 use dang::ast::Node;
 use dang::interpreter::Exception;
 use dang::interpreter::Interpreter;
