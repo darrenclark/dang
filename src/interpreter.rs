@@ -10,10 +10,11 @@ use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
     compiler::Compiler,
     native_funcs,
+    program::Program,
     value::{FunctionLiteral, Value},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Exception {
     pub source: Option<Source>,
     pub message: String,
@@ -50,6 +51,7 @@ pub(crate) use exception;
 
 #[derive(Debug)]
 pub struct Interpreter {
+    program: Program,
     globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
     compiler: Compiler,
@@ -59,6 +61,7 @@ impl Interpreter {
     pub fn new() -> Interpreter {
         let globals = Rc::new(RefCell::new(Environment::new(false)));
         let mut i = Interpreter {
+            program: Program::default(),
             globals: globals.clone(),
             environment: globals,
             compiler: Compiler::default(),
@@ -70,6 +73,7 @@ impl Interpreter {
     pub fn new_repl() -> Interpreter {
         let globals = Rc::new(RefCell::new(Environment::new(true)));
         let mut i = Interpreter {
+            program: Program::default(),
             globals: globals.clone(),
             environment: globals,
             compiler: Compiler::default(),
@@ -87,10 +91,10 @@ impl Interpreter {
         }
 
         // Load Std
-        let module_ids = self.compiler.compile_module("Std").unwrap();
+        self.compiler.compile("Std", &mut self.program).unwrap();
 
-        for id in module_ids {
-            let module = self.compiler.program.modules.get_by_id(id);
+        for id in self.program.modules.module_ids() {
+            let module = self.program.modules.get_by_id(id);
             if let Err(exception) = self.eval(module.ast.as_ref()) {
                 panic!("exception while loading standard library: {}", exception)
             }

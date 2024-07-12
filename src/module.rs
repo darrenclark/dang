@@ -16,7 +16,7 @@ pub struct Module {
 pub struct ModulesMap {
     name_to_id: HashMap<String, ModuleId>,
     // ModuleId is an index in to this list
-    modules: Vec<Rc<Module>>,
+    pub modules: Vec<Rc<Module>>,
 }
 
 pub fn module_name_to_file_path(name: &str) -> String {
@@ -24,6 +24,14 @@ pub fn module_name_to_file_path(name: &str) -> String {
 }
 
 impl ModulesMap {
+    pub fn module_ids(&self) -> Vec<ModuleId> {
+        self.modules
+            .iter()
+            .enumerate()
+            .map(|(i, _)| ModuleId(i as u32))
+            .collect()
+    }
+
     pub fn get_by_id(&self, id: ModuleId) -> Rc<Module> {
         self.modules[id.0 as usize].clone()
     }
