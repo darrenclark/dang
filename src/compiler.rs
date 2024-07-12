@@ -5,10 +5,10 @@ pub mod parse_ast_phase;
 pub mod read_file_phase;
 pub mod resolve_variables;
 
-use compile_dependencies_phase::CompileDependenciesPhase;
-use finish_phase::FinishPhase;
-use parse_ast_phase::ParseAstPhase;
-use read_file_phase::ReadFilePhase;
+use compile_dependencies_phase::compile_dependencies_phase;
+use finish_phase::finish_phase;
+use parse_ast_phase::parse_ast_phase;
+use read_file_phase::read_file_phase;
 
 use crate::{ast::Node, interpreter::Exception, program::Program};
 
@@ -48,9 +48,7 @@ impl CompilationState {
     }
 }
 
-trait PhaseImpl {
-    fn run(&mut self) -> Result<(), Exception>;
-}
+type PhaseFn = fn(&Compiler, &mut CompilationState, &mut Program) -> Result<(), Exception>;
 
 enum Phase {
     ReadFile,
@@ -60,30 +58,12 @@ enum Phase {
 }
 
 impl Phase {
-    const PHASES: [Self; 4] = [
-        Self::ReadFile,
-        Self::ParseAst,
-        Self::CompileDependencies,
-        Self::Finish,
+    const PHASES: [(Self, PhaseFn); 4] = [
+        (Self::ReadFile, read_file_phase),
+        (Self::ParseAst, parse_ast_phase),
+        (Self::CompileDependencies, compile_dependencies_phase),
+        (Self::Finish, finish_phase),
     ];
-
-    fn new_impl<'a>(
-        &self,
-        compiler: &'a Compiler,
-        compilation_state: &'a mut CompilationState,
-        program: &'a mut Program,
-    ) -> Box<dyn PhaseImpl + 'a> {
-        match self {
-            Phase::ReadFile => Box::new(ReadFilePhase::new(compiler, compilation_state, program)),
-            Phase::ParseAst => Box::new(ParseAstPhase::new(compiler, compilation_state, program)),
-            Phase::CompileDependencies => Box::new(CompileDependenciesPhase::new(
-                compiler,
-                compilation_state,
-                program,
-            )),
-            Phase::Finish => Box::new(FinishPhase::new(compiler, compilation_state, program)),
-        }
-    }
 }
 
 #[derive(Debug, Default)]
@@ -97,8 +77,8 @@ impl Compiler {
 
         let mut state = CompilationState::new(Input::ModuleName(module_name.to_owned()));
 
-        for phase in Phase::PHASES {
-            let result = { phase.new_impl(self, &mut state, program).run() };
+        for (_phase, phase_fn) in Phase::PHASES {
+            let result = { phase_fn(self, &mut state, program) };
             match result {
                 Ok(_) => {}
                 Err(exception) => {
