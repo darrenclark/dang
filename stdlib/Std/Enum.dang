@@ -1,6 +1,6 @@
 module Std/Enum
 
-import Std/Builtins
+import Std/Builtins.*
 
 let map = fn(enum, func) {
   var result = []

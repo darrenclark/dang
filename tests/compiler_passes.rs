@@ -34,7 +34,7 @@ fn node_ids_pass() {
     );
 
     for (i, node) in compilation_state.ast().iter().enumerate() {
-        assert_eq!(node.id.raw_id(), (0, i as u32));
+        assert_eq!(node.id.raw_id().1, i as u32);
     }
 }
 

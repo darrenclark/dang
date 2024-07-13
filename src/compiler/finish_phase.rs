@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{interpreter::Exception, module::Module, program::Program};
 
 use super::{CompilationState, Compiler};

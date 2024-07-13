@@ -1,6 +1,6 @@
 module Std/Assert
 
-import Std/Builtins
+import Std/Builtins.raise
 
 let assert = fn(pass) {
   if !pass {

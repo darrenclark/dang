@@ -11,6 +11,17 @@ pub fn compile_dependencies_phase(
     compilation_state: &mut CompilationState,
     program: &mut Program,
 ) -> Result<(), Exception> {
+    if !compilation_state.module_name.starts_with("Std") {
+        match compiler.compile("Std", program) {
+            Ok(()) => {}
+            Err(reasons) => {
+                let mut reasons = reasons;
+                compilation_state.errors.append(&mut reasons);
+                exception!("Failed to load standard lib")
+            }
+        }
+    }
+
     let imported_modules: Vec<String> = compilation_state
         .ast()
         .iter()

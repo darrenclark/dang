@@ -83,13 +83,6 @@ impl Interpreter {
     }
 
     fn load_stdlib(&mut self) {
-        for (name, ptr) in native_funcs::funcs() {
-            let _ = self
-                .globals
-                .borrow_mut()
-                .define(name, false, Value::NativeFunc(ptr));
-        }
-
         // Load Std
         match self.compiler.compile("Std", &mut self.program) {
             Ok(_) => {}

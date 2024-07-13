@@ -1,5 +1,5 @@
 module Std
 
-import Std/Builtins
-import Std/Assert
-import Std/Enum
+import Std/Builtins.*
+import Std/Assert.*
+import Std/Enum.*

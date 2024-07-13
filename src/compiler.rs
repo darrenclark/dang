@@ -3,6 +3,7 @@ pub mod finish_phase;
 pub mod node_ids_phase;
 pub mod parse_ast_phase;
 pub mod read_file_phase;
+mod resolve_imports_phase;
 mod resolve_variables_phase;
 
 use std::collections::HashMap;
@@ -12,10 +13,11 @@ use finish_phase::finish_phase;
 use node_ids_phase::node_ids_phase;
 use parse_ast_phase::parse_ast_phase;
 use read_file_phase::read_file_phase;
+use resolve_imports_phase::resolve_imports_phase;
 use resolve_variables_phase::resolve_variables_phase;
 
 use crate::{
-    ast::{Node, NodeId},
+    ast::{ImportKind, Node, NodeId},
     interpreter::Exception,
     module::ModuleId,
     program::Program,
@@ -35,6 +37,7 @@ pub struct CompilationState {
     pub errors: Vec<Exception>,
     pub source_code: String,
     pub ast: Option<Node>,
+    pub imports: Vec<ResolvedImport>,
     pub exports: HashMap<String, NodeId>,
 }
 
@@ -52,6 +55,7 @@ impl CompilationState {
             errors: Vec::new(),
             source_code: String::new(),
             ast: None,
+            imports: Vec::new(),
             exports: HashMap::new(),
         }
     }
@@ -65,6 +69,48 @@ impl CompilationState {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct ResolvedImport {
+    pub module_id: ModuleId,
+    pub module_name: String,
+    pub kind: ResolvedImportKind,
+}
+
+impl ResolvedImport {
+    pub fn new(module_id: ModuleId, import_ast: &ImportKind) -> ResolvedImport {
+        ResolvedImport {
+            module_id,
+            module_name: import_ast.module_name().to_owned(),
+            kind: match import_ast {
+                ImportKind::Module { .. } => ResolvedImportKind::Module,
+                ImportKind::Field {
+                    module_name: _,
+                    field_name,
+                } => ResolvedImportKind::Field(field_name.to_owned()),
+                ImportKind::AllFields { .. } => ResolvedImportKind::AllFields,
+            },
+        }
+    }
+
+    pub fn new_implicit(module_id: ModuleId, module_name: &str) -> ResolvedImport {
+        ResolvedImport {
+            module_id,
+            module_name: module_name.to_owned(),
+            kind: ResolvedImportKind::AllFields,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ResolvedImportKind {
+    /// import Std/Enum
+    Module,
+    /// import Std/Enum.map
+    Field(String),
+    /// import Std/Enum.*
+    AllFields,
+}
+
 type PhaseFn = fn(&Compiler, &mut CompilationState, &mut Program) -> Result<(), Exception>;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -73,16 +119,18 @@ pub enum Phase {
     ParseAst,
     CompileDependencies,
     NodeIds,
+    ResolveImports,
     ResolveVariables,
     Finish,
 }
 
 impl Phase {
-    const PHASES: [(Self, PhaseFn); 6] = [
+    const PHASES: [(Self, PhaseFn); 7] = [
         (Self::ReadFile, read_file_phase),
         (Self::ParseAst, parse_ast_phase),
         (Self::CompileDependencies, compile_dependencies_phase),
         (Self::NodeIds, node_ids_phase),
+        (Self::ResolveImports, resolve_imports_phase),
         (Self::ResolveVariables, resolve_variables_phase),
         (Self::Finish, finish_phase),
     ];

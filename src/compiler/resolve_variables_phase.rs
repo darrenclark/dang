@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 use crate::{
     ast::{AstWalker, Node, NodeId, NodeKind},
     interpreter::{exception, Exception},
-    module::ModuleId,
     program::Program,
 };
 
@@ -14,8 +13,8 @@ pub fn resolve_variables_phase(
     compilation_state: &mut CompilationState,
     program: &mut Program,
 ) -> Result<(), Exception> {
-    let mut phase = ResolveVariablesPhase::new(program);
-    phase.run(compilation_state.ast());
+    let mut phase = ResolveVariablesPhase::new(program, compilation_state);
+    phase.run();
     if !phase.errors.is_empty() {
         compilation_state.errors.append(&mut phase.errors.clone());
         exception!("unable to resolve all variables")
@@ -33,8 +32,8 @@ struct Scope {
 #[derive(Debug)]
 pub struct ResolveVariablesPhase<'a> {
     program: &'a mut Program,
+    compilation_state: &'a CompilationState,
     // Assumes .* imports currently.  TODO: Support other import styles.
-    pub imports: Vec<ModuleId>,
     pub definitions_to_usages: HashMap<NodeId, HashSet<NodeId>>,
     pub usages_to_definition: HashMap<NodeId, NodeId>,
     pub exports: HashMap<String, NodeId>,
@@ -43,10 +42,13 @@ pub struct ResolveVariablesPhase<'a> {
 }
 
 impl<'a> ResolveVariablesPhase<'a> {
-    pub fn new(program: &'a mut Program) -> ResolveVariablesPhase {
+    pub fn new(
+        program: &'a mut Program,
+        compilation_state: &'a CompilationState,
+    ) -> ResolveVariablesPhase<'a> {
         ResolveVariablesPhase {
             program,
-            imports: Vec::new(),
+            compilation_state,
             definitions_to_usages: HashMap::new(),
             usages_to_definition: HashMap::new(),
             exports: HashMap::new(),
@@ -55,8 +57,8 @@ impl<'a> ResolveVariablesPhase<'a> {
         }
     }
 
-    pub fn run(&mut self, ast: &Node) {
-        ast.walk(self)
+    pub fn run(&mut self) {
+        self.compilation_state.ast().walk(self)
     }
 
     fn push_scope(&mut self) {
@@ -94,13 +96,32 @@ impl<'a> ResolveVariablesPhase<'a> {
     }
 
     fn lookup_imported(&self, name: &str) -> Option<NodeId> {
-        // TODO: use imports
-
-        for m in &self.program.modules.modules {
-            if let Some(node_id) = m.exports.get(name) {
-                return Some(*node_id);
+        for resolved_import in &self.compilation_state.imports {
+            match &resolved_import.kind {
+                super::ResolvedImportKind::Module => panic!("module imports not supported yet"),
+                super::ResolvedImportKind::Field(field_name) => {
+                    if name == field_name {
+                        match self
+                            .program
+                            .modules
+                            .get_by_id(resolved_import.module_id)
+                            .exports
+                            .get(name)
+                        {
+                            None => panic!("importing by field name, but field does not exist"),
+                            Some(node_id) => return Some(*node_id),
+                        }
+                    }
+                }
+                super::ResolvedImportKind::AllFields => {
+                    let module = self.program.modules.get_by_id(resolved_import.module_id);
+                    if let Some(node_id) = module.exports.get(name) {
+                        return Some(*node_id);
+                    }
+                }
             }
         }
+
         None
     }
 
@@ -126,19 +147,12 @@ impl<'a> ResolveVariablesPhase<'a> {
                 NodeKind::Builtin { identifier } => {
                     self.define(identifier.unwrap_identifier(), node)
                 }
-                NodeKind::Let { identifier, .. } => {
-                    self.define(identifier.unwrap_identifier(), node)
+                NodeKind::Let { identifier, expr } => {
+                    if expr.is_function_literal() {
+                        self.define(identifier.unwrap_identifier(), node)
+                    }
                 }
                 _ => {}
-            }
-        }
-    }
-
-    fn add_default_imports_if_needed(&mut self, source_file_children: &[Node]) {
-        for node in source_file_children {
-            if matches!(&node.kind, NodeKind::Module(name) if name.starts_with("Std")) {
-                // module in Std, don't add default imports
-                return;
             }
         }
     }
@@ -150,7 +164,6 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
             NodeKind::SourceFile(children) => {
                 self.push_scope();
                 self.scan_ahead_for_global_functions(children);
-                self.add_default_imports_if_needed(children);
             }
             NodeKind::Body(_) => {
                 self.push_scope();
