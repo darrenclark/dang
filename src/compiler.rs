@@ -145,8 +145,23 @@ impl Phase {
     ];
 }
 
-#[derive(Debug, Default)]
-pub struct Compiler {}
+const DEFAULT_IMPLICIT_IMPORTS: [&str; 3] = ["Std/Assert", "Std/Builtins", "Std/Enum"];
+
+#[derive(Debug)]
+pub struct Compiler {
+    pub implicit_imports: Vec<String>,
+}
+
+impl Default for Compiler {
+    fn default() -> Self {
+        let implicit_imports = DEFAULT_IMPLICIT_IMPORTS
+            .iter()
+            .map(|s| String::from(*s))
+            .collect();
+
+        Compiler { implicit_imports }
+    }
+}
 
 impl Compiler {
     pub fn compile(&self, input: Input, program: &mut Program) -> Result<(), Vec<Exception>> {

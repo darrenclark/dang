@@ -55,7 +55,7 @@ pub struct Interpreter {
     program: Program,
     globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
-    compiler: Compiler,
+    pub compiler: Compiler,
     last_run_module_id: Option<ModuleId>,
 }
 

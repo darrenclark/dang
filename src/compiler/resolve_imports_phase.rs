@@ -2,10 +2,8 @@ use crate::{ast::NodeKind, interpreter::Exception, program::Program};
 
 use super::{CompilationState, Compiler, ResolvedImport};
 
-const IMPLICIT_IMPORTS: [&str; 3] = ["Std/Assert", "Std/Builtins", "Std/Enum"];
-
 pub fn resolve_imports_phase(
-    _compiler: &Compiler,
+    compiler: &Compiler,
     compilation_state: &mut CompilationState,
     program: &mut Program,
 ) -> Result<(), Exception> {
@@ -27,7 +25,7 @@ pub fn resolve_imports_phase(
 
     // default imports for non-Std modules
     if !compilation_state.module_name.starts_with("Std") {
-        for module_name in IMPLICIT_IMPORTS {
+        for module_name in &compiler.implicit_imports {
             println!("{}", module_name);
             let module_id = program.modules.get_id_by_name(module_name).unwrap();
             compilation_state

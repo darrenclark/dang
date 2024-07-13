@@ -66,6 +66,10 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 
 fn repl(args: &Cli) -> Result<()> {
     let mut interpreter = Interpreter::new_repl();
+    // preload Std to ensure there aren't any build issues with it
+    if let Err(e) = interpreter.run(Input::ModuleName("Std".to_owned())) {
+        panic!("Failed to load Std: {:?}", e);
+    }
     interpreter.set_argv(args.args.clone());
 
     let history_file = home_dir().map(|p| {
@@ -85,8 +89,11 @@ fn repl(args: &Cli) -> Result<()> {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
+                let module_name = format!("(repl:{})", lineno);
                 let _ = rl.add_history_entry(line.as_str());
-                handle_input(&mut interpreter, line, &format!("(repl:{})", lineno), true);
+                if handle_input(&mut interpreter, line, &module_name, true) {
+                    interpreter.compiler.implicit_imports.insert(0, module_name);
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -106,7 +113,12 @@ fn repl(args: &Cli) -> Result<()> {
     Ok(())
 }
 
-fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print_result: bool) {
+fn handle_input(
+    interpreter: &mut Interpreter,
+    line: String,
+    source: &str,
+    print_result: bool,
+) -> bool {
     match interpreter.run(Input::SourceCode {
         text: line,
         name: source.to_owned(),
@@ -115,8 +127,12 @@ fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print
             if print_result {
                 println!("{:?}", value)
             }
+            true
         }
-        Err(exception) => println!("{}", exception),
+        Err(exception) => {
+            println!("{}", exception);
+            false
+        }
     }
 }
 
