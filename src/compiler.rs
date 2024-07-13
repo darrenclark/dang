@@ -23,10 +23,19 @@ use crate::{
     program::Program,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Input {
     ModuleName(String),
     SourceCode { text: String, name: String },
+}
+
+impl Input {
+    pub fn module_name(&self) -> &str {
+        match self {
+            Input::ModuleName(module_name) => module_name,
+            Input::SourceCode { text: _, name } => name,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -140,12 +149,14 @@ impl Phase {
 pub struct Compiler {}
 
 impl Compiler {
-    pub fn compile(&self, module_name: &str, program: &mut Program) -> Result<(), Vec<Exception>> {
-        if program.modules.get_by_name(module_name).is_some() {
+    pub fn compile(&self, input: Input, program: &mut Program) -> Result<(), Vec<Exception>> {
+        let module_name = input.module_name().to_owned();
+
+        if program.modules.get_by_name(input.module_name()).is_some() {
             return Ok(());
         }
 
-        let mut state = CompilationState::new(Input::ModuleName(module_name.to_owned()));
+        let mut state = CompilationState::new(input);
 
         for (phase, phase_fn) in Phase::PHASES {
             let result = { phase_fn(self, &mut state, program) };

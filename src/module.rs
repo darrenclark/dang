@@ -77,6 +77,12 @@ impl ModuleId {
 
 pub const UNSPECIFIED_MODULE_ID: u32 = u32::MAX;
 
+impl ModuleId {
+    pub fn is_unspecified(&self) -> bool {
+        self.0 == UNSPECIFIED_MODULE_ID
+    }
+}
+
 impl Default for ModuleId {
     fn default() -> Self {
         ModuleId(UNSPECIFIED_MODULE_ID)

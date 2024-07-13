@@ -8,7 +8,8 @@ use std::{
 
 use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
-    compiler::Compiler,
+    compiler::{Compiler, Input},
+    module::ModuleId,
     native_funcs,
     program::Program,
     value::{FunctionLiteral, Value},
@@ -55,47 +56,29 @@ pub struct Interpreter {
     globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
     compiler: Compiler,
+    last_run_module_id: Option<ModuleId>,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         let globals = Rc::new(RefCell::new(Environment::new(false)));
-        let mut i = Interpreter {
+        Interpreter {
             program: Program::default(),
             globals: globals.clone(),
             environment: globals,
             compiler: Compiler::default(),
-        };
-        i.load_stdlib();
-        i
+            last_run_module_id: None,
+        }
     }
 
     pub fn new_repl() -> Interpreter {
         let globals = Rc::new(RefCell::new(Environment::new(true)));
-        let mut i = Interpreter {
+        Interpreter {
             program: Program::default(),
             globals: globals.clone(),
             environment: globals,
             compiler: Compiler::default(),
-        };
-        i.load_stdlib();
-        i
-    }
-
-    fn load_stdlib(&mut self) {
-        // Load Std
-        match self.compiler.compile("Std", &mut self.program) {
-            Ok(_) => {}
-            Err(errors) => {
-                panic!("Failed to load stdlib: {:?}", errors)
-            }
-        }
-
-        for id in self.program.modules.module_ids() {
-            let module = self.program.modules.get_by_id(id);
-            if let Err(exception) = self.eval(module.ast.as_ref()) {
-                panic!("exception while loading standard library: {}", exception)
-            }
+            last_run_module_id: None,
         }
     }
 
@@ -123,7 +106,28 @@ impl Interpreter {
         self.environment = env
     }
 
-    pub fn eval(&mut self, node: &Node) -> Result<Value, Exception> {
+    pub fn run(&mut self, input: Input) -> Result<Value, Exception> {
+        match self.compiler.compile(input, &mut self.program) {
+            Ok(_) => {}
+            Err(errors) => {
+                exception!("{:?}", errors)
+            }
+        }
+
+        let mut value = Value::Nil;
+        for id in self.program.modules.module_ids() {
+            if self.last_run_module_id.is_some() && self.last_run_module_id.unwrap() >= id {
+                continue;
+            }
+
+            self.last_run_module_id = Some(id);
+            let module = self.program.modules.get_by_id(id);
+            value = self.eval(module.ast.as_ref())?
+        }
+        Ok(value)
+    }
+
+    fn eval(&mut self, node: &Node) -> Result<Value, Exception> {
         self.do_eval(node).map_err(|mut exception| {
             if exception.source.is_none() {
                 exception.source = Some(node.source.clone())

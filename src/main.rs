@@ -1,6 +1,7 @@
 use std::fs;
 
 use clap::Parser;
+use dang::compiler::Input;
 use dang::dang_parser::Rule;
 use dang::interpreter::Interpreter;
 use dirs::home_dir;
@@ -78,12 +79,14 @@ fn repl(args: &Cli) -> Result<()> {
     if let Some(f) = &history_file {
         let _ = rl.load_history(&f);
     }
+    let mut lineno = 0;
     loop {
+        lineno += 1;
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
                 let _ = rl.add_history_entry(line.as_str());
-                handle_input(&mut interpreter, line, "(repl)", true);
+                handle_input(&mut interpreter, line, &format!("(repl:{})", lineno), true);
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -104,25 +107,16 @@ fn repl(args: &Cli) -> Result<()> {
 }
 
 fn handle_input(interpreter: &mut Interpreter, line: String, source: &str, print_result: bool) {
-    /*let mut parser = tree_sitter::Parser::new();
-    parser
-        .set_language(tree_sitter_dang::language())
-        .expect("Error loading dang grammar");
-    let tree = parser.parse(line, None).unwrap();
-    println!("{}", tree.root_node().to_sexp());*/
-
-    let result = dang::dang_parser::parse(&line, source);
-    if let Ok(pairs) = result {
-        match interpreter.eval(&pairs) {
-            Ok(value) => {
-                if print_result {
-                    println!("{:?}", value)
-                }
+    match interpreter.run(Input::SourceCode {
+        text: line,
+        name: source.to_owned(),
+    }) {
+        Ok(value) => {
+            if print_result {
+                println!("{:?}", value)
             }
-            Err(exception) => println!("{}", exception),
         }
-    } else {
-        println!("{}", result.unwrap_err());
+        Err(exception) => println!("{}", exception),
     }
 }
 

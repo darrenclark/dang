@@ -4,7 +4,7 @@ use crate::{
     program::Program,
 };
 
-use super::{CompilationState, Compiler};
+use super::{CompilationState, Compiler, Input};
 
 pub fn compile_dependencies_phase(
     compiler: &Compiler,
@@ -12,7 +12,7 @@ pub fn compile_dependencies_phase(
     program: &mut Program,
 ) -> Result<(), Exception> {
     if !compilation_state.module_name.starts_with("Std") {
-        match compiler.compile("Std", program) {
+        match compiler.compile(Input::ModuleName("Std".to_owned()), program) {
             Ok(()) => {}
             Err(reasons) => {
                 let mut reasons = reasons;
@@ -22,22 +22,24 @@ pub fn compile_dependencies_phase(
         }
     }
 
-    let imported_modules: Vec<String> = compilation_state
+    let imported_modules: Vec<Input> = compilation_state
         .ast()
         .iter()
         .filter_map(|n| match &n.kind {
-            NodeKind::Import(import_kind) => Some(import_kind.module_name().to_owned()),
+            NodeKind::Import(import_kind) => {
+                Some(Input::ModuleName(import_kind.module_name().to_owned()))
+            }
             _ => None,
         })
         .collect();
 
     for m in imported_modules {
-        match compiler.compile(&m, program) {
+        match compiler.compile(m.clone(), program) {
             Ok(()) => {}
             Err(reasons) => {
                 let mut reasons = reasons;
                 compilation_state.errors.append(&mut reasons);
-                exception!("Failed to load dependency: {}", m)
+                exception!("Failed to load dependency: {}", m.module_name())
             }
         }
     }
