@@ -165,6 +165,16 @@ impl Interpreter {
                 self.restore_env(prev_env);
                 Ok(result)
             }
+            NodeKind::Builtin { identifier } => match &identifier.kind {
+                NodeKind::Identifier(name) => {
+                    let value = Value::NativeFunc(native_funcs::func(name).unwrap());
+                    self.environment
+                        .borrow_mut()
+                        .define(name, false, value.clone())?;
+                    Ok(value)
+                }
+                _ => panic!(),
+            },
             NodeKind::Let { identifier, expr } => match &identifier.kind {
                 NodeKind::Identifier(name) => {
                     let value = self.eval(expr)?;

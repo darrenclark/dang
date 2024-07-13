@@ -109,6 +109,9 @@ pub enum NodeKind {
     Module(String),
     Import(ImportKind),
     Body(Vec<Node>),
+    Builtin {
+        identifier: Box<Node>,
+    },
     Let {
         identifier: Box<Node>,
         expr: Box<Node>,
@@ -191,6 +194,10 @@ impl Node {
             NodeKind::Module(_) => None,
             NodeKind::Import(_) => None,
             NodeKind::Body(nodes) => nodes.get(index),
+            NodeKind::Builtin { identifier } => match index {
+                0 => Some(identifier.as_ref()),
+                _ => None,
+            },
             NodeKind::Let { identifier, expr } => match index {
                 0 => Some(identifier.as_ref()),
                 1 => Some(expr.as_ref()),
@@ -297,6 +304,10 @@ impl Node {
             NodeKind::Module(_) => None,
             NodeKind::Import(_) => None,
             NodeKind::Body(nodes) => nodes.get_mut(index),
+            NodeKind::Builtin { identifier } => match index {
+                0 => Some(identifier.as_mut()),
+                _ => None,
+            },
             NodeKind::Let { identifier, expr } => match index {
                 0 => Some(identifier.as_mut()),
                 1 => Some(expr.as_mut()),
@@ -457,6 +468,10 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             for n in nodes {
                 fmt_node(n, depth + 1, "", f)?;
             }
+        }
+        NodeKind::Builtin { identifier } => {
+            writeln!(f, "Builtin:")?;
+            fmt_node(identifier, depth + 1, "identifier", f)?;
         }
         NodeKind::Let { identifier, expr } => {
             writeln!(f, "Let:")?;

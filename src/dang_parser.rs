@@ -100,6 +100,17 @@ impl ToAst {
                 self.new_node(line_col, NodeKind::Identifier(String::from(pair.as_str())))
             }
             Rule::stmt => panic!(),
+            Rule::builtin_stmt => {
+                let mut iter = pair.into_inner();
+                let identifier = self.to_ast(iter.next().unwrap()).unwrap();
+
+                self.new_node(
+                    line_col,
+                    NodeKind::Builtin {
+                        identifier: Box::new(identifier),
+                    },
+                )
+            }
             Rule::let_stmt => {
                 let mut iter = pair.into_inner();
                 let identifier = self.to_ast(iter.next().unwrap()).unwrap();

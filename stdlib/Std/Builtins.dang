@@ -1,0 +1,19 @@
+module Std/Builtins
+
+__builtin print
+__builtin println
+__builtin inspect
+__builtin readfile
+__builtin len
+__builtin get
+__builtin split
+__builtin trim
+__builtin str_replace
+__builtin str_reverse
+__builtin str_find
+__builtin str_rfind
+__builtin regex_match
+__builtin regex_find
+__builtin regex_find_index
+__builtin int
+__builtin raise

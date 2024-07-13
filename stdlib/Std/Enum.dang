@@ -1,3 +1,7 @@
+module Std/Enum
+
+import Std/Builtins
+
 let map = fn(enum, func) {
   var result = []
   for x in enum {

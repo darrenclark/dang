@@ -1,3 +1,7 @@
+module Std/Assert
+
+import Std/Builtins
+
 let assert = fn(pass) {
   if !pass {
     raise("assertion failed")

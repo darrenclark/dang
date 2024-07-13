@@ -19,7 +19,8 @@ keywords = {
   "else" |
   "nil" |
   "import" |
-  "module"
+  "module" |
+  "__builtin"
 }
 
 // module Std/Enum
@@ -36,10 +37,19 @@ import_all = { ".*" }
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ ~ "?"? }
 
 stmt = _{
-  (let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr) ~ stmt_end
+  (builtin_stmt | let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr) ~ stmt_end
 }
 
 stmt_end = _{ NEWLINE* ~ ";"? }
+
+// To define built-in functions in code (so they have AST nodes)
+//
+//  __builtin print
+//  __builtin println
+//  __builtin raise
+//
+//  etc..
+builtin_stmt = { "__builtin" ~ identifier }
 
 let_stmt = { "let" ~ identifier ~ "=" ~ nl ~ expr }
 var_stmt = { "var" ~ identifier ~ "=" ~ nl ~ expr }

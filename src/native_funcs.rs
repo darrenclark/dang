@@ -34,6 +34,13 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
     ]
 }
 
+pub fn func(name: &str) -> Option<NativeFuncPtr> {
+    funcs()
+        .iter()
+        .find_map(|(n, ptr)| if *n == name { Some(ptr) } else { None })
+        .copied()
+}
+
 fn print(args: &[Value]) -> Result<Value, Exception> {
     print_impl(args, false)
 }
