@@ -5,6 +5,8 @@ pub mod parse_ast_phase;
 pub mod read_file_phase;
 mod resolve_variables_phase;
 
+use std::collections::HashMap;
+
 use compile_dependencies_phase::compile_dependencies_phase;
 use finish_phase::finish_phase;
 use node_ids_phase::node_ids_phase;
@@ -12,7 +14,12 @@ use parse_ast_phase::parse_ast_phase;
 use read_file_phase::read_file_phase;
 use resolve_variables_phase::resolve_variables_phase;
 
-use crate::{ast::Node, interpreter::Exception, module::ModuleId, program::Program};
+use crate::{
+    ast::{Node, NodeId},
+    interpreter::Exception,
+    module::ModuleId,
+    program::Program,
+};
 
 #[derive(Debug)]
 pub enum Input {
@@ -28,6 +35,7 @@ pub struct CompilationState {
     pub errors: Vec<Exception>,
     pub source_code: String,
     pub ast: Option<Node>,
+    pub exports: HashMap<String, NodeId>,
 }
 
 impl CompilationState {
@@ -44,6 +52,7 @@ impl CompilationState {
             errors: Vec::new(),
             source_code: String::new(),
             ast: None,
+            exports: HashMap::new(),
         }
     }
 

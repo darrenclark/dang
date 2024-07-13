@@ -12,8 +12,7 @@ pub fn finish_phase(
     let module = Module {
         name: compilation_state.module_name.to_owned(),
         ast: Box::new(compilation_state.ast().clone()),
-        // TODO: Copy globals across
-        globals: HashMap::default(),
+        exports: compilation_state.exports.clone(),
     };
     let _id = program.modules.insert(module)?;
     Ok(())

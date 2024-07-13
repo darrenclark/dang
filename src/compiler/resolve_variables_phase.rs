@@ -20,6 +20,7 @@ pub fn resolve_variables_phase(
         compilation_state.errors.append(&mut phase.errors.clone());
         exception!("unable to resolve all variables")
     }
+    compilation_state.exports = phase.exports;
     Ok(())
 }
 
@@ -36,7 +37,7 @@ pub struct ResolveVariablesPhase<'a> {
     pub imports: Vec<ModuleId>,
     pub definitions_to_usages: HashMap<NodeId, HashSet<NodeId>>,
     pub usages_to_definition: HashMap<NodeId, NodeId>,
-    pub globals: HashMap<String, NodeId>,
+    pub exports: HashMap<String, NodeId>,
     scopes: Vec<Scope>,
     pub errors: Vec<Exception>,
 }
@@ -48,7 +49,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             imports: Vec::new(),
             definitions_to_usages: HashMap::new(),
             usages_to_definition: HashMap::new(),
-            globals: HashMap::new(),
+            exports: HashMap::new(),
             scopes: Vec::new(),
             errors: Vec::new(),
         }
@@ -89,6 +90,18 @@ impl<'a> ResolveVariablesPhase<'a> {
             .iter()
             .rev()
             .find_map(|s| s.definitions.get(name).copied())
+            .or_else(|| self.lookup_imported(name))
+    }
+
+    fn lookup_imported(&self, name: &str) -> Option<NodeId> {
+        // TODO: use imports
+
+        for m in &self.program.modules.modules {
+            if let Some(node_id) = m.exports.get(name) {
+                return Some(*node_id);
+            }
+        }
+        None
     }
 
     fn resolve_variable(&mut self, variable_ref_node: &Node, name: &str) {
@@ -109,10 +122,14 @@ impl<'a> ResolveVariablesPhase<'a> {
 
     fn scan_ahead_for_global_functions(&mut self, source_file_children: &[Node]) {
         for node in source_file_children {
-            if let NodeKind::Let { identifier, expr } = &node.kind {
-                if let NodeKind::FunctionLiteral { .. } = expr.kind {
+            match &node.kind {
+                NodeKind::Builtin { identifier } => {
                     self.define(identifier.unwrap_identifier(), node)
                 }
+                NodeKind::Let { identifier, .. } => {
+                    self.define(identifier.unwrap_identifier(), node)
+                }
+                _ => {}
             }
         }
     }
@@ -171,7 +188,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn exit_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(_) => {
-                self.globals = self.pop_scope().unwrap().definitions;
+                self.exports = self.pop_scope().unwrap().definitions;
             }
             NodeKind::Body(_) => {
                 self.pop_scope();

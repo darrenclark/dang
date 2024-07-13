@@ -9,7 +9,7 @@ use crate::{
 pub struct Module {
     pub name: String,
     pub ast: Box<Node>,
-    pub globals: HashMap<String, NodeId>,
+    pub exports: HashMap<String, NodeId>,
 }
 
 #[derive(Debug, Default)]
