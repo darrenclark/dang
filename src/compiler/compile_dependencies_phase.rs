@@ -1,4 +1,8 @@
-use crate::{ast::NodeKind, interpreter::Exception, program::Program};
+use crate::{
+    ast::NodeKind,
+    interpreter::{exception, Exception},
+    program::Program,
+};
 
 use super::{CompilationState, Compiler};
 
@@ -21,7 +25,8 @@ pub fn compile_dependencies_phase(
             Ok(()) => {}
             Err(reasons) => {
                 let mut reasons = reasons;
-                compilation_state.errors.append(&mut reasons)
+                compilation_state.errors.append(&mut reasons);
+                exception!("Failed to load dependency: {}", m)
             }
         }
     }

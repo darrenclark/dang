@@ -91,7 +91,12 @@ impl Interpreter {
         }
 
         // Load Std
-        self.compiler.compile("Std", &mut self.program).unwrap();
+        match self.compiler.compile("Std", &mut self.program) {
+            Ok(_) => {}
+            Err(errors) => {
+                panic!("Failed to load stdlib: {:?}", errors)
+            }
+        }
 
         for id in self.program.modules.module_ids() {
             let module = self.program.modules.get_by_id(id);

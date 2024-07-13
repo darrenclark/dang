@@ -2,18 +2,35 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     ast::{AstWalker, Node, NodeId, NodeKind},
-    interpreter::Exception,
+    interpreter::{exception, Exception},
     module::ModuleId,
     program::Program,
 };
 
-#[derive(Default)]
+use super::{CompilationState, Compiler};
+
+pub fn resolve_variables_phase(
+    _compiler: &Compiler,
+    compilation_state: &mut CompilationState,
+    program: &mut Program,
+) -> Result<(), Exception> {
+    let mut phase = ResolveVariablesPhase::new(program);
+    phase.run(compilation_state.ast());
+    if !phase.errors.is_empty() {
+        compilation_state.errors.append(&mut phase.errors.clone());
+        exception!("unable to resolve all variables")
+    }
+    Ok(())
+}
+
+#[derive(Default, Debug)]
 struct Scope {
     definitions: HashMap<String, NodeId>,
     definition_indices: Vec<String>,
 }
 
-pub struct ResolveVariablesPass<'a> {
+#[derive(Debug)]
+pub struct ResolveVariablesPhase<'a> {
     program: &'a mut Program,
     // Assumes .* imports currently.  TODO: Support other import styles.
     pub imports: Vec<ModuleId>,
@@ -24,9 +41,9 @@ pub struct ResolveVariablesPass<'a> {
     pub errors: Vec<Exception>,
 }
 
-impl<'a> ResolveVariablesPass<'a> {
-    pub fn new(program: &'a mut Program) -> ResolveVariablesPass {
-        ResolveVariablesPass {
+impl<'a> ResolveVariablesPhase<'a> {
+    pub fn new(program: &'a mut Program) -> ResolveVariablesPhase {
+        ResolveVariablesPhase {
             program,
             imports: Vec::new(),
             definitions_to_usages: HashMap::new(),
@@ -110,7 +127,7 @@ impl<'a> ResolveVariablesPass<'a> {
     }
 }
 
-impl<'a> AstWalker for ResolveVariablesPass<'a> {
+impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn enter_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(children) => {

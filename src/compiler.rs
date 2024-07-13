@@ -3,13 +3,14 @@ pub mod finish_phase;
 pub mod node_ids_phase;
 pub mod parse_ast_phase;
 pub mod read_file_phase;
-pub mod resolve_variables;
+mod resolve_variables_phase;
 
 use compile_dependencies_phase::compile_dependencies_phase;
 use finish_phase::finish_phase;
 use node_ids_phase::node_ids_phase;
 use parse_ast_phase::parse_ast_phase;
 use read_file_phase::read_file_phase;
+use resolve_variables_phase::resolve_variables_phase;
 
 use crate::{ast::Node, interpreter::Exception, module::ModuleId, program::Program};
 
@@ -57,21 +58,23 @@ impl CompilationState {
 
 type PhaseFn = fn(&Compiler, &mut CompilationState, &mut Program) -> Result<(), Exception>;
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Phase {
     ReadFile,
     ParseAst,
     CompileDependencies,
     NodeIds,
+    ResolveVariables,
     Finish,
 }
 
 impl Phase {
-    const PHASES: [(Self, PhaseFn); 5] = [
+    const PHASES: [(Self, PhaseFn); 6] = [
         (Self::ReadFile, read_file_phase),
         (Self::ParseAst, parse_ast_phase),
         (Self::CompileDependencies, compile_dependencies_phase),
         (Self::NodeIds, node_ids_phase),
+        (Self::ResolveVariables, resolve_variables_phase),
         (Self::Finish, finish_phase),
     ];
 }
@@ -87,8 +90,9 @@ impl Compiler {
 
         let mut state = CompilationState::new(Input::ModuleName(module_name.to_owned()));
 
-        for (_phase, phase_fn) in Phase::PHASES {
+        for (phase, phase_fn) in Phase::PHASES {
             let result = { phase_fn(self, &mut state, program) };
+            println!("{} - {:?} - {:?}", module_name, phase, result);
             match result {
                 Ok(_) => {}
                 Err(exception) => {
