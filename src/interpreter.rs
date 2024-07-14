@@ -60,6 +60,12 @@ pub struct Interpreter {
     last_run_module_id: Option<ModuleId>,
 }
 
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Interpreter {
         let globals = Rc::new(RefCell::new(Environment::new(false)));
