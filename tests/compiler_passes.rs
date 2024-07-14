@@ -48,7 +48,7 @@ fn resolve_function_variables() {
         r#"
         let print_words = fn (words) {
             for word in words {
-                println!(word)
+                println(word)
             }
         }
         "#,

@@ -289,7 +289,6 @@ impl Node {
             NodeKind::DictLiteral(entries) => {
                 let vec_index = index / 2;
                 let tuple_elem = index % 2;
-                println!("{}.{} in {}", vec_index, tuple_elem, entries.len());
                 if vec_index < entries.len() {
                     if tuple_elem == 0 {
                         Some(&entries[vec_index].0)
@@ -418,7 +417,6 @@ impl Node {
             NodeKind::DictLiteral(entries) => {
                 let vec_index = index / 2;
                 let tuple_elem = index % 2;
-                println!("{}.{} in {}", vec_index, tuple_elem, entries.len());
                 if vec_index < entries.len() {
                     if tuple_elem == 0 {
                         entries.get_mut(vec_index).map(|e| &mut e.0)

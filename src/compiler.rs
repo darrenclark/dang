@@ -168,17 +168,14 @@ impl Default for Compiler {
 
 impl Compiler {
     pub fn compile(&self, input: Input, program: &mut Program) -> Result<(), Vec<Exception>> {
-        let module_name = input.module_name().to_owned();
-
         if program.modules.get_by_name(input.module_name()).is_some() {
             return Ok(());
         }
 
         let mut state = CompilationState::new(input);
 
-        for (phase, phase_fn) in Phase::PHASES {
+        for (_phase, phase_fn) in Phase::PHASES {
             let result = { phase_fn(self, &mut state, program) };
-            println!("{} - {:?} - {:?}", module_name, phase, result);
             match result {
                 Ok(_) => {}
                 Err(exception) => {

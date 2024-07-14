@@ -26,7 +26,6 @@ pub fn resolve_imports_phase(
     // default imports for non-Std modules
     if !compilation_state.module_name.starts_with("Std") {
         for module_name in &compiler.implicit_imports {
-            println!("{}", module_name);
             let module_id = program.modules.get_id_by_name(module_name).unwrap();
             compilation_state
                 .imports

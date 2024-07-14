@@ -108,21 +108,18 @@ impl Interpreter {
     }
 
     fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
-        println!("pushing child env");
         let prev_env = self.environment.clone();
         self.environment = Rc::new(RefCell::new(Environment::new_child(prev_env.clone())));
         prev_env
     }
 
     fn switch_to_env(&mut self, env: Rc<RefCell<Environment>>) -> Rc<RefCell<Environment>> {
-        println!("switching to new env");
         let prev_env = self.environment.clone();
         self.environment = env;
         prev_env
     }
 
     fn restore_env(&mut self, env: Rc<RefCell<Environment>>) {
-        println!("restoring env");
         self.environment = env
     }
 
@@ -193,7 +190,7 @@ impl Interpreter {
                 _ => panic!(),
             },
             NodeKind::Let { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(name) => {
+                NodeKind::Identifier(_) => {
                     let value = self.eval(expr)?;
                     self.environment
                         .borrow_mut()
@@ -203,7 +200,7 @@ impl Interpreter {
                 _ => panic!(),
             },
             NodeKind::Var { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(name) => {
+                NodeKind::Identifier(_) => {
                     let value = self.eval(expr)?;
                     self.environment
                         .borrow_mut()
@@ -213,7 +210,7 @@ impl Interpreter {
                 _ => panic!(),
             },
             NodeKind::Assignment { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(name) => {
+                NodeKind::Identifier(_) => {
                     let value = self.eval(expr)?;
                     self.environment
                         .borrow_mut()
@@ -238,15 +235,10 @@ impl Interpreter {
                 }
             }
             NodeKind::For {
-                var_name,
+                var_name: _,
                 enumerable,
                 body,
             } => {
-                let var_name = match &var_name.kind {
-                    NodeKind::Identifier(name) => name,
-                    _ => panic!(),
-                };
-
                 let env = self.switch_to_new_env();
                 let e = self.eval(enumerable)?.ensure_enumerable("for")?;
                 let res = (|| {
@@ -305,7 +297,6 @@ impl Interpreter {
                 match Environment::get(self.environment.clone(), &self.variable_location(node)) {
                     Some(v) => Ok(v.clone()),
                     None => {
-                        println!("{:?}", self.variable_location(node));
                         exception!("no binding {}", identifier.unwrap_identifier())
                     }
                 }
@@ -417,7 +408,6 @@ impl Interpreter {
         }
 
         for (arg_name, value) in arg_names.iter().zip(args.iter()) {
-            println!("{:?} @ {:?}", arg_name.unwrap_identifier(), arg_name.id,);
             self.environment
                 .borrow_mut()
                 .define(arg_name.id, false, value.clone())?;
@@ -427,7 +417,6 @@ impl Interpreter {
     }
 
     fn variable_location(&self, node: &Node) -> VariableLocation {
-        println!("{:?} - {:?}", node.id, node);
         self.program
             .modules
             .get_by_id(node.id.module_id())
