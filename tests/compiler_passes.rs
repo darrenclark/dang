@@ -1,6 +1,9 @@
+use assert_matches::assert_matches;
 use dang::{
+    ast::NodeKind,
     compiler::{CompilationState, Compiler, Input, Phase},
     program::Program,
+    scope::VariableLocation,
 };
 
 mod common;
@@ -37,6 +40,68 @@ fn node_ids_pass() {
         assert_eq!(node.id.raw_id().1, i as u32);
     }
 }
+
+#[test]
+fn resolve_function_variables() {
+    let compilation_state = run_until(
+        Phase::ResolveVariables,
+        r#"
+        let print_words = fn (words) {
+            for word in words {
+                println!(word)
+            }
+        }
+        "#,
+    );
+
+    assert_eq!(compilation_state.errors.len(), 0);
+
+    let words_arg_name = compilation_state
+        .ast()
+        .iter()
+        .find(|n| matches!(&n.kind, NodeKind::Identifier(i) if i == "words"))
+        .expect("couldn't find 'words' arg");
+
+    let words_variable_ref = compilation_state
+        .ast()
+        .iter()
+        .find(|n| matches!(&n.kind, NodeKind::VariableRef { identifier } if identifier.unwrap_identifier() == "words")  )
+        .expect("couldn't find 'words'");
+
+    let variable_loc = compilation_state
+        .variable_locations
+        .get(&words_variable_ref.id)
+        .expect("variable location not populated");
+
+    assert_matches!(
+        variable_loc,
+        VariableLocation::Local {
+            node_id,
+            index: 0,
+            nth_parent: 2
+        } if *node_id == words_arg_name.id
+    );
+}
+
+/*#[test]
+fn resolve_for_loop_variables() {
+    let compilation_state = run_until(
+        Phase::ResolveVariables,
+        r#"
+        for s in "hello" {
+          println(s)
+        }
+        "#,
+    );
+
+    let s_variable_ref = compilation_state
+        .ast()
+        .iter()
+        .find(|n| matches!(&n.kind, NodeKind::VariableRef { identifier } if identifier.unwrap_identifier() == "s")  )
+        .expect("couldn't find 's'");
+
+    assert_ma
+}*/
 
 #[test]
 fn resolve_variables_pass() {

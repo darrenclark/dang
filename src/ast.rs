@@ -29,6 +29,10 @@ impl NodeId {
     pub fn raw_id(&self) -> (u32, u32) {
         (self.module_id.raw_id(), self.local_id)
     }
+
+    pub fn module_id(&self) -> ModuleId {
+        self.module_id
+    }
 }
 
 impl Default for NodeId {
@@ -275,8 +279,27 @@ impl Node {
                 }
             }
             NodeKind::Identifier(_) => None,
-            NodeKind::ListLiteral(_) => None,
-            NodeKind::DictLiteral(_) => None,
+            NodeKind::ListLiteral(items) => {
+                if index < items.len() {
+                    Some(&items[index])
+                } else {
+                    None
+                }
+            }
+            NodeKind::DictLiteral(entries) => {
+                let vec_index = index / 2;
+                let tuple_elem = index % 2;
+                println!("{}.{} in {}", vec_index, tuple_elem, entries.len());
+                if vec_index < entries.len() {
+                    if tuple_elem == 0 {
+                        Some(&entries[vec_index].0)
+                    } else {
+                        Some(&entries[vec_index].1)
+                    }
+                } else {
+                    None
+                }
+            }
             NodeKind::NilLiteral => None,
             NodeKind::BoolLiteral(_) => None,
             NodeKind::StringLiteral(_) => None,
@@ -385,8 +408,28 @@ impl Node {
                 }
             }
             NodeKind::Identifier(_) => None,
-            NodeKind::ListLiteral(_) => None,
-            NodeKind::DictLiteral(_) => None,
+            NodeKind::ListLiteral(items) => {
+                if index < items.len() {
+                    items.get_mut(index)
+                } else {
+                    None
+                }
+            }
+            NodeKind::DictLiteral(entries) => {
+                let vec_index = index / 2;
+                let tuple_elem = index % 2;
+                println!("{}.{} in {}", vec_index, tuple_elem, entries.len());
+                if vec_index < entries.len() {
+                    if tuple_elem == 0 {
+                        entries.get_mut(vec_index).map(|e| &mut e.0)
+                    } else {
+                        entries.get_mut(vec_index).map(|e| &mut e.1)
+                    }
+                } else {
+                    None
+                }
+            }
+
             NodeKind::NilLiteral => None,
             NodeKind::BoolLiteral(_) => None,
             NodeKind::StringLiteral(_) => None,

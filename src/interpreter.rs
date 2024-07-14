@@ -7,11 +7,12 @@ use std::{
 };
 
 use crate::{
-    ast::{BinOp, Node, NodeKind, Source, UnaryOp},
+    ast::{BinOp, Node, NodeId, NodeKind, Source, UnaryOp},
     compiler::{Compiler, Input},
     module::ModuleId,
     native_funcs,
     program::Program,
+    scope::VariableLocation,
     value::{FunctionLiteral, Value},
 };
 
@@ -83,26 +84,29 @@ impl Interpreter {
     }
 
     pub fn set_argv(&mut self, argv: Vec<String>) {
-        let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
+        /*let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
         self.globals
             .borrow_mut()
             .define("argv", false, Value::List(converted))
-            .unwrap();
+            .unwrap();*/
     }
 
     fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
+        println!("pushing child env");
         let prev_env = self.environment.clone();
         self.environment = Rc::new(RefCell::new(Environment::new_child(prev_env.clone())));
         prev_env
     }
 
     fn switch_to_env(&mut self, env: Rc<RefCell<Environment>>) -> Rc<RefCell<Environment>> {
+        println!("switching to new env");
         let prev_env = self.environment.clone();
         self.environment = env;
         prev_env
     }
 
     fn restore_env(&mut self, env: Rc<RefCell<Environment>>) {
+        println!("restoring env");
         self.environment = env
     }
 
@@ -167,7 +171,7 @@ impl Interpreter {
                     let value = Value::NativeFunc(native_funcs::func(name).unwrap());
                     self.environment
                         .borrow_mut()
-                        .define(name, false, value.clone())?;
+                        .define(node.id, false, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
@@ -177,7 +181,7 @@ impl Interpreter {
                     let value = self.eval(expr)?;
                     self.environment
                         .borrow_mut()
-                        .define(name, false, value.clone())?;
+                        .define(node.id, false, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
@@ -187,7 +191,7 @@ impl Interpreter {
                     let value = self.eval(expr)?;
                     self.environment
                         .borrow_mut()
-                        .define(name, true, value.clone())?;
+                        .define(node.id, true, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
@@ -195,7 +199,9 @@ impl Interpreter {
             NodeKind::Assignment { identifier, expr } => match &identifier.kind {
                 NodeKind::Identifier(name) => {
                     let value = self.eval(expr)?;
-                    self.environment.borrow_mut().assign(name, value.clone())?;
+                    self.environment
+                        .borrow_mut()
+                        .assign(&self.variable_location(node), value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
@@ -225,16 +231,21 @@ impl Interpreter {
                     _ => panic!(),
                 };
 
-                let e = self.eval(enumerable)?.ensure_enumerable("for")?;
                 let env = self.switch_to_new_env();
+                let e = self.eval(enumerable)?.ensure_enumerable("for")?;
                 let res = (|| {
                     self.environment
                         .borrow_mut()
-                        .define(var_name, true, Value::Nil)?;
+                        .define(node.id, true, Value::Nil)?;
+                    let location = VariableLocation::Local {
+                        node_id: node.id,
+                        index: 0,
+                        nth_parent: 0,
+                    };
                     for i in 0..e.enum_len() {
                         self.environment
                             .borrow_mut()
-                            .assign(var_name, e.enum_at(i).unwrap())?;
+                            .assign(&location, e.enum_at(i).unwrap())?;
                         self.eval(body)?;
                     }
 
@@ -274,14 +285,15 @@ impl Interpreter {
                     exception!("tried to call a non-function value: {:?}", func)
                 }
             }
-            NodeKind::VariableRef { identifier } => match self
-                .environment
-                .borrow()
-                .get(identifier.unwrap_identifier())
-            {
-                Some(v) => Ok(v.clone()),
-                None => exception!("no binding {}", identifier.unwrap_identifier()),
-            },
+            NodeKind::VariableRef { identifier } => {
+                match Environment::get(self.environment.clone(), &self.variable_location(node)) {
+                    Some(v) => Ok(v.clone()),
+                    None => {
+                        println!("{:?}", self.variable_location(node));
+                        exception!("no binding {}", identifier.unwrap_identifier())
+                    }
+                }
+            }
             NodeKind::Identifier(_) => unreachable!(),
             NodeKind::ListLiteral(elements) => {
                 let mut evaled_elements = Vec::with_capacity(elements.len());
@@ -389,16 +401,24 @@ impl Interpreter {
         }
 
         for (arg_name, value) in arg_names.iter().zip(args.iter()) {
-            let name = match &arg_name.kind {
-                NodeKind::Identifier(name) => name,
-                _ => panic!(),
-            };
+            println!("{:?} @ {:?}", arg_name.unwrap_identifier(), arg_name.id,);
             self.environment
                 .borrow_mut()
-                .define(name, false, value.clone())?;
+                .define(arg_name.id, false, value.clone())?;
         }
 
         self.eval(body)
+    }
+
+    fn variable_location(&self, node: &Node) -> VariableLocation {
+        println!("{:?} - {:?}", node.id, node);
+        self.program
+            .modules
+            .get_by_id(node.id.module_id())
+            .variable_locations
+            .get(&node.id)
+            .expect("variable location missing for node")
+            .clone()
     }
 }
 
@@ -412,7 +432,7 @@ struct Variable {
 pub struct Environment {
     parent: Option<Rc<RefCell<Environment>>>,
     /// Variables
-    variables: HashMap<String, Variable>,
+    variables: HashMap<NodeId, Variable>,
     /// Can variables be redefined?  Used in REPL for ergonomics.
     allow_redefinition: bool,
 }
@@ -434,39 +454,67 @@ impl Environment {
         }
     }
 
-    fn get(&self, name: &str) -> Option<Value> {
-        self.variables
-            .get(name)
-            .map(|v| v.value.clone())
-            .or_else(|| {
-                if let Some(parent) = &self.parent {
-                    parent.borrow().get(name)
-                } else {
-                    None
-                }
-            })
+    fn root(env: Rc<RefCell<Environment>>) -> Rc<RefCell<Environment>> {
+        let mut env = env;
+
+        loop {
+            let parent = env.borrow().parent.clone();
+            match parent {
+                Some(parent) => env = parent,
+                None => return env,
+            }
+        }
     }
 
-    fn define(&mut self, name: &str, mutable: bool, value: Value) -> Result<(), Exception> {
-        if self.variables.contains_key(name) && !self.allow_redefinition {
-            exception!("variable '{}' already defined", name)
+    fn nth_parent(env: Rc<RefCell<Environment>>, n: usize) -> Rc<RefCell<Environment>> {
+        let mut env = env;
+
+        for _ in 0..n {
+            let parent = env.borrow().parent.clone();
+            env = parent.expect("expected to have at least n parents");
         }
-        self.variables
-            .insert(String::from(name), Variable { value, mutable });
+
+        env
+    }
+
+    fn get(env: Rc<RefCell<Environment>>, variable: &VariableLocation) -> Option<Value> {
+        match variable {
+            VariableLocation::Global(_) => Self::root(env)
+                .borrow()
+                .variables
+                .get(&variable.node_id())
+                .map(|v| v.value.clone()),
+            VariableLocation::Local {
+                node_id: _,
+                index: _,
+                nth_parent,
+            } => Self::nth_parent(env, *nth_parent)
+                .borrow()
+                .variables
+                .get(&variable.node_id())
+                .map(|v| v.value.clone()),
+        }
+    }
+
+    fn define(&mut self, node_id: NodeId, mutable: bool, value: Value) -> Result<(), Exception> {
+        if self.variables.contains_key(&node_id) && !self.allow_redefinition {
+            exception!("variable for '{:?}' already defined", node_id)
+        }
+        self.variables.insert(node_id, Variable { value, mutable });
         Ok(())
     }
 
-    fn assign(&mut self, name: &str, value: Value) -> Result<(), Exception> {
-        if let Some(v) = self.variables.get_mut(name) {
+    fn assign(&mut self, variable: &VariableLocation, value: Value) -> Result<(), Exception> {
+        if let Some(v) = self.variables.get_mut(&variable.node_id()) {
             if !v.mutable {
-                exception!("variable '{}' is not mutable", name)
+                exception!("variable for '{:?}' is not mutable", variable)
             }
             v.value = value;
             Ok(())
         } else if let Some(parent) = &self.parent {
-            parent.borrow_mut().assign(name, value)
+            parent.borrow_mut().assign(variable, value)
         } else {
-            exception!("variable '{}' is not defined", name)
+            exception!("variable for '{:?}' is not defined", variable)
         }
     }
 }

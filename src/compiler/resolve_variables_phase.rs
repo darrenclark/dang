@@ -152,19 +152,18 @@ impl<'a> ResolveVariablesPhase<'a> {
         None
     }
 
-    fn resolve_variable(&mut self, variable_ref_node: &Node, name: &str) {
+    fn resolve_variable(&mut self, node: &Node, name: &str) {
         if let Some(location) = self.lookup(name) {
             self.usages_to_definition
-                .insert(variable_ref_node.id, location.node_id());
+                .insert(node.id, location.node_id());
             self.definitions_to_usages
                 .entry(location.node_id())
                 .or_default()
-                .insert(variable_ref_node.id);
-            self.variable_locations
-                .insert(variable_ref_node.id, location);
+                .insert(node.id);
+            self.variable_locations.insert(node.id, location);
         } else {
             self.errors.push(Exception {
-                source: Some(variable_ref_node.source.clone()),
+                source: Some(node.source.clone()),
                 message: format!("cannot find value '{}' in this scope", name),
             });
         }
@@ -223,6 +222,9 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
             NodeKind::VariableRef { identifier } => {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }
+            NodeKind::Assignment { identifier, .. } => {
+                self.resolve_variable(node, identifier.unwrap_identifier())
+            }
             _ => {}
         }
     }
@@ -231,8 +233,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
         match &node.kind {
             NodeKind::SourceFile(_) => {
                 self.global_scope = self.pop_scope().unwrap();
-                self.exports
-                    .clone_from(&self.global_scope.get_definitions());
+                self.exports.clone_from(self.global_scope.get_definitions());
             }
             NodeKind::Body(_) | NodeKind::FunctionLiteral { .. } | NodeKind::For { .. } => {
                 let scope = self.pop_scope().unwrap();
