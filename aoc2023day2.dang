@@ -35,7 +35,7 @@ let valid_pull? = fn(pull) {
   } else if pull.color == "green" {
     pull.count <= max_green
   } else {
-    raise("unexpected color: " + color)
+    raise("unexpected color: " + pull.color)
   }
 }
 

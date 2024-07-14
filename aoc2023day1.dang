@@ -1,3 +1,7 @@
+let pt1_regex = "\\d"
+let pt2_regex = "(one|two|three|four|five|six|seven|eight|nine|\\d)"
+let pt2_regex_rev = "(eno|owt|eerht|ruof|evif|xis|neves|thgie|enin|\\d)"
+
 let parse = fn(input) {
   let lines = split(input, "\n")
   filter(lines, fn(l) { len(l) > 0 })
@@ -12,10 +16,6 @@ let part2 = fn(parsed) {
   let values = map(parsed, fn(line) { calibration_value(line, pt2_regex, pt2_regex_rev) })
   sum(values)
 }
-
-let pt1_regex = "\\d"
-let pt2_regex = "(one|two|three|four|five|six|seven|eight|nine|\\d)"
-let pt2_regex_rev = "(eno|owt|eerht|ruof|evif|xis|neves|thgie|enin|\\d)"
 
 let to_digit = fn(match) {
   if match == "1" || match == "one" || match == "eno" { "1" }

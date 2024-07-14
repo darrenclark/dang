@@ -84,11 +84,27 @@ impl Interpreter {
     }
 
     pub fn set_argv(&mut self, argv: Vec<String>) {
-        /*let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
+        self.run(Input::ModuleName("Std/Builtins".to_owned()))
+            .expect("Std/Builtins failed to load");
+
+        let argv_node_id = *self
+            .program
+            .modules
+            .get_by_name("Std/Builtins")
+            .unwrap()
+            .exports
+            .get("argv")
+            .expect("argv missing from Std/Builtins");
+
+        let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
+
         self.globals
             .borrow_mut()
-            .define("argv", false, Value::List(converted))
-            .unwrap();*/
+            .assign(
+                &VariableLocation::Global(argv_node_id),
+                Value::List(converted),
+            )
+            .unwrap();
     }
 
     fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
