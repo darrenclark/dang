@@ -1,0 +1,55 @@
+use std::collections::HashMap;
+
+use crate::ast::NodeId;
+
+#[derive(Default, Debug)]
+pub struct Scope {
+    size: usize,
+    definitions: HashMap<String, NodeId>,
+    definition_indices: HashMap<String, usize>,
+}
+
+impl Scope {
+    pub fn define(&mut self, name: &str, node_id: NodeId) {
+        assert!(!self.is_defined(name));
+
+        self.definitions.insert(name.to_owned(), node_id);
+        self.definition_indices.insert(name.to_owned(), self.size);
+        self.size += 1;
+    }
+
+    pub fn is_defined(&self, name: &str) -> bool {
+        self.definitions.contains_key(name)
+    }
+
+    pub fn get_node_id(&self, name: &str) -> Option<NodeId> {
+        self.definitions.get(name).cloned()
+    }
+
+    pub fn get_index(&self, name: &str) -> Option<usize> {
+        self.definition_indices.get(name).cloned()
+    }
+
+    pub fn get_definitions(&self) -> &HashMap<String, NodeId> {
+        &self.definitions
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum VariableLocation {
+    Global(NodeId),
+    Local {
+        node_id: NodeId,
+        index: usize,
+        nth_parent: usize,
+    },
+}
+
+impl VariableLocation {
+    pub fn node_id(&self) -> NodeId {
+        match self {
+            Self::Global(node_id) => *node_id,
+            Self::Local { node_id, .. } => *node_id,
+        }
+    }
+}

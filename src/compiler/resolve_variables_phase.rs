@@ -4,6 +4,7 @@ use crate::{
     ast::{AstWalker, Node, NodeId, NodeKind},
     interpreter::{exception, Exception},
     program::Program,
+    scope::{Scope, VariableLocation},
 };
 
 use super::{CompilationState, Compiler};
@@ -13,20 +14,26 @@ pub fn resolve_variables_phase(
     compilation_state: &mut CompilationState,
     program: &mut Program,
 ) -> Result<(), Exception> {
-    let mut phase = ResolveVariablesPhase::new(program, compilation_state);
-    phase.run();
-    if !phase.errors.is_empty() {
-        compilation_state.errors.append(&mut phase.errors.clone());
-        exception!("unable to resolve all variables")
-    }
-    compilation_state.exports = phase.exports;
-    Ok(())
-}
+    let variable_locations: HashMap<NodeId, VariableLocation>;
+    let exports: HashMap<String, NodeId>;
 
-#[derive(Default, Debug)]
-struct Scope {
-    definitions: HashMap<String, NodeId>,
-    definition_indices: Vec<String>,
+    {
+        let mut phase = ResolveVariablesPhase::new(program, compilation_state);
+        phase.run();
+        if !phase.errors.is_empty() {
+            compilation_state.errors.append(&mut phase.errors.clone());
+            exception!("unable to resolve all variables")
+        }
+
+        variable_locations = phase.variable_locations;
+        exports = phase.exports;
+    }
+
+    compilation_state
+        .variable_locations
+        .clone_from(&variable_locations);
+    compilation_state.exports.clone_from(&exports);
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -37,7 +44,10 @@ pub struct ResolveVariablesPhase<'a> {
     pub definitions_to_usages: HashMap<NodeId, HashSet<NodeId>>,
     pub usages_to_definition: HashMap<NodeId, NodeId>,
     pub exports: HashMap<String, NodeId>,
-    scopes: Vec<Scope>,
+    pub scopes: HashMap<NodeId, Scope>,
+    pub variable_locations: HashMap<NodeId, VariableLocation>,
+    pub global_scope: Scope,
+    scopes_stack: Vec<Scope>,
     pub errors: Vec<Exception>,
 }
 
@@ -52,7 +62,10 @@ impl<'a> ResolveVariablesPhase<'a> {
             definitions_to_usages: HashMap::new(),
             usages_to_definition: HashMap::new(),
             exports: HashMap::new(),
-            scopes: Vec::new(),
+            scopes: HashMap::new(),
+            variable_locations: HashMap::new(),
+            global_scope: Scope::default(),
+            scopes_stack: Vec::new(),
             errors: Vec::new(),
         }
     }
@@ -62,40 +75,54 @@ impl<'a> ResolveVariablesPhase<'a> {
     }
 
     fn push_scope(&mut self) {
-        self.scopes.push(Scope::default());
+        self.scopes_stack.push(Scope::default());
     }
 
     fn pop_scope(&mut self) -> Option<Scope> {
-        self.scopes.pop()
+        self.scopes_stack.pop()
     }
 
     fn is_global_scope(&self) -> bool {
-        self.scopes.len() <= 1
+        self.scopes_stack.len() <= 1
     }
 
     fn define(&mut self, name: &str, node: &Node) {
-        let scope = self.scopes.last_mut().unwrap();
+        let scope = self.scopes_stack.last_mut().unwrap();
 
-        if scope.definitions.contains_key(name) {
+        if scope.is_defined(name) {
             self.errors.push(Exception {
                 source: Some(node.source.clone()),
                 message: format!("{} already defined", name),
             });
         } else {
-            scope.definitions.insert(name.to_owned(), node.id);
-            scope.definition_indices.push(name.to_owned());
+            scope.define(name, node.id);
         }
     }
 
-    fn lookup(&self, name: &str) -> Option<NodeId> {
-        self.scopes
+    fn lookup(&self, name: &str) -> Option<VariableLocation> {
+        self.scopes_stack
             .iter()
             .rev()
-            .find_map(|s| s.definitions.get(name).copied())
+            .enumerate()
+            .find_map(|(i, s)| {
+                if let Some(node_id) = s.get_node_id(name) {
+                    if i >= self.scopes_stack.len() - 1 {
+                        Some(VariableLocation::Global(node_id))
+                    } else {
+                        Some(VariableLocation::Local {
+                            node_id,
+                            index: s.get_index(name).unwrap(),
+                            nth_parent: i,
+                        })
+                    }
+                } else {
+                    None
+                }
+            })
             .or_else(|| self.lookup_imported(name))
     }
 
-    fn lookup_imported(&self, name: &str) -> Option<NodeId> {
+    fn lookup_imported(&self, name: &str) -> Option<VariableLocation> {
         for resolved_import in &self.compilation_state.imports {
             match &resolved_import.kind {
                 super::ResolvedImportKind::Module => panic!("module imports not supported yet"),
@@ -109,14 +136,14 @@ impl<'a> ResolveVariablesPhase<'a> {
                             .get(name)
                         {
                             None => panic!("importing by field name, but field does not exist"),
-                            Some(node_id) => return Some(*node_id),
+                            Some(node_id) => return Some(VariableLocation::Global(*node_id)),
                         }
                     }
                 }
                 super::ResolvedImportKind::AllFields => {
                     let module = self.program.modules.get_by_id(resolved_import.module_id);
                     if let Some(node_id) = module.exports.get(name) {
-                        return Some(*node_id);
+                        return Some(VariableLocation::Global(*node_id));
                     }
                 }
             }
@@ -126,13 +153,15 @@ impl<'a> ResolveVariablesPhase<'a> {
     }
 
     fn resolve_variable(&mut self, variable_ref_node: &Node, name: &str) {
-        if let Some(definition_id) = self.lookup(name) {
+        if let Some(location) = self.lookup(name) {
             self.usages_to_definition
-                .insert(variable_ref_node.id, definition_id);
+                .insert(variable_ref_node.id, location.node_id());
             self.definitions_to_usages
-                .entry(definition_id)
+                .entry(location.node_id())
                 .or_default()
                 .insert(variable_ref_node.id);
+            self.variable_locations
+                .insert(variable_ref_node.id, location);
         } else {
             self.errors.push(Exception {
                 source: Some(variable_ref_node.source.clone()),
@@ -201,16 +230,13 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn exit_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(_) => {
-                self.exports = self.pop_scope().unwrap().definitions;
+                self.global_scope = self.pop_scope().unwrap();
+                self.exports
+                    .clone_from(&self.global_scope.get_definitions());
             }
-            NodeKind::Body(_) => {
-                self.pop_scope();
-            }
-            NodeKind::FunctionLiteral { .. } => {
-                self.pop_scope();
-            }
-            NodeKind::For { .. } => {
-                self.pop_scope();
+            NodeKind::Body(_) | NodeKind::FunctionLiteral { .. } | NodeKind::For { .. } => {
+                let scope = self.pop_scope().unwrap();
+                self.scopes.insert(node.id, scope);
             }
             _ => {}
         }

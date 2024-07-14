@@ -5,6 +5,7 @@ pub mod interpreter;
 pub mod module;
 pub mod native_funcs;
 pub mod program;
+pub mod scope;
 pub mod stdlib;
 pub mod string_utils;
 pub mod value;

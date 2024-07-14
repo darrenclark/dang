@@ -3,6 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use crate::{
     ast::{Node, NodeId},
     interpreter::{exception, Exception},
+    scope::VariableLocation,
 };
 
 #[derive(Debug)]
@@ -10,6 +11,7 @@ pub struct Module {
     pub name: String,
     pub ast: Box<Node>,
     pub exports: HashMap<String, NodeId>,
+    pub variable_locations: HashMap<NodeId, VariableLocation>,
 }
 
 #[derive(Debug, Default)]

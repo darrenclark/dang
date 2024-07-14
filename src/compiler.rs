@@ -21,6 +21,7 @@ use crate::{
     interpreter::Exception,
     module::ModuleId,
     program::Program,
+    scope::VariableLocation,
 };
 
 #[derive(Clone, Debug)]
@@ -48,6 +49,7 @@ pub struct CompilationState {
     pub ast: Option<Node>,
     pub imports: Vec<ResolvedImport>,
     pub exports: HashMap<String, NodeId>,
+    pub variable_locations: HashMap<NodeId, VariableLocation>,
 }
 
 impl CompilationState {
@@ -66,6 +68,7 @@ impl CompilationState {
             ast: None,
             imports: Vec::new(),
             exports: HashMap::new(),
+            variable_locations: HashMap::new(),
         }
     }
 
