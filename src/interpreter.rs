@@ -271,15 +271,25 @@ impl Interpreter {
             NodeKind::Subscript { object, key } => {
                 let object = self.eval(object)?;
                 let key = self.eval(key)?;
-                object.at(&key)
+                match object {
+                    Value::Symbol(module_name) => {
+                        let key = match key {
+                            Value::String(k) => k,
+                            _ => exception!("string required when subscripting a module"),
+                        };
+                        self.module_field_access(&module_name, &key)
+                    }
+                    value => value.at(&key),
+                }
             }
             NodeKind::FieldAccess { object, key } => {
                 let object = self.eval(object)?;
-                let key = match &key.kind {
-                    NodeKind::Identifier(name) => name,
-                    _ => unreachable!(),
-                };
-                object.at_field(key)
+                match object {
+                    Value::Symbol(module_name) => {
+                        self.module_field_access(&module_name, key.unwrap_identifier())
+                    }
+                    value => value.at_field(key.unwrap_identifier()),
+                }
             }
             NodeKind::FunctionCall { function, args } => {
                 let func = self.eval(function.as_ref())?;
@@ -430,6 +440,24 @@ impl Interpreter {
             .get(&node.id)
             .expect("variable location missing for node")
             .clone()
+    }
+
+    fn module_field_access(&self, module_name: &str, field_name: &str) -> Result<Value, Exception> {
+        let module = match self.program.modules.get_by_name(module_name) {
+            Some(module) => module,
+            None => exception!("module {} not loaded", module_name),
+        };
+        match module.exports.get(field_name) {
+            Some(node_id) => {
+                match Environment::get(self.globals.clone(), &VariableLocation::Global(*node_id)) {
+                    Some(value) => Ok(value),
+                    None => exception!("{}.{} not found", module_name, field_name),
+                }
+            }
+            None => {
+                exception!("{}.{} not found", module_name, field_name)
+            }
+        }
     }
 }
 
