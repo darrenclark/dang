@@ -11,6 +11,7 @@ use crate::{
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Value {
     Nil,
+    Symbol(String),
     Bool(bool),
     String(String),
     Integer(i64),
@@ -176,6 +177,13 @@ impl Value {
                 Err(err) => exception!("failed to parse string to int: {}", err),
             },
             _ => exception!("cannot cast {:?} to int", self), // TODO: should nil convert to 0?
+        }
+    }
+
+    pub fn cast_to_symbol(&self) -> Result<Value, Exception> {
+        match self {
+            Self::String(contents) => Ok(Self::Symbol(contents.clone())),
+            _ => exception!("cannot cast {:?} to symbol", self),
         }
     }
 }

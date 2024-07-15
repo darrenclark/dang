@@ -29,6 +29,7 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("regex_find_index", regex_find_index),
         // casts
         ("int", int),
+        ("symbol", symbol),
         // misc
         ("raise", raise),
     ]
@@ -251,6 +252,13 @@ fn int(args: &[Value]) -> Result<Value, Exception> {
         exception!("int(other) expected one arg")
     }
     args[0].cast_to_int()
+}
+
+fn symbol(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("symbol(other) expected one arg")
+    }
+    args[0].cast_to_symbol()
 }
 
 fn raise(args: &[Value]) -> Result<Value, Exception> {

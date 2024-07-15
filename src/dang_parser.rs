@@ -311,18 +311,36 @@ impl ToAst {
                 Some(iter.fold(result, |acc, p| {
                     let line_col = p.line_col();
                     let rule = p.as_rule();
-                    let key = self.to_ast(p.into_inner().next().unwrap()).unwrap();
                     self.new_node(
                         line_col,
                         match rule {
-                            Rule::subscript => NodeKind::Subscript {
-                                object: Box::new(acc),
-                                key: Box::new(key),
-                            },
-                            Rule::field_access => NodeKind::FieldAccess {
-                                object: Box::new(acc),
-                                key: Box::new(key),
-                            },
+                            Rule::subscript => {
+                                let key = self.to_ast(p.into_inner().next().unwrap()).unwrap();
+                                NodeKind::Subscript {
+                                    object: Box::new(acc),
+                                    key: Box::new(key),
+                                }
+                            }
+                            Rule::field_access => {
+                                let key = self.to_ast(p.into_inner().next().unwrap()).unwrap();
+                                NodeKind::FieldAccess {
+                                    object: Box::new(acc),
+                                    key: Box::new(key),
+                                }
+                            }
+                            Rule::call => {
+                                let args = p
+                                    .into_inner()
+                                    .next()
+                                    .unwrap()
+                                    .into_inner()
+                                    .filter_map(|p| self.to_ast(p))
+                                    .collect();
+                                NodeKind::FunctionCall {
+                                    function: Box::new(acc),
+                                    args,
+                                }
+                            }
                             _ => unreachable!(),
                         },
                     )

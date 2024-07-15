@@ -91,7 +91,7 @@ term = {
     nil_literal |
     bool_literal |
     string_literal |
-    number_literal ) ~ (subscript | field_access)*
+    number_literal ) ~ (subscript | field_access | call)*
 }
 
 variable_ref = { identifier }
@@ -107,6 +107,8 @@ arg_names = {
 }
 
 function_call = { variable_ref ~ args }
+
+call = { args }
 
 args = {
   "(" ~ nl ~ ")" |
