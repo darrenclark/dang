@@ -1,5 +1,6 @@
 pub mod compile_dependencies_phase;
 pub mod finish_phase;
+mod insert_prelude_phase;
 pub mod node_ids_phase;
 pub mod parse_ast_phase;
 pub mod read_file_phase;
@@ -10,6 +11,8 @@ use std::collections::HashMap;
 
 use compile_dependencies_phase::compile_dependencies_phase;
 use finish_phase::finish_phase;
+use insert_prelude_phase::insert_prelude_phase;
+use lazy_static::lazy_static;
 use node_ids_phase::node_ids_phase;
 use parse_ast_phase::parse_ast_phase;
 use read_file_phase::read_file_phase;
@@ -79,6 +82,11 @@ impl CompilationState {
     pub fn ast_mut(&mut self) -> &mut Node {
         self.ast.as_mut().unwrap()
     }
+
+    pub fn is_std(&self) -> bool {
+        // TODO: Improve this
+        self.module_name.starts_with("Std")
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -103,14 +111,6 @@ impl ResolvedImport {
             },
         }
     }
-
-    pub fn new_implicit(module_id: ModuleId, module_name: &str) -> ResolvedImport {
-        ResolvedImport {
-            module_id,
-            module_name: module_name.to_owned(),
-            kind: ResolvedImportKind::AllFields,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -129,6 +129,7 @@ type PhaseFn = fn(&Compiler, &mut CompilationState, &mut Program) -> Result<(), 
 pub enum Phase {
     ReadFile,
     ParseAst,
+    InsertPrelude,
     CompileDependencies,
     NodeIds,
     ResolveImports,
@@ -137,9 +138,10 @@ pub enum Phase {
 }
 
 impl Phase {
-    const PHASES: [(Self, PhaseFn); 7] = [
+    const PHASES: [(Self, PhaseFn); 8] = [
         (Self::ReadFile, read_file_phase),
         (Self::ParseAst, parse_ast_phase),
+        (Self::InsertPrelude, insert_prelude_phase),
         (Self::CompileDependencies, compile_dependencies_phase),
         (Self::NodeIds, node_ids_phase),
         (Self::ResolveImports, resolve_imports_phase),
@@ -148,21 +150,33 @@ impl Phase {
     ];
 }
 
-const DEFAULT_IMPLICIT_IMPORTS: [&str; 3] = ["Std/Assert", "Std/Builtins", "Std/Enum"];
+lazy_static! {
+    static ref DEFAULT_IMPLICIT_IMPORTS: Vec<ImportKind> = vec![
+        ImportKind::AllFields {
+            module_name: "Std".to_owned()
+        },
+        ImportKind::AllFields {
+            module_name: "Std/Assert".to_owned()
+        },
+        ImportKind::AllFields {
+            module_name: "Std/Builtins".to_owned()
+        },
+        ImportKind::AllFields {
+            module_name: "Std/Enum".to_owned()
+        },
+    ];
+}
 
 #[derive(Debug)]
 pub struct Compiler {
-    pub implicit_imports: Vec<String>,
+    pub implicit_imports: Vec<ImportKind>,
 }
 
 impl Default for Compiler {
     fn default() -> Self {
-        let implicit_imports = DEFAULT_IMPLICIT_IMPORTS
-            .iter()
-            .map(|s| String::from(*s))
-            .collect();
-
-        Compiler { implicit_imports }
+        Compiler {
+            implicit_imports: DEFAULT_IMPLICIT_IMPORTS.clone(),
+        }
     }
 }
 

@@ -191,6 +191,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
         match &node.kind {
             NodeKind::SourceFile(children) => {
                 self.push_scope();
+                //self.defines_from_imports();
                 self.scan_ahead_for_global_functions(children);
             }
             NodeKind::Body(_) => {

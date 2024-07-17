@@ -1,6 +1,7 @@
 use std::fs;
 
 use clap::Parser;
+use dang::ast::ImportKind;
 use dang::compiler::Input;
 use dang::dang_parser::Rule;
 use dang::interpreter::Interpreter;
@@ -92,7 +93,8 @@ fn repl(args: &Cli) -> Result<()> {
                 let module_name = format!("(repl:{})", lineno);
                 let _ = rl.add_history_entry(line.as_str());
                 if handle_input(&mut interpreter, line, &module_name, true) {
-                    interpreter.compiler.implicit_imports.insert(0, module_name);
+                    let import = ImportKind::AllFields { module_name };
+                    interpreter.compiler.implicit_imports.insert(0, import);
                 }
             }
             Err(ReadlineError::Interrupted) => {

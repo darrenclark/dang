@@ -24,14 +24,17 @@ pub fn resolve_imports_phase(
         .collect();
 
     // default imports for non-Std modules
-    if !compilation_state.module_name.starts_with("Std") {
-        for module_name in &compiler.implicit_imports {
-            let module_id = program.modules.get_id_by_name(module_name).unwrap();
+    /*if !compilation_state.is_std() {
+        for import_kind in &compiler.implicit_imports {
+            let module_id = program
+                .modules
+                .get_id_by_name(import_kind.module_name())
+                .unwrap();
             compilation_state
                 .imports
-                .push(ResolvedImport::new_implicit(module_id, module_name))
+                .push(ResolvedImport::new(module_id, import_kind))
         }
-    }
+    }*/
 
     Ok(())
 }
