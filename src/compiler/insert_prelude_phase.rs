@@ -30,7 +30,7 @@ pub fn insert_prelude_phase(
 
                 for (i, import) in compiler.implicit_imports.iter().enumerate() {
                     children.insert(
-                        index + 1,
+                        index + i,
                         Node {
                             id: NodeId::default(),
                             kind: NodeKind::Import(import.clone()),
@@ -40,7 +40,7 @@ pub fn insert_prelude_phase(
                                 col: 0,
                             },
                         },
-                    )
+                    );
                 }
             }
             NodeKind::SourceFile(_) => {}
