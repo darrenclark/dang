@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::NodeId;
+use crate::{ast::NodeId, value::Value};
 
 #[derive(Default, Debug)]
 pub struct Scope {
@@ -43,13 +43,15 @@ pub enum VariableLocation {
         index: usize,
         nth_parent: usize,
     },
+    Constant(Value),
 }
 
 impl VariableLocation {
-    pub fn node_id(&self) -> NodeId {
+    pub fn node_id(&self) -> Option<NodeId> {
         match self {
-            Self::Global(node_id) => *node_id,
-            Self::Local { node_id, .. } => *node_id,
+            Self::Global(node_id) => Some(*node_id),
+            Self::Local { node_id, .. } => Some(*node_id),
+            Self::Constant(_) => None,
         }
     }
 }

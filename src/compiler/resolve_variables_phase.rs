@@ -5,6 +5,7 @@ use crate::{
     interpreter::{exception, Exception},
     program::Program,
     scope::{Scope, VariableLocation},
+    value::Value,
 };
 
 use super::{CompilationState, Compiler};
@@ -125,7 +126,13 @@ impl<'a> ResolveVariablesPhase<'a> {
     fn lookup_imported(&self, name: &str) -> Option<VariableLocation> {
         for resolved_import in &self.compilation_state.imports {
             match &resolved_import.kind {
-                super::ResolvedImportKind::Module => panic!("module imports not supported yet"),
+                super::ResolvedImportKind::Module => {
+                    if resolved_import.short_name().unwrap_or("") == name {
+                        return Some(VariableLocation::Constant(Value::Symbol(
+                            resolved_import.module_name.clone(),
+                        )));
+                    }
+                }
                 super::ResolvedImportKind::Field(field_name) => {
                     if name == field_name {
                         match self
@@ -153,19 +160,25 @@ impl<'a> ResolveVariablesPhase<'a> {
     }
 
     fn resolve_variable(&mut self, node: &Node, name: &str) {
-        if let Some(location) = self.lookup(name) {
-            self.usages_to_definition
-                .insert(node.id, location.node_id());
-            self.definitions_to_usages
-                .entry(location.node_id())
-                .or_default()
-                .insert(node.id);
-            self.variable_locations.insert(node.id, location);
-        } else {
-            self.errors.push(Exception {
+        match self.lookup(name) {
+            Some(
+                location @ VariableLocation::Local { node_id, .. }
+                | location @ VariableLocation::Global(node_id),
+            ) => {
+                self.usages_to_definition.insert(node.id, node_id);
+                self.definitions_to_usages
+                    .entry(node_id)
+                    .or_default()
+                    .insert(node.id);
+                self.variable_locations.insert(node.id, location);
+            }
+            Some(location @ VariableLocation::Constant(_)) => {
+                self.variable_locations.insert(node.id, location);
+            }
+            None => self.errors.push(Exception {
                 source: Some(node.source.clone()),
                 message: format!("cannot find value '{}' in this scope", name),
-            });
+            }),
         }
     }
 

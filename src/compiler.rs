@@ -111,6 +111,10 @@ impl ResolvedImport {
             },
         }
     }
+
+    pub fn short_name(&self) -> Option<&str> {
+        self.module_name.split('/').last()
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -152,7 +156,7 @@ impl Phase {
 
 lazy_static! {
     static ref DEFAULT_IMPLICIT_IMPORTS: Vec<ImportKind> = vec![
-        ImportKind::AllFields {
+        ImportKind::Module {
             module_name: "Std".to_owned()
         },
         ImportKind::AllFields {

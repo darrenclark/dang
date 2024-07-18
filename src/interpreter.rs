@@ -518,19 +518,20 @@ impl Environment {
 
     fn get(env: Rc<RefCell<Environment>>, variable: &VariableLocation) -> Option<Value> {
         match variable {
-            VariableLocation::Global(_) => Self::root(env)
+            VariableLocation::Constant(value) => Some(value.clone()),
+            VariableLocation::Global(node_id) => Self::root(env)
                 .borrow()
                 .variables
-                .get(&variable.node_id())
+                .get(node_id)
                 .map(|v| v.value.clone()),
             VariableLocation::Local {
-                node_id: _,
+                node_id,
                 index: _,
                 nth_parent,
             } => Self::nth_parent(env, *nth_parent)
                 .borrow()
                 .variables
-                .get(&variable.node_id())
+                .get(node_id)
                 .map(|v| v.value.clone()),
         }
     }
@@ -544,7 +545,9 @@ impl Environment {
     }
 
     fn assign(&mut self, variable: &VariableLocation, value: Value) -> Result<(), Exception> {
-        if let Some(v) = self.variables.get_mut(&variable.node_id()) {
+        if let VariableLocation::Constant(_) = variable {
+            exception!("variable for '{:?}' is not mutable", variable)
+        } else if let Some(v) = self.variables.get_mut(&variable.node_id().unwrap()) {
             if !v.mutable {
                 exception!("variable for '{:?}' is not mutable", variable)
             }
