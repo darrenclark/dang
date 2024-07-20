@@ -3,21 +3,17 @@ use crate::{ast::NodeKind, interpreter::Exception, program::Program};
 use super::{CompilationState, Compiler, ResolvedImport};
 
 pub fn resolve_imports_phase(
-    compiler: &Compiler,
+    _compiler: &Compiler,
     compilation_state: &mut CompilationState,
-    program: &mut Program,
+    _program: &mut Program,
 ) -> Result<(), Exception> {
     compilation_state.imports = compilation_state
         .ast()
         .iter()
         .filter_map(|n| match &n.kind {
             NodeKind::Import(import_kind) => {
-                let module_id = program
-                    .modules
-                    .get_id_by_name(import_kind.module_name())
-                    .unwrap();
                 // TODO: for single field imports, verify field actually exists
-                Some(ResolvedImport::new(module_id, import_kind))
+                Some(ResolvedImport::new(import_kind))
             }
             _ => None,
         })

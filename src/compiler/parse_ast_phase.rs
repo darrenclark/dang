@@ -13,7 +13,7 @@ pub fn parse_ast_phase(
 ) -> Result<(), Exception> {
     match dang_parser::parse(
         &compilation_state.source_code,
-        &compilation_state.module_name,
+        compilation_state.module_name.0.as_str(),
     ) {
         Ok(node) => {
             compilation_state.ast = Some(node);

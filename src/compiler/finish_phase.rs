@@ -8,11 +8,11 @@ pub fn finish_phase(
     program: &mut Program,
 ) -> Result<(), Exception> {
     let module = Module {
-        name: compilation_state.module_name.to_owned(),
+        name: compilation_state.module_name,
         ast: Box::new(compilation_state.ast().clone()),
         exports: compilation_state.exports.clone(),
         variable_locations: compilation_state.variable_locations.clone(),
     };
-    let _id = program.modules.insert(module)?;
+    let _id = program.insert_module(compilation_state.module_name, module);
     Ok(())
 }

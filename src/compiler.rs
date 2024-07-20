@@ -22,7 +22,7 @@ use resolve_variables_phase::resolve_variables_phase;
 use crate::{
     ast::{ImportKind, Node, NodeId},
     interpreter::Exception,
-    module::ModuleId,
+    module::ModuleName,
     program::Program,
     scope::VariableLocation,
 };
@@ -45,8 +45,7 @@ impl Input {
 #[derive(Debug)]
 pub struct CompilationState {
     pub input: Input,
-    pub module_name: String,
-    pub module_id: ModuleId,
+    pub module_name: ModuleName,
     pub errors: Vec<Exception>,
     pub source_code: String,
     pub ast: Option<Node>,
@@ -64,8 +63,7 @@ impl CompilationState {
 
         CompilationState {
             input,
-            module_name,
-            module_id: ModuleId::default(),
+            module_name: module_name.into(),
             errors: Vec::new(),
             source_code: String::new(),
             ast: None,
@@ -85,22 +83,20 @@ impl CompilationState {
 
     pub fn is_std(&self) -> bool {
         // TODO: Improve this
-        self.module_name.starts_with("Std")
+        self.module_name.is_std()
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ResolvedImport {
-    pub module_id: ModuleId,
-    pub module_name: String,
+    pub module_name: ModuleName,
     pub kind: ResolvedImportKind,
 }
 
 impl ResolvedImport {
-    pub fn new(module_id: ModuleId, import_ast: &ImportKind) -> ResolvedImport {
+    pub fn new(import_ast: &ImportKind) -> ResolvedImport {
         ResolvedImport {
-            module_id,
-            module_name: import_ast.module_name().to_owned(),
+            module_name: import_ast.module_name().into(),
             kind: match import_ast {
                 ImportKind::Module { .. } => ResolvedImportKind::Module,
                 ImportKind::Field {
@@ -113,7 +109,7 @@ impl ResolvedImport {
     }
 
     pub fn short_name(&self) -> Option<&str> {
-        self.module_name.split('/').last()
+        self.module_name.0.split('/').last()
     }
 }
 
@@ -186,7 +182,7 @@ impl Default for Compiler {
 
 impl Compiler {
     pub fn compile(&self, input: Input, program: &mut Program) -> Result<(), Vec<Exception>> {
-        if program.modules.get_by_name(input.module_name()).is_some() {
+        if program.get_module(&input.module_name().into()).is_some() {
             return Ok(());
         }
 

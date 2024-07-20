@@ -1,92 +1,58 @@
-use std::{collections::HashMap, rc::Rc};
+use core::fmt;
+use std::collections::HashMap;
+
+use ustr::Ustr;
 
 use crate::{
     ast::{Node, NodeId},
-    interpreter::{exception, Exception},
     scope::VariableLocation,
 };
 
 #[derive(Debug)]
 pub struct Module {
-    pub name: String,
+    pub name: ModuleName,
     pub ast: Box<Node>,
     pub exports: HashMap<String, NodeId>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
-}
-
-#[derive(Debug, Default)]
-pub struct ModulesMap {
-    name_to_id: HashMap<String, ModuleId>,
-    // ModuleId is an index in to this list
-    pub modules: Vec<Rc<Module>>,
 }
 
 pub fn module_name_to_file_path(name: &str) -> String {
     format!("{}.dang", name)
 }
 
-impl ModulesMap {
-    pub fn module_ids(&self) -> Vec<ModuleId> {
-        self.modules
-            .iter()
-            .enumerate()
-            .map(|(i, _)| ModuleId(i as u32))
-            .collect()
-    }
-
-    pub fn get_by_id(&self, id: ModuleId) -> Rc<Module> {
-        self.modules[id.0 as usize].clone()
-    }
-
-    pub fn get_id_by_name(&self, name: &str) -> Option<ModuleId> {
-        self.name_to_id.get(name).cloned()
-    }
-
-    pub fn get_by_name(&self, name: &str) -> Option<Rc<Module>> {
-        self.get_id_by_name(name).map(|id| self.get_by_id(id))
-    }
-
-    pub fn next_id(&self) -> ModuleId {
-        ModuleId(self.modules.len() as u32)
-    }
-
-    pub fn insert(&mut self, module: Module) -> Result<ModuleId, Exception> {
-        let name = module.name.clone();
-
-        if self.name_to_id.contains_key(&name) {
-            exception!("module {} already loaded", &module.name)
-        }
-
-        let id = ModuleId(self.modules.len() as u32);
-        self.modules.push(Rc::new(module));
-        self.name_to_id.insert(name.clone(), id);
-        Ok(id)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ModuleId(u32);
+pub struct ModuleName(pub Ustr);
 
-impl ModuleId {
-    pub fn from_raw(id: u32) -> ModuleId {
-        ModuleId(id)
-    }
-
-    pub fn raw_id(&self) -> u32 {
-        self.0
-    }
-}
-
-pub const UNSPECIFIED_MODULE_ID: u32 = u32::MAX;
-
-impl ModuleId {
+impl ModuleName {
     pub fn is_unspecified(&self) -> bool {
-        self.0 == UNSPECIFIED_MODULE_ID
+        self.0 == ""
+    }
+
+    pub fn is_std(&self) -> bool {
+        self.0.starts_with("Std")
     }
 }
 
-impl Default for ModuleId {
+impl From<&str> for ModuleName {
+    fn from(value: &str) -> Self {
+        ModuleName(Ustr::from(value))
+    }
+}
+
+impl From<String> for ModuleName {
+    fn from(value: String) -> Self {
+        ModuleName(Ustr::from(&value))
+    }
+}
+
+impl Default for ModuleName {
     fn default() -> Self {
-        ModuleId(UNSPECIFIED_MODULE_ID)
+        ModuleName("".into())
+    }
+}
+
+impl fmt::Display for ModuleName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

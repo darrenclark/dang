@@ -9,12 +9,10 @@ use super::{CompilationState, Compiler};
 pub fn node_ids_phase(
     _compiler: &Compiler,
     compilation_state: &mut CompilationState,
-    program: &mut Program,
+    _program: &mut Program,
 ) -> Result<(), Exception> {
-    compilation_state.module_id = program.modules.next_id();
-
     let mut p = NodeIdsPhase {
-        next_node_id: NodeId::first_in_module(compilation_state.module_id),
+        next_node_id: NodeId::first_in_module(compilation_state.module_name),
     };
     compilation_state.ast_mut().walk_mut(&mut p);
 

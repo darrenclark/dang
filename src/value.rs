@@ -2,6 +2,8 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::{cell::RefCell, collections::BTreeMap};
 
+use ustr::Ustr;
+
 use crate::interpreter::Environment;
 use crate::{
     ast::Node,
@@ -11,7 +13,7 @@ use crate::{
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Value {
     Nil,
-    Symbol(String),
+    Symbol(Ustr),
     Bool(bool),
     String(String),
     Integer(i64),
@@ -182,7 +184,7 @@ impl Value {
 
     pub fn cast_to_symbol(&self) -> Result<Value, Exception> {
         match self {
-            Self::String(contents) => Ok(Self::Symbol(contents.clone())),
+            Self::String(contents) => Ok(Self::Symbol(Ustr::from(contents))),
             _ => exception!("cannot cast {:?} to symbol", self),
         }
     }

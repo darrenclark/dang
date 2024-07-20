@@ -1,44 +1,46 @@
 use core::fmt;
 use std::rc::Rc;
 
-use crate::module::ModuleId;
+use ustr::Ustr;
+
+use crate::module::ModuleName;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId {
-    module_id: ModuleId,
+    module: ModuleName,
     local_id: u32,
 }
 
 pub const UNSPECIFIED_NODE_LOCAL_ID: u32 = u32::MAX;
 
 impl NodeId {
-    pub fn first_in_module(module_id: ModuleId) -> NodeId {
+    pub fn first_in_module(module: ModuleName) -> NodeId {
         NodeId {
-            module_id,
+            module,
             local_id: 0,
         }
     }
 
     pub fn next_id(&self) -> NodeId {
         NodeId {
-            module_id: self.module_id,
+            module: self.module,
             local_id: self.local_id + 1,
         }
     }
 
-    pub fn raw_id(&self) -> (u32, u32) {
-        (self.module_id.raw_id(), self.local_id)
+    pub fn raw_id(&self) -> (Ustr, u32) {
+        (self.module.0, self.local_id)
     }
 
-    pub fn module_id(&self) -> ModuleId {
-        self.module_id
+    pub fn module(&self) -> ModuleName {
+        self.module
     }
 }
 
 impl Default for NodeId {
     fn default() -> Self {
         NodeId {
-            module_id: ModuleId::default(),
+            module: ModuleName::default(),
             local_id: UNSPECIFIED_NODE_LOCAL_ID,
         }
     }
@@ -463,7 +465,7 @@ impl Node {
 
     pub fn find_by_id(&self, id: NodeId) -> Option<&Node> {
         // TOOD: binary-ish search instead?
-        if self.id.module_id == id.module_id {
+        if self.id.module == id.module {
             self.iter().find(|n| n.id == id)
         } else {
             None

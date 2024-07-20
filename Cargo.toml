@@ -16,5 +16,6 @@ include_dir = "0.7.4"
 regex = "1.10.5"
 assert_matches = "1.5.0"
 lazy_static = "1.5.0"
+ustr = "1.0.0"
 
 [[tests]]

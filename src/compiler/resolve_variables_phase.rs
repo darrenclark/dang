@@ -129,7 +129,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                 super::ResolvedImportKind::Module => {
                     if resolved_import.short_name().unwrap_or("") == name {
                         return Some(VariableLocation::Constant(Value::Symbol(
-                            resolved_import.module_name.clone(),
+                            resolved_import.module_name.0,
                         )));
                     }
                 }
@@ -137,8 +137,8 @@ impl<'a> ResolveVariablesPhase<'a> {
                     if name == field_name {
                         match self
                             .program
-                            .modules
-                            .get_by_id(resolved_import.module_id)
+                            .get_module(&resolved_import.module_name)
+                            .unwrap()
                             .exports
                             .get(name)
                         {
@@ -148,7 +148,10 @@ impl<'a> ResolveVariablesPhase<'a> {
                     }
                 }
                 super::ResolvedImportKind::AllFields => {
-                    let module = self.program.modules.get_by_id(resolved_import.module_id);
+                    let module = self
+                        .program
+                        .get_module(&resolved_import.module_name)
+                        .unwrap();
                     if let Some(node_id) = module.exports.get(name) {
                         return Some(VariableLocation::Global(*node_id));
                     }

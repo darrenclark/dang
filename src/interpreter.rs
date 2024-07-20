@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt,
     mem::discriminant,
     rc::Rc,
@@ -9,7 +9,7 @@ use std::{
 use crate::{
     ast::{BinOp, Node, NodeId, NodeKind, Source, UnaryOp},
     compiler::{Compiler, Input},
-    module::ModuleId,
+    module::ModuleName,
     native_funcs,
     program::Program,
     scope::VariableLocation,
@@ -57,7 +57,7 @@ pub struct Interpreter {
     globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
     pub compiler: Compiler,
-    last_run_module_id: Option<ModuleId>,
+    loaded_modules: HashSet<ModuleName>,
 }
 
 impl Default for Interpreter {
@@ -74,7 +74,7 @@ impl Interpreter {
             globals: globals.clone(),
             environment: globals,
             compiler: Compiler::default(),
-            last_run_module_id: None,
+            loaded_modules: HashSet::default(),
         }
     }
 
@@ -85,7 +85,7 @@ impl Interpreter {
             globals: globals.clone(),
             environment: globals,
             compiler: Compiler::default(),
-            last_run_module_id: None,
+            loaded_modules: HashSet::default(),
         }
     }
 
@@ -95,8 +95,7 @@ impl Interpreter {
 
         let argv_node_id = *self
             .program
-            .modules
-            .get_by_name("Std/Builtins")
+            .get_module(&"Std/Builtins".into())
             .unwrap()
             .exports
             .get("argv")
@@ -138,13 +137,13 @@ impl Interpreter {
         }
 
         let mut value = Value::Nil;
-        for id in self.program.modules.module_ids() {
-            if self.last_run_module_id.is_some() && self.last_run_module_id.unwrap() >= id {
+        for name in self.program.module_names() {
+            if self.loaded_modules.contains(&name) {
                 continue;
             }
 
-            self.last_run_module_id = Some(id);
-            let module = self.program.modules.get_by_id(id);
+            self.loaded_modules.insert(name);
+            let module = self.program.get_module(&name).unwrap();
             value = self.eval(module.ast.as_ref())?
         }
         Ok(value)
@@ -434,8 +433,8 @@ impl Interpreter {
 
     fn variable_location(&self, node: &Node) -> VariableLocation {
         self.program
-            .modules
-            .get_by_id(node.id.module_id())
+            .get_module(&node.id.module())
+            .expect("expected module loaded")
             .variable_locations
             .get(&node.id)
             .expect("variable location missing for node")
@@ -443,7 +442,7 @@ impl Interpreter {
     }
 
     fn module_field_access(&self, module_name: &str, field_name: &str) -> Result<Value, Exception> {
-        let module = match self.program.modules.get_by_name(module_name) {
+        let module = match self.program.get_module(&module_name.into()) {
             Some(module) => module,
             None => exception!("module {} not loaded", module_name),
         };
