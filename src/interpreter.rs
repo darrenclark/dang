@@ -303,7 +303,10 @@ impl Interpreter {
                 match Environment::get(self.environment.clone(), &self.variable_location(node)) {
                     Some(v) => Ok(v.clone()),
                     None => {
-                        exception!("no binding {}", identifier.unwrap_identifier())
+                        exception!(
+                            "`{}` hasn't been initialized yet",
+                            identifier.unwrap_identifier()
+                        )
                     }
                 }
             }

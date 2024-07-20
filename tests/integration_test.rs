@@ -1,4 +1,4 @@
-use common::assert_runs;
+use common::{assert_raises, assert_runs};
 
 mod common;
 
@@ -157,6 +157,38 @@ fn test_scoping_edge_case() {
         assert(a == "world")
         "#
     };
+}
+
+#[test]
+fn test_variable_hoisting_at_root() {
+    assert_raises! {
+        (3, "`i` hasn't been initialized yet"),
+        r#"
+        let incr = fn() {
+            i = i + 1
+            i
+        }
+
+        // should fail - `incr()` access `i`, but `i` hasn't been initialized yet
+        assert(incr() == 1)
+
+        var i = 0
+        "#
+    }
+
+    assert_runs! {
+        r#"
+        let incr = fn() {
+            i = i + 1
+            i
+        }
+
+        var i = 0
+
+        assert(incr() == 1)
+        assert(incr() == 2)
+        "#
+    }
 }
 
 #[test]

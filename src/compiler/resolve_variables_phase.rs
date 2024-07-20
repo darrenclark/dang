@@ -194,16 +194,13 @@ impl<'a> ResolveVariablesPhase<'a> {
         }
     }
 
-    fn scan_ahead_for_global_functions(&mut self, source_file_children: &[Node]) {
+    fn hoist_variables(&mut self, source_file_children: &[Node]) {
         for node in source_file_children {
             match &node.kind {
-                NodeKind::Builtin { identifier } => {
+                NodeKind::Builtin { identifier }
+                | NodeKind::Var { identifier, .. }
+                | NodeKind::Let { identifier, .. } => {
                     self.define(identifier.unwrap_identifier(), node)
-                }
-                NodeKind::Let { identifier, expr } => {
-                    if expr.is_function_literal() {
-                        self.define(identifier.unwrap_identifier(), node)
-                    }
                 }
                 _ => {}
             }
@@ -216,8 +213,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
         match &node.kind {
             NodeKind::SourceFile(children) => {
                 self.push_scope();
-                //self.defines_from_imports();
-                self.scan_ahead_for_global_functions(children);
+                self.hoist_variables(children);
             }
             NodeKind::Body(_) => {
                 self.push_scope();
@@ -236,15 +232,14 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.push_scope();
                 self.define(var_name.unwrap_identifier(), node)
             }
-            NodeKind::Let { identifier, expr } => {
-                if self.is_global_scope() && expr.is_function_literal() {
-                    // already defined by scan_ahead_for_global_functions(..)
+            NodeKind::Let { identifier, .. } | NodeKind::Var { identifier, .. } => {
+                if self.is_global_scope() {
+                    // already defined by hoist_variables(..)
                     return;
                 }
 
                 self.define(identifier.unwrap_identifier(), node)
             }
-            NodeKind::Var { identifier, .. } => self.define(identifier.unwrap_identifier(), node),
             NodeKind::VariableRef { identifier } => {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }

@@ -20,6 +20,22 @@ macro_rules! assert_runs {
 }
 pub(crate) use assert_runs;
 
+macro_rules! assert_raises {
+    (($line: literal, $msg: literal), $c:expr) => {
+        match common::run($c) {
+            Ok(_) => panic!("code didn't raise"),
+            Err(reason) => {
+                if reason.source.as_ref().map(|s| s.line).unwrap_or(0) != $line
+                    || reason.message != $msg
+                {
+                    panic!("EXCEPTION: {}\nEXPECTED: line {}: {}", reason, $line, $msg);
+                }
+            }
+        }
+    };
+}
+pub(crate) use assert_raises;
+
 pub fn run(code: &str) -> Result<Value, Exception> {
     let mut interpreter = Interpreter::new();
 
@@ -27,15 +43,10 @@ pub fn run(code: &str) -> Result<Value, Exception> {
     d.push("tests/");
     interpreter.compiler.module_search_paths.push(d);
 
-    let result = interpreter.run(Input::SourceCode {
+    interpreter.run(Input::SourceCode {
         text: code.to_owned(),
         name: "(run)".to_owned(),
-    });
-    if result.is_ok() {
-        result
-    } else {
-        panic!("{}", result.unwrap_err());
-    }
+    })
 }
 
 pub fn parse(code: &str) -> Node {
