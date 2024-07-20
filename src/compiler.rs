@@ -7,7 +7,7 @@ pub mod read_file_phase;
 mod resolve_imports_phase;
 mod resolve_variables_phase;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use compile_dependencies_phase::compile_dependencies_phase;
 use finish_phase::finish_phase;
@@ -170,12 +170,14 @@ lazy_static! {
 #[derive(Debug)]
 pub struct Compiler {
     pub implicit_imports: Vec<ImportKind>,
+    pub module_search_paths: Vec<PathBuf>,
 }
 
 impl Default for Compiler {
     fn default() -> Self {
         Compiler {
             implicit_imports: DEFAULT_IMPLICIT_IMPORTS.clone(),
+            module_search_paths: Vec::default(),
         }
     }
 }

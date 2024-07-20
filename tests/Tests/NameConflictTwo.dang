@@ -1,0 +1,3 @@
+module Tests/NameConflictTwo
+
+let conflict = "two"

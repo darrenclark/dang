@@ -313,3 +313,17 @@ fn test_module_field_access_and_subscripting() {
         "#
     };
 }
+
+#[test]
+fn test_modules_dont_overwrite_other_modules_globals() {
+    assert_runs! {
+        r#"
+        import Tests/NameConflictOne.conflict
+        import Tests/NameConflictTwo
+
+        // the `conflict` from NameConflictOne should not have been
+        // overwritten by the `conflict` from NameConflictTwo
+        assert(conflict == "one")
+        "#
+    };
+}
