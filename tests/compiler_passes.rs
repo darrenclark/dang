@@ -56,12 +56,6 @@ fn resolve_function_variables() {
 
     assert_eq!(compilation_state.errors.len(), 0);
 
-    let words_arg_name = compilation_state
-        .ast()
-        .iter()
-        .find(|n| matches!(&n.kind, NodeKind::Identifier(i) if i == "words"))
-        .expect("couldn't find 'words' arg");
-
     let words_variable_ref = compilation_state
         .ast()
         .iter()
@@ -76,10 +70,10 @@ fn resolve_function_variables() {
     assert_matches!(
         variable_loc,
         VariableLocation::Local {
-            node_id,
+            name,
             index: 0,
             nth_parent: 2
-        } if *node_id == words_arg_name.id
+        } if *name == "words"
     );
 }
 

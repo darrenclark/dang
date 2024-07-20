@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::{
     ast::{AstWalker, Node, NodeId, NodeKind},
@@ -41,9 +41,6 @@ pub fn resolve_variables_phase(
 pub struct ResolveVariablesPhase<'a> {
     program: &'a mut Program,
     compilation_state: &'a CompilationState,
-    // Assumes .* imports currently.  TODO: Support other import styles.
-    pub definitions_to_usages: HashMap<NodeId, HashSet<NodeId>>,
-    pub usages_to_definition: HashMap<NodeId, NodeId>,
     pub exports: HashMap<String, NodeId>,
     pub scopes: HashMap<NodeId, Scope>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
@@ -60,8 +57,6 @@ impl<'a> ResolveVariablesPhase<'a> {
         ResolveVariablesPhase {
             program,
             compilation_state,
-            definitions_to_usages: HashMap::new(),
-            usages_to_definition: HashMap::new(),
             exports: HashMap::new(),
             scopes: HashMap::new(),
             variable_locations: HashMap::new(),
@@ -106,12 +101,15 @@ impl<'a> ResolveVariablesPhase<'a> {
             .rev()
             .enumerate()
             .find_map(|(i, s)| {
-                if let Some(node_id) = s.get_node_id(name) {
+                if let Some(_) = s.get_node_id(name) {
                     if i >= self.scopes_stack.len() - 1 {
-                        Some(VariableLocation::Global(node_id))
+                        Some(VariableLocation::Global {
+                            module: self.compilation_state.module_name,
+                            name: name.into(),
+                        })
                     } else {
                         Some(VariableLocation::Local {
-                            node_id,
+                            name: name.into(),
                             index: s.get_index(name).unwrap(),
                             nth_parent: i,
                         })
@@ -143,7 +141,12 @@ impl<'a> ResolveVariablesPhase<'a> {
                             .get(name)
                         {
                             None => panic!("importing by field name, but field does not exist"),
-                            Some(node_id) => return Some(VariableLocation::Global(*node_id)),
+                            Some(_) => {
+                                return Some(VariableLocation::Global {
+                                    module: resolved_import.module_name,
+                                    name: name.into(),
+                                })
+                            }
                         }
                     }
                 }
@@ -152,8 +155,11 @@ impl<'a> ResolveVariablesPhase<'a> {
                         .program
                         .get_module(&resolved_import.module_name)
                         .unwrap();
-                    if let Some(node_id) = module.exports.get(name) {
-                        return Some(VariableLocation::Global(*node_id));
+                    if let Some(_) = module.exports.get(name) {
+                        return Some(VariableLocation::Global {
+                            module: resolved_import.module_name,
+                            name: name.into(),
+                        });
                     }
                 }
             }
@@ -164,18 +170,7 @@ impl<'a> ResolveVariablesPhase<'a> {
 
     fn resolve_variable(&mut self, node: &Node, name: &str) {
         match self.lookup(name) {
-            Some(
-                location @ VariableLocation::Local { node_id, .. }
-                | location @ VariableLocation::Global(node_id),
-            ) => {
-                self.usages_to_definition.insert(node.id, node_id);
-                self.definitions_to_usages
-                    .entry(node_id)
-                    .or_default()
-                    .insert(node.id);
-                self.variable_locations.insert(node.id, location);
-            }
-            Some(location @ VariableLocation::Constant(_)) => {
+            Some(location) => {
                 self.variable_locations.insert(node.id, location);
             }
             None => self.errors.push(Exception {
