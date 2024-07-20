@@ -11,8 +11,9 @@ pub fn finish_phase(
         name: compilation_state.module_name,
         ast: Box::new(compilation_state.ast().clone()),
         exports: compilation_state.exports.clone(),
+        constants: compilation_state.constants.clone(),
         variable_locations: compilation_state.variable_locations.clone(),
     };
-    let _id = program.insert_module(compilation_state.module_name, module);
+    program.insert_module(compilation_state.module_name, module);
     Ok(())
 }

@@ -139,6 +139,17 @@ impl Interpreter {
 
             self.loaded_modules.insert(name);
             let module = self.program.get_module(&name).unwrap();
+
+            // load constants
+            for (name, value) in &module.constants {
+                let variable = VariableLocation::Global {
+                    module: module.name,
+                    name: Ustr::from(name),
+                };
+                Environment::define(self.globals.clone(), &variable, false, value.clone())?;
+            }
+
+            // run module
             value = self.eval(module.ast.as_ref())?
         }
         Ok(value)

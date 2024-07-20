@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use ustr::Ustr;
+
 use crate::{
-    ast::{AstWalker, Node, NodeId, NodeKind},
+    ast::{AstWalker, ImportKind, Node, NodeId, NodeKind},
     interpreter::{exception, Exception},
     program::Program,
     scope::{Scope, VariableLocation},
@@ -16,7 +18,8 @@ pub fn resolve_variables_phase(
     program: &mut Program,
 ) -> Result<(), Exception> {
     let variable_locations: HashMap<NodeId, VariableLocation>;
-    let exports: HashMap<String, NodeId>;
+    let exports: HashMap<String, VariableLocation>;
+    let constants: HashMap<String, Value>;
 
     {
         let mut phase = ResolveVariablesPhase::new(program, compilation_state);
@@ -28,12 +31,14 @@ pub fn resolve_variables_phase(
 
         variable_locations = phase.variable_locations;
         exports = phase.exports;
+        constants = phase.constants;
     }
 
     compilation_state
         .variable_locations
         .clone_from(&variable_locations);
     compilation_state.exports.clone_from(&exports);
+    compilation_state.constants.clone_from(&constants);
     Ok(())
 }
 
@@ -41,7 +46,8 @@ pub fn resolve_variables_phase(
 pub struct ResolveVariablesPhase<'a> {
     program: &'a mut Program,
     compilation_state: &'a CompilationState,
-    pub exports: HashMap<String, NodeId>,
+    pub exports: HashMap<String, VariableLocation>,
+    pub constants: HashMap<String, Value>,
     pub scopes: HashMap<NodeId, Scope>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub global_scope: Scope,
@@ -58,6 +64,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             program,
             compilation_state,
             exports: HashMap::new(),
+            constants: HashMap::new(),
             scopes: HashMap::new(),
             variable_locations: HashMap::new(),
             global_scope: Scope::default(),
@@ -82,7 +89,7 @@ impl<'a> ResolveVariablesPhase<'a> {
         self.scopes_stack.len() <= 1
     }
 
-    fn define(&mut self, name: &str, node: &Node) {
+    fn define(&mut self, name: &str, node: &Node) -> Result<(), ()> {
         let scope = self.scopes_stack.last_mut().unwrap();
 
         if scope.is_defined(name) {
@@ -90,6 +97,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                 source: Some(node.source.clone()),
                 message: format!("{} already defined", name),
             });
+            Err(())
         } else {
             scope.define(name, node.id);
 
@@ -105,6 +113,17 @@ impl<'a> ResolveVariablesPhase<'a> {
                 self.variable_locations
                     .insert(node.id, VariableLocation::Local { name: name.into() });
             }
+            Ok(())
+        }
+    }
+
+    fn define_constant(&mut self, name: &str, node: &Node, value: Value) {
+        if !self.is_global_scope() {
+            unreachable!("constants only supported at global scope")
+        }
+
+        if self.define(name, node).is_ok() {
+            self.constants.insert(name.to_owned(), value);
         }
     }
 
@@ -140,9 +159,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             match &resolved_import.kind {
                 super::ResolvedImportKind::Module => {
                     if resolved_import.short_name().unwrap_or("") == name {
-                        return Some(VariableLocation::Constant(Value::Symbol(
-                            resolved_import.module_name.0,
-                        )));
+                        unreachable!("should've been defined as a constant")
                     }
                 }
                 super::ResolvedImportKind::Field(field_name) => {
@@ -200,7 +217,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                 NodeKind::Builtin { identifier }
                 | NodeKind::Var { identifier, .. }
                 | NodeKind::Let { identifier, .. } => {
-                    self.define(identifier.unwrap_identifier(), node)
+                    let _ = self.define(identifier.unwrap_identifier(), node);
                 }
                 _ => {}
             }
@@ -215,13 +232,26 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.push_scope();
                 self.hoist_variables(children);
             }
+            NodeKind::Module(name) => {
+                // TODO: somewhere - check if this AST matches the module name
+                // the compiler is expecting
+                let short_name = name.split('/').last().unwrap();
+                let value = Value::Symbol(self.compilation_state.module_name.0);
+                self.define_constant(short_name, node, value);
+            }
+            NodeKind::Import(ImportKind::Module { module_name }) => {
+                let value = Value::Symbol(Ustr::from(module_name));
+                // TODO: Consolidate short_name logic
+                let short_name = module_name.split('/').last().unwrap();
+                self.define_constant(short_name, node, value);
+            }
             NodeKind::Body(_) => {
                 self.push_scope();
             }
             NodeKind::FunctionLiteral { arg_names, .. } => {
                 self.push_scope();
                 for arg_name in arg_names {
-                    self.define(arg_name.unwrap_identifier(), arg_name);
+                    let _ = self.define(arg_name.unwrap_identifier(), arg_name);
                 }
             }
             NodeKind::For {
@@ -230,7 +260,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 body: _,
             } => {
                 self.push_scope();
-                self.define(var_name.unwrap_identifier(), node)
+                let _ = self.define(var_name.unwrap_identifier(), node);
             }
             NodeKind::Let { identifier, .. } | NodeKind::Var { identifier, .. } => {
                 if self.is_global_scope() {
@@ -238,7 +268,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                     return;
                 }
 
-                self.define(identifier.unwrap_identifier(), node)
+                let _ = self.define(identifier.unwrap_identifier(), node);
             }
             NodeKind::VariableRef { identifier } => {
                 self.resolve_variable(node, identifier.unwrap_identifier())
@@ -254,7 +284,11 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
         match &node.kind {
             NodeKind::SourceFile(_) => {
                 self.global_scope = self.pop_scope().unwrap();
-                self.exports.clone_from(self.global_scope.get_definitions());
+                self.exports.clone_from(
+                    &self
+                        .global_scope
+                        .into_exports(self.compilation_state.module_name),
+                );
             }
             NodeKind::Body(_) | NodeKind::FunctionLiteral { .. } | NodeKind::For { .. } => {
                 let scope = self.pop_scope().unwrap();

@@ -6,13 +6,15 @@ use ustr::Ustr;
 use crate::{
     ast::{Node, NodeId},
     scope::VariableLocation,
+    value::Value,
 };
 
 #[derive(Debug)]
 pub struct Module {
     pub name: ModuleName,
     pub ast: Box<Node>,
-    pub exports: HashMap<String, NodeId>,
+    pub exports: HashMap<String, VariableLocation>,
+    pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
 }
 

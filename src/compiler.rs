@@ -25,6 +25,7 @@ use crate::{
     module::ModuleName,
     program::Program,
     scope::VariableLocation,
+    value::Value,
 };
 
 #[derive(Clone, Debug)]
@@ -50,7 +51,8 @@ pub struct CompilationState {
     pub source_code: String,
     pub ast: Option<Node>,
     pub imports: Vec<ResolvedImport>,
-    pub exports: HashMap<String, NodeId>,
+    pub exports: HashMap<String, VariableLocation>,
+    pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
 }
 
@@ -69,6 +71,7 @@ impl CompilationState {
             ast: None,
             imports: Vec::new(),
             exports: HashMap::new(),
+            constants: HashMap::new(),
             variable_locations: HashMap::new(),
         }
     }

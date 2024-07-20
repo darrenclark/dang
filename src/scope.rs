@@ -36,6 +36,20 @@ impl Scope {
     pub fn get_definitions(&self) -> &HashMap<String, NodeId> {
         &self.definitions
     }
+
+    pub fn into_exports(&self, module: ModuleName) -> HashMap<String, VariableLocation> {
+        let mut res = HashMap::new();
+        for (name, _) in &self.definitions {
+            res.insert(
+                name.clone(),
+                VariableLocation::Global {
+                    module,
+                    name: Ustr::from(name),
+                },
+            );
+        }
+        res
+    }
 }
 
 #[derive(Debug, Clone)]

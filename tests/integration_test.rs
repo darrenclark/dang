@@ -359,3 +359,28 @@ fn test_modules_dont_overwrite_other_modules_globals() {
         "#
     };
 }
+
+#[test]
+fn test_can_refer_to_module_with_short_name_in_same_file() {
+    assert_runs! {
+        "TestCase/ShortName",
+        r#"
+        module TestCase/ShortName
+
+        assert(ShortName == symbol("TestCase/ShortName"))
+        "#
+    };
+}
+
+#[test]
+fn test_module_imports_can_be_referred_to() {
+    assert_runs! {
+        r#"
+        import Tests/NameConflictOne
+        import Tests/NameConflictTwo
+
+        assert(NameConflictOne == symbol("Tests/NameConflictOne"))
+        assert(NameConflictTwo == symbol("Tests/NameConflictTwo"))
+        "#
+    };
+}
