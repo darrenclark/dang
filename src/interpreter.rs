@@ -96,16 +96,15 @@ impl Interpreter {
 
         let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
 
-        self.globals
-            .borrow_mut()
-            .assign(
-                &VariableLocation::Global {
-                    module: "Std/Builtins".into(),
-                    name: "argv".into(),
-                },
-                Value::List(converted),
-            )
-            .unwrap();
+        Environment::assign(
+            self.globals.clone(),
+            &VariableLocation::Global {
+                module: "Std/Builtins".into(),
+                name: "argv".into(),
+            },
+            Value::List(converted),
+        )
+        .unwrap();
     }
 
     fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
@@ -213,9 +212,11 @@ impl Interpreter {
             NodeKind::Assignment { identifier, expr } => match &identifier.kind {
                 NodeKind::Identifier(_) => {
                     let value = self.eval(expr)?;
-                    self.environment
-                        .borrow_mut()
-                        .assign(&self.variable_location(node), value.clone())?;
+                    Environment::assign(
+                        self.environment.clone(),
+                        &self.variable_location(node),
+                        value.clone(),
+                    )?;
                     Ok(value)
                 }
                 _ => panic!(),
@@ -252,9 +253,11 @@ impl Interpreter {
                         nth_parent: 0,
                     };
                     for i in 0..e.enum_len() {
-                        self.environment
-                            .borrow_mut()
-                            .assign(&location, e.enum_at(i).unwrap())?;
+                        Environment::assign(
+                            self.environment.clone(),
+                            &location,
+                            e.enum_at(i).unwrap(),
+                        )?;
                         self.eval(body)?;
                     }
 
@@ -544,20 +547,37 @@ impl Environment {
         Ok(())
     }
 
-    fn assign(&mut self, variable: &VariableLocation, value: Value) -> Result<(), Exception> {
-        if let VariableLocation::Constant(_) = variable {
-            exception!("variable for '{:?}' is not mutable", variable)
-        } else if let Some(v) = self.variables.get_mut(&variable.get_name().unwrap()) {
+    fn assign(
+        env: Rc<RefCell<Environment>>,
+        variable: &VariableLocation,
+        value: Value,
+    ) -> Result<(), Exception> {
+        let env = match variable {
+            VariableLocation::Constant(_) => {
+                exception!("variable for '{:?}' is not mutable", variable)
+            }
+            VariableLocation::Global { module: _, name: _ } => Self::root(env),
+            VariableLocation::Closure {
+                name: _,
+                nth_parent,
+            } => Self::nth_parent(env, *nth_parent),
+            VariableLocation::Local { name: _ } => env,
+        };
+
+        if let Some(v) = env
+            .borrow_mut()
+            .variables
+            .get_mut(&variable.get_name().unwrap())
+        {
             if !v.mutable {
                 exception!("variable for '{:?}' is not mutable", variable)
             }
             v.value = value;
-            Ok(())
-        } else if let Some(parent) = &self.parent {
-            parent.borrow_mut().assign(variable, value)
         } else {
             exception!("variable for '{:?}' is not defined", variable)
         }
+
+        Ok(())
     }
 }
 

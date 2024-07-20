@@ -139,6 +139,27 @@ fn test_scoping() {
 }
 
 #[test]
+fn test_scoping_edge_case() {
+    assert_runs! {
+        r#"
+        var a = "hello"
+        let edge_case = fn () {
+            let r = fn () {
+                let prev = a
+                a = "world"
+                prev
+            }
+            var a = 123
+            r
+        }
+
+        assert(edge_case()() == "hello")
+        assert(a == "world")
+        "#
+    };
+}
+
+#[test]
 fn test_regex() {
     assert_runs! {
         r#"
