@@ -89,7 +89,7 @@ impl<'a> ResolveVariablesPhase<'a> {
         self.scopes_stack.len() <= 1
     }
 
-    fn define(&mut self, name: &str, node: &Node) -> Result<(), ()> {
+    fn define(&mut self, name: &str, node: &Node) -> Result<VariableLocation, ()> {
         let scope = self.scopes_stack.last_mut().unwrap();
 
         if scope.is_defined(name) {
@@ -101,19 +101,17 @@ impl<'a> ResolveVariablesPhase<'a> {
         } else {
             scope.define(name, node.id);
 
-            if self.is_global_scope() {
-                self.variable_locations.insert(
-                    node.id,
-                    VariableLocation::Global {
-                        module: self.compilation_state.module_name,
-                        name: name.into(),
-                    },
-                );
+            let location = if self.is_global_scope() {
+                VariableLocation::Global {
+                    module: self.compilation_state.module_name,
+                    name: name.into(),
+                }
             } else {
-                self.variable_locations
-                    .insert(node.id, VariableLocation::Local { name: name.into() });
-            }
-            Ok(())
+                VariableLocation::Local { name: name.into() }
+            };
+
+            self.variable_locations.insert(node.id, location.clone());
+            Ok(location)
         }
     }
 
@@ -217,7 +215,11 @@ impl<'a> ResolveVariablesPhase<'a> {
                 NodeKind::Builtin { identifier }
                 | NodeKind::Var { identifier, .. }
                 | NodeKind::Let { identifier, .. } => {
-                    let _ = self.define(identifier.unwrap_identifier(), node);
+                    let res = self.define(identifier.unwrap_identifier(), node);
+                    if let Ok(location) = res {
+                        self.exports
+                            .insert(identifier.unwrap_identifier().to_owned(), location);
+                    }
                 }
                 _ => {}
             }
@@ -284,11 +286,6 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
         match &node.kind {
             NodeKind::SourceFile(_) => {
                 self.global_scope = self.pop_scope().unwrap();
-                self.exports.clone_from(
-                    &self
-                        .global_scope
-                        .into_exports(self.compilation_state.module_name),
-                );
             }
             NodeKind::Body(_) | NodeKind::FunctionLiteral { .. } | NodeKind::For { .. } => {
                 let scope = self.pop_scope().unwrap();
