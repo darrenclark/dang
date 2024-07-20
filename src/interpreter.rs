@@ -529,11 +529,10 @@ impl Environment {
 
     fn get(env: Rc<RefCell<Environment>>, variable: &VariableLocation) -> Option<Value> {
         match variable {
-            VariableLocation::Constant(value) => Some(value.clone()),
             VariableLocation::Global { .. } => Self::root(env)
                 .borrow()
                 .variables
-                .get(&variable.get_key().unwrap())
+                .get(&variable.get_key())
                 .map(|v| v.value.clone()),
             VariableLocation::Closure {
                 name: _,
@@ -541,12 +540,12 @@ impl Environment {
             } => Self::nth_parent(env, *nth_parent)
                 .borrow()
                 .variables
-                .get(&variable.get_key().unwrap())
+                .get(&variable.get_key())
                 .map(|v| v.value.clone()),
             VariableLocation::Local { .. } => env
                 .borrow()
                 .variables
-                .get(&variable.get_key().unwrap())
+                .get(&variable.get_key())
                 .map(|v| v.value.clone()),
         }
     }
@@ -558,9 +557,6 @@ impl Environment {
         value: Value,
     ) -> Result<(), Exception> {
         let env = match variable {
-            VariableLocation::Constant(_) => {
-                exception!("variable for '{:?}' is not mutable", variable)
-            }
             VariableLocation::Global { module: _, name: _ } => Self::root(env),
             VariableLocation::Closure {
                 name: _,
@@ -570,20 +566,12 @@ impl Environment {
         };
 
         if !env.borrow().allow_redefinition
-            && env
-                .borrow()
-                .variables
-                .contains_key(&variable.get_key().unwrap())
+            && env.borrow().variables.contains_key(&variable.get_key())
         {
-            exception!(
-                "variable for '{:?}' already defined",
-                variable.get_name().unwrap()
-            )
+            exception!("variable for '{:?}' already defined", variable.get_name())
         } else {
             let v = Variable { value, mutable };
-            env.borrow_mut()
-                .variables
-                .insert(variable.get_key().unwrap(), v);
+            env.borrow_mut().variables.insert(variable.get_key(), v);
         }
 
         Ok(())
@@ -595,9 +583,6 @@ impl Environment {
         value: Value,
     ) -> Result<(), Exception> {
         let env = match variable {
-            VariableLocation::Constant(_) => {
-                exception!("variable for '{:?}' is not mutable", variable)
-            }
             VariableLocation::Global { module: _, name: _ } => Self::root(env),
             VariableLocation::Closure {
                 name: _,
@@ -606,11 +591,7 @@ impl Environment {
             VariableLocation::Local { name: _ } => env,
         };
 
-        if let Some(v) = env
-            .borrow_mut()
-            .variables
-            .get_mut(&variable.get_key().unwrap())
-        {
+        if let Some(v) = env.borrow_mut().variables.get_mut(&variable.get_key()) {
             if !v.mutable {
                 exception!("variable for '{:?}' is not mutable", variable)
             }

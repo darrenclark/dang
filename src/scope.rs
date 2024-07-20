@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use ustr::Ustr;
 
-use crate::{ast::NodeId, module::ModuleName, value::Value};
+use crate::{ast::NodeId, module::ModuleName};
 
 #[derive(Default, Debug)]
 pub struct Scope {
@@ -57,7 +57,6 @@ pub enum VariableLocation {
     Global { module: ModuleName, name: Ustr },
     Closure { name: Ustr, nth_parent: usize },
     Local { name: Ustr },
-    Constant(Value),
 }
 
 lazy_static! {
@@ -65,27 +64,25 @@ lazy_static! {
 }
 
 impl VariableLocation {
-    pub fn get_name(&self) -> Option<Ustr> {
+    pub fn get_name(&self) -> Ustr {
         match self {
-            VariableLocation::Global { module: _, name } => Some(*name),
+            VariableLocation::Global { module: _, name } => *name,
             VariableLocation::Closure {
                 name,
                 nth_parent: _,
-            } => Some(*name),
-            VariableLocation::Local { name } => Some(*name),
-            VariableLocation::Constant(_) => None,
+            } => *name,
+            VariableLocation::Local { name } => *name,
         }
     }
 
-    pub fn get_key(&self) -> Option<(Ustr, Ustr)> {
+    pub fn get_key(&self) -> (Ustr, Ustr) {
         match self {
-            VariableLocation::Global { module, name } => Some((module.0, *name)),
+            VariableLocation::Global { module, name } => (module.0, *name),
             VariableLocation::Closure {
                 name,
                 nth_parent: _,
-            } => Some((*LOCAL, *name)),
-            VariableLocation::Local { name } => Some((*LOCAL, *name)),
-            VariableLocation::Constant(_) => None,
+            } => (*LOCAL, *name),
+            VariableLocation::Local { name } => (*LOCAL, *name),
         }
     }
 }
