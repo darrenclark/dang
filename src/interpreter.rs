@@ -182,29 +182,23 @@ impl Interpreter {
             NodeKind::Builtin { identifier } => match &identifier.kind {
                 NodeKind::Identifier(name) => {
                     let value = Value::NativeFunc(native_funcs::func(name).unwrap());
-                    self.environment
-                        .borrow_mut()
-                        .define(Ustr::from(name), false, value.clone())?;
+                    self.define(node, false, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
             },
             NodeKind::Let { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(name) => {
+                NodeKind::Identifier(_) => {
                     let value = self.eval(expr)?;
-                    self.environment
-                        .borrow_mut()
-                        .define(Ustr::from(name), false, value.clone())?;
+                    self.define(node, false, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
             },
             NodeKind::Var { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(name) => {
+                NodeKind::Identifier(_) => {
                     let value = self.eval(expr)?;
-                    self.environment
-                        .borrow_mut()
-                        .define(Ustr::from(name), true, value.clone())?;
+                    self.define(node, true, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
@@ -245,9 +239,7 @@ impl Interpreter {
                 let e = self.eval(enumerable)?.ensure_enumerable("for")?;
                 let res = (|| {
                     let var_name = Ustr::from(var_name.unwrap_identifier());
-                    self.environment
-                        .borrow_mut()
-                        .define(var_name, true, Value::Nil)?;
+                    self.define(node, true, Value::Nil)?;
                     let location = VariableLocation::Closure {
                         name: var_name,
                         nth_parent: 0,
@@ -422,14 +414,15 @@ impl Interpreter {
         }
 
         for (arg_name, value) in arg_names.iter().zip(args.iter()) {
-            self.environment.borrow_mut().define(
-                arg_name.unwrap_identifier().into(),
-                false,
-                value.clone(),
-            )?;
+            self.define(arg_name, true, value.clone())?;
         }
 
         self.eval(body)
+    }
+
+    fn define(&mut self, node: &Node, mutable: bool, value: Value) -> Result<(), Exception> {
+        let location = self.variable_location(node);
+        Environment::define(self.environment.clone(), &location, mutable, value)
     }
 
     fn variable_location(&self, node: &Node) -> VariableLocation {
@@ -474,8 +467,8 @@ struct Variable {
 #[derive(Debug)]
 pub struct Environment {
     parent: Option<Rc<RefCell<Environment>>>,
-    /// Variables
-    variables: HashMap<Ustr, Variable>,
+    /// Variables - (module, name) => Variable
+    variables: HashMap<(Ustr, Ustr), Variable>,
     /// Can variables be redefined?  Used in REPL for ergonomics.
     allow_redefinition: bool,
 }
@@ -523,27 +516,62 @@ impl Environment {
     fn get(env: Rc<RefCell<Environment>>, variable: &VariableLocation) -> Option<Value> {
         match variable {
             VariableLocation::Constant(value) => Some(value.clone()),
-            VariableLocation::Global { module: _, name } => Self::root(env)
+            VariableLocation::Global { .. } => Self::root(env)
                 .borrow()
                 .variables
-                .get(name)
+                .get(&variable.get_key().unwrap())
                 .map(|v| v.value.clone()),
-            VariableLocation::Closure { name, nth_parent } => Self::nth_parent(env, *nth_parent)
+            VariableLocation::Closure {
+                name: _,
+                nth_parent,
+            } => Self::nth_parent(env, *nth_parent)
                 .borrow()
                 .variables
-                .get(name)
+                .get(&variable.get_key().unwrap())
                 .map(|v| v.value.clone()),
-            VariableLocation::Local { name } => {
-                env.borrow().variables.get(name).map(|v| v.value.clone())
-            }
+            VariableLocation::Local { .. } => env
+                .borrow()
+                .variables
+                .get(&variable.get_key().unwrap())
+                .map(|v| v.value.clone()),
         }
     }
 
-    fn define(&mut self, name: Ustr, mutable: bool, value: Value) -> Result<(), Exception> {
-        if self.variables.contains_key(&name) && !self.allow_redefinition {
-            exception!("variable for '{:?}' already defined", name)
+    fn define(
+        env: Rc<RefCell<Environment>>,
+        variable: &VariableLocation,
+        mutable: bool,
+        value: Value,
+    ) -> Result<(), Exception> {
+        let env = match variable {
+            VariableLocation::Constant(_) => {
+                exception!("variable for '{:?}' is not mutable", variable)
+            }
+            VariableLocation::Global { module: _, name: _ } => Self::root(env),
+            VariableLocation::Closure {
+                name: _,
+                nth_parent,
+            } => Self::nth_parent(env, *nth_parent),
+            VariableLocation::Local { name: _ } => env,
+        };
+
+        if !env.borrow().allow_redefinition
+            && env
+                .borrow()
+                .variables
+                .contains_key(&variable.get_key().unwrap())
+        {
+            exception!(
+                "variable for '{:?}' already defined",
+                variable.get_name().unwrap()
+            )
+        } else {
+            let v = Variable { value, mutable };
+            env.borrow_mut()
+                .variables
+                .insert(variable.get_key().unwrap(), v);
         }
-        self.variables.insert(name, Variable { value, mutable });
+
         Ok(())
     }
 
@@ -567,7 +595,7 @@ impl Environment {
         if let Some(v) = env
             .borrow_mut()
             .variables
-            .get_mut(&variable.get_name().unwrap())
+            .get_mut(&variable.get_key().unwrap())
         {
             if !v.mutable {
                 exception!("variable for '{:?}' is not mutable", variable)

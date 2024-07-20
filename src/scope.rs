@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use lazy_static::lazy_static;
 use ustr::Ustr;
 
 use crate::{ast::NodeId, module::ModuleName, value::Value};
@@ -45,6 +46,10 @@ pub enum VariableLocation {
     Constant(Value),
 }
 
+lazy_static! {
+    static ref LOCAL: Ustr = Ustr::from("");
+}
+
 impl VariableLocation {
     pub fn get_name(&self) -> Option<Ustr> {
         match self {
@@ -54,6 +59,18 @@ impl VariableLocation {
                 nth_parent: _,
             } => Some(*name),
             VariableLocation::Local { name } => Some(*name),
+            VariableLocation::Constant(_) => None,
+        }
+    }
+
+    pub fn get_key(&self) -> Option<(Ustr, Ustr)> {
+        match self {
+            VariableLocation::Global { module, name } => Some((module.0, *name)),
+            VariableLocation::Closure {
+                name,
+                nth_parent: _,
+            } => Some((*LOCAL, *name)),
+            VariableLocation::Local { name } => Some((*LOCAL, *name)),
             VariableLocation::Constant(_) => None,
         }
     }

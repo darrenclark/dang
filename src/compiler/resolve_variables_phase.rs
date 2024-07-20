@@ -92,6 +92,19 @@ impl<'a> ResolveVariablesPhase<'a> {
             });
         } else {
             scope.define(name, node.id);
+
+            if self.is_global_scope() {
+                self.variable_locations.insert(
+                    node.id,
+                    VariableLocation::Global {
+                        module: self.compilation_state.module_name,
+                        name: name.into(),
+                    },
+                );
+            } else {
+                self.variable_locations
+                    .insert(node.id, VariableLocation::Local { name: name.into() });
+            }
         }
     }
 
