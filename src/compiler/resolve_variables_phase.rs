@@ -107,10 +107,11 @@ impl<'a> ResolveVariablesPhase<'a> {
                             module: self.compilation_state.module_name,
                             name: name.into(),
                         })
+                    } else if i == 0 {
+                        Some(VariableLocation::Local { name: name.into() })
                     } else {
-                        Some(VariableLocation::Local {
+                        Some(VariableLocation::Closure {
                             name: name.into(),
-                            index: s.get_index(name).unwrap(),
                             nth_parent: i,
                         })
                     }

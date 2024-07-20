@@ -39,15 +39,9 @@ impl Scope {
 
 #[derive(Debug, Clone)]
 pub enum VariableLocation {
-    Global {
-        module: ModuleName,
-        name: Ustr,
-    },
-    Local {
-        name: Ustr,
-        index: usize,
-        nth_parent: usize,
-    },
+    Global { module: ModuleName, name: Ustr },
+    Closure { name: Ustr, nth_parent: usize },
+    Local { name: Ustr },
     Constant(Value),
 }
 
@@ -55,11 +49,11 @@ impl VariableLocation {
     pub fn get_name(&self) -> Option<Ustr> {
         match self {
             VariableLocation::Global { module: _, name } => Some(*name),
-            VariableLocation::Local {
+            VariableLocation::Closure {
                 name,
-                index: _,
                 nth_parent: _,
             } => Some(*name),
+            VariableLocation::Local { name } => Some(*name),
             VariableLocation::Constant(_) => None,
         }
     }

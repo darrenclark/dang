@@ -69,9 +69,8 @@ fn resolve_function_variables() {
 
     assert_matches!(
         variable_loc,
-        VariableLocation::Local {
+        VariableLocation::Closure {
             name,
-            index: 0,
             nth_parent: 2
         } if *name == "words"
     );

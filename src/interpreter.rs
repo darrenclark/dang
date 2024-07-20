@@ -247,9 +247,8 @@ impl Interpreter {
                     self.environment
                         .borrow_mut()
                         .define(var_name, true, Value::Nil)?;
-                    let location = VariableLocation::Local {
+                    let location = VariableLocation::Closure {
                         name: var_name,
-                        index: 0,
                         nth_parent: 0,
                     };
                     for i in 0..e.enum_len() {
@@ -526,15 +525,14 @@ impl Environment {
                 .variables
                 .get(name)
                 .map(|v| v.value.clone()),
-            VariableLocation::Local {
-                name,
-                index: _,
-                nth_parent,
-            } => Self::nth_parent(env, *nth_parent)
+            VariableLocation::Closure { name, nth_parent } => Self::nth_parent(env, *nth_parent)
                 .borrow()
                 .variables
                 .get(name)
                 .map(|v| v.value.clone()),
+            VariableLocation::Local { name } => {
+                env.borrow().variables.get(name).map(|v| v.value.clone())
+            }
         }
     }
 
