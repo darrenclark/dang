@@ -92,6 +92,18 @@ impl ToAst {
 
                 self.new_node(line_col, NodeKind::Import(import_kind))
             }
+            Rule::struct_def => {
+                let fields: Vec<(Node, Option<Node>)> = pair
+                    .into_inner()
+                    .map(|p| {
+                        let mut iter = p.into_inner();
+                        let name = self.to_ast(iter.next().unwrap()).unwrap();
+                        let default_value = iter.next().and_then(|p| self.to_ast(p));
+                        (name, default_value)
+                    })
+                    .collect();
+                self.new_node(line_col, NodeKind::StructDef { fields })
+            }
             Rule::body => {
                 let body: Vec<Node> = pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
                 self.new_node(line_col, NodeKind::Body(body))
@@ -457,7 +469,7 @@ impl ToAst {
                 NodeKind::BoolLiteral(pair.as_str().parse::<bool>().unwrap()),
             ),
             Rule::nil_literal => self.new_node(line_col, NodeKind::NilLiteral),
-            _ => todo!(),
+            rule => todo!("implement {:?}", rule),
         }
     }
 

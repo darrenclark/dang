@@ -114,6 +114,10 @@ pub enum NodeKind {
     SourceFile(Vec<Node>),
     Module(String),
     Import(ImportKind),
+    StructDef {
+        // field_name => default_value (?)
+        fields: Vec<(Node, Option<Node>)>,
+    },
     Body(Vec<Node>),
     Builtin {
         identifier: Box<Node>,
@@ -206,6 +210,22 @@ impl Node {
             NodeKind::SourceFile(nodes) => nodes.get(index),
             NodeKind::Module(_) => None,
             NodeKind::Import(_) => None,
+            NodeKind::StructDef { fields } => {
+                let mut i = 0;
+                for (name, default_value) in fields {
+                    if index == i {
+                        return Some(name);
+                    }
+                    i += 1;
+                    if index == i && default_value.is_some() {
+                        return default_value.as_ref();
+                    }
+                    if default_value.is_some() {
+                        i += 1
+                    }
+                }
+                None
+            }
             NodeKind::Body(nodes) => nodes.get(index),
             NodeKind::Builtin { identifier } => match index {
                 0 => Some(identifier.as_ref()),
@@ -364,6 +384,22 @@ impl Node {
             NodeKind::SourceFile(nodes) => nodes.get_mut(index),
             NodeKind::Module(_) => None,
             NodeKind::Import(_) => None,
+            NodeKind::StructDef { fields } => {
+                let mut i = 0;
+                for (name, default_value) in fields.iter_mut() {
+                    if index == i {
+                        return Some(name);
+                    }
+                    i += 1;
+                    if index == i && default_value.is_some() {
+                        return default_value.as_mut();
+                    }
+                    if default_value.is_some() {
+                        i += 1
+                    }
+                }
+                None
+            }
             NodeKind::Body(nodes) => nodes.get_mut(index),
             NodeKind::Builtin { identifier } => match index {
                 0 => Some(identifier.as_mut()),
@@ -572,6 +608,15 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
         NodeKind::Import(ImportKind::AllFields { module_name }) => {
             writeln!(f, "Import: AllFields {}.*", module_name)?;
+        }
+        NodeKind::StructDef { fields } => {
+            writeln!(f, "StructDef")?;
+            for (k, v) in fields {
+                fmt_node(k, depth + 1, "name", f)?;
+                if let Some(v) = v {
+                    fmt_node(v, depth + 1, "default", f)?;
+                }
+            }
         }
         NodeKind::Body(nodes) => {
             writeln!(f, "Body:")?;

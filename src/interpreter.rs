@@ -175,6 +175,10 @@ impl Interpreter {
             }
             NodeKind::Module(_) => Ok(Value::Nil),
             NodeKind::Import(_) => Ok(Value::Nil),
+            NodeKind::StructDef { .. } => {
+                // TODO: need to do something?
+                Ok(Value::Nil)
+            }
             NodeKind::Body(children) => {
                 let prev_env = self.switch_to_new_env();
                 let mut result = Value::Nil;

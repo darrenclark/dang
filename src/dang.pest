@@ -41,10 +41,9 @@ import_all = { ".*" }
 //   c: 3
 // }
 
-struct_def = { "struct" ~ nl ~ struct_def_fields }
-struct_def_fields = {
-  "{" ~ nl ~ "}" |
-  "{" ~ struct_def_field ~ ("," ~ struct_def_field)* ~ ","? ~ nl ~ "}"
+struct_def = {
+  "struct" ~ nl ~ "{" ~ nl ~ "}" |
+  "struct" ~ nl ~ "{" ~ struct_def_field ~ ("," ~ struct_def_field)* ~ ","? ~ nl ~ "}"
 }
 struct_def_field = {
   nl ~ identifier ~ nl ~ ":" ~ nl ~ expr ~ nl |
