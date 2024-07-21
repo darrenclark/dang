@@ -341,7 +341,52 @@ impl Interpreter {
                 }
                 Ok(Value::Dict(map))
             }
-            NodeKind::StructLiteral { module, fields } => todo!(),
+            NodeKind::StructLiteral { module, fields } => {
+                let module_name = match self.eval(module)? {
+                    Value::Symbol(s) => ModuleName(s),
+                    _ => exception!("not a module: {:?}", module),
+                };
+
+                let module = match self.program.get_module(&module_name) {
+                    Some(module) => module,
+                    None => exception!("module {:?} not found", module_name),
+                };
+
+                let struct_info = match &module.struct_info {
+                    Some(struct_info) => struct_info,
+                    None => exception!("module {:?} does not define a struct", module_name),
+                };
+
+                let mut map: BTreeMap<Ustr, Value> = BTreeMap::new();
+                for (k, v) in fields {
+                    let key = match &k.kind {
+                        NodeKind::Identifier(key) => Ustr::from(key),
+                        _ => unreachable!(),
+                    };
+                    if !struct_info.fields.contains(&key) {
+                        exception!(
+                            "unknown field `{}` provided for struct `{}`",
+                            key,
+                            module_name
+                        )
+                    }
+                    map.insert(key, self.eval(v)?);
+                }
+
+                for field in &struct_info.fields {
+                    #[allow(clippy::map_entry)]
+                    if !map.contains_key(field) {
+                        match struct_info.default_values.get(field) {
+                            Some(v) => {
+                                map.insert(*field, v.clone());
+                            }
+                            None => exception!("required struct field `{}` not provided", field),
+                        }
+                    }
+                }
+
+                Ok(Value::Struct(module_name, map))
+            }
             NodeKind::NilLiteral => Ok(Value::Nil),
             NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
             NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),

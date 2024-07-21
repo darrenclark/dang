@@ -438,3 +438,55 @@ fn test_module_imports_can_be_referred_to() {
         "#
     };
 }
+
+#[test]
+fn struct_from_current_file() {
+    assert_runs! {
+        r#"
+        module TestCase/Point
+
+        struct { x, y }
+
+        Point{x: 0, y: 1}
+        "#
+    };
+}
+
+#[test]
+fn struct_from_imported_file() {
+    assert_runs! {
+        r#"
+        import Tests/Note
+
+        Note{author: "Darren", text: "It works!"}
+        "#
+    };
+}
+
+#[test]
+fn struct_raises_if_a_missing_field_is_not_provided() {
+    assert_raises! {
+        (4, "required struct field `author` not provided"),
+        r#"
+        import Tests/Note
+
+        Note{text: "It works!"}
+        "#
+    };
+}
+
+#[test]
+fn struct_raises_if_an_unknown_field_is_provided() {
+    assert_raises! {
+        (4, "unknown field `four_oh_four` provided for struct `Tests/Note`"),
+        r#"
+        import Tests/Note
+
+        Note{
+          text: "It works!",
+          author: "Darren",
+          four_oh_four: "404"
+        }
+        "#
+    };
+}

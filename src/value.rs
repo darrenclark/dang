@@ -5,6 +5,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 use ustr::Ustr;
 
 use crate::interpreter::Environment;
+use crate::module::ModuleName;
 use crate::{
     ast::Node,
     interpreter::{exception, Exception},
@@ -22,6 +23,7 @@ pub enum Value {
     Tuple(Vec<Value>),
     List(Vec<Value>),
     Dict(BTreeMap<Value, Value>),
+    Struct(ModuleName, BTreeMap<Ustr, Value>),
 }
 
 impl From<()> for Value {
