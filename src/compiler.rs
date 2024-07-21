@@ -6,6 +6,7 @@ pub mod parse_ast_phase;
 pub mod read_file_phase;
 mod resolve_imports_phase;
 mod resolve_variables_phase;
+pub mod struct_info_phase;
 
 use std::{collections::HashMap, path::PathBuf};
 
@@ -18,6 +19,7 @@ use parse_ast_phase::parse_ast_phase;
 use read_file_phase::read_file_phase;
 use resolve_imports_phase::resolve_imports_phase;
 use resolve_variables_phase::resolve_variables_phase;
+use struct_info_phase::struct_info_phase;
 
 use crate::{
     ast::{ImportKind, Node, NodeId},
@@ -25,6 +27,7 @@ use crate::{
     module::ModuleName,
     program::Program,
     scope::VariableLocation,
+    struct_info::StructInfo,
     value::Value,
 };
 
@@ -54,6 +57,7 @@ pub struct CompilationState {
     pub exports: HashMap<String, VariableLocation>,
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
+    pub struct_info: Option<StructInfo>,
 }
 
 impl CompilationState {
@@ -73,6 +77,7 @@ impl CompilationState {
             exports: HashMap::new(),
             constants: HashMap::new(),
             variable_locations: HashMap::new(),
+            struct_info: None,
         }
     }
 
@@ -135,18 +140,20 @@ pub enum Phase {
     InsertPrelude,
     CompileDependencies,
     NodeIds,
+    StructInfo,
     ResolveImports,
     ResolveVariables,
     Finish,
 }
 
 impl Phase {
-    const PHASES: [(Self, PhaseFn); 8] = [
+    const PHASES: [(Self, PhaseFn); 9] = [
         (Self::ReadFile, read_file_phase),
         (Self::ParseAst, parse_ast_phase),
         (Self::InsertPrelude, insert_prelude_phase),
         (Self::CompileDependencies, compile_dependencies_phase),
         (Self::NodeIds, node_ids_phase),
+        (Self::StructInfo, struct_info_phase),
         (Self::ResolveImports, resolve_imports_phase),
         (Self::ResolveVariables, resolve_variables_phase),
         (Self::Finish, finish_phase),

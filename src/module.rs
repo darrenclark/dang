@@ -6,6 +6,7 @@ use ustr::Ustr;
 use crate::{
     ast::{Node, NodeId},
     scope::VariableLocation,
+    struct_info::StructInfo,
     value::Value,
 };
 
@@ -16,6 +17,7 @@ pub struct Module {
     pub exports: HashMap<String, VariableLocation>,
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
+    pub struct_info: Option<StructInfo>,
 }
 
 pub fn module_name_to_file_path(name: &str) -> String {

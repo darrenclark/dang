@@ -1,10 +1,15 @@
+use std::collections::{HashMap, HashSet};
+
 use assert_matches::assert_matches;
 use dang::{
     ast::NodeKind,
     compiler::{CompilationState, Compiler, Input, Phase},
     program::Program,
     scope::VariableLocation,
+    value::Value,
 };
+
+use ustr::ustr as u;
 
 mod common;
 
@@ -174,6 +179,35 @@ fn resolve_variables_pass() {
             assert!(pass.definitions_to_usages[definition_id.unwrap()].contains(&node.id))
         }
     }*/
+}
+
+#[test]
+fn struct_info_phase() {
+    let compilation_state = run_until(
+        Phase::StructInfo,
+        r#"
+        module Point
+
+        struct {
+            x,
+            y,
+            z: 0
+        }
+        "#,
+    );
+
+    assert_eq!(compilation_state.errors.len(), 0);
+
+    let struct_info = compilation_state
+        .struct_info
+        .expect("struct_info to be set");
+
+    assert_eq!(struct_info.fields, vec!["x", "y", "z"]);
+    assert_eq!(struct_info.required_fields, HashSet::from([u("x"), u("y")]));
+    assert_eq!(
+        struct_info.default_values,
+        HashMap::from([(u("z"), Value::Integer(0))])
+    );
 }
 
 fn run_until(phase: Phase, text: &str) -> CompilationState {

@@ -13,6 +13,7 @@ pub fn finish_phase(
         exports: compilation_state.exports.clone(),
         constants: compilation_state.constants.clone(),
         variable_locations: compilation_state.variable_locations.clone(),
+        struct_info: compilation_state.struct_info.clone(),
     };
     program.insert_module(compilation_state.module_name, module);
     Ok(())
