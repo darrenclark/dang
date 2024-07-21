@@ -290,6 +290,26 @@ fn test_piping() {
 }
 
 #[test]
+fn test_tuples() {
+    assert_runs! {
+        r#"
+        let t0 = ()
+        let t1 = (42,)
+        let t2 = (19,99)
+        let t3 = (1,2,3,)
+
+        assert(len(t0) == 0)
+        assert(len(t1) == 1)
+        assert(len(t2) == 2)
+        assert(len(t3) == 3)
+
+        assert(t1[0] == 42)
+        assert(get(t2, 1) == 99)
+        "#
+    };
+}
+
+#[test]
 fn test_dicts() {
     assert_runs! {
         r#"

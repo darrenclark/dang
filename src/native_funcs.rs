@@ -97,6 +97,11 @@ fn len(args: &[Value]) -> Result<Value, Exception> {
     if args.len() != 1 {
         exception!("len(enumerable) expected one arg")
     }
+
+    if let Value::Tuple(v) = &args[0] {
+        return Ok(v.len().into());
+    }
+
     args[0].ensure_enumerable("len")?;
 
     Ok(Value::Integer(args[0].enum_len() as i64))

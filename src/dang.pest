@@ -86,6 +86,7 @@ term = {
   ( function_literal |
     function_call |
     variable_ref |
+    tuple_literal |
     list_literal |
     dict_literal |
     nil_literal |
@@ -113,6 +114,12 @@ call = { args }
 args = {
   "(" ~ nl ~ ")" |
   "(" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl )* ~ ")"
+}
+
+tuple_literal = {
+  "(" ~ nl ~ ")" |
+  "(" ~ nl ~ expr ~ nl ~ "," ~ ")" | // single element requires trailing , to disambiguate
+  "(" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)+ ~ ","? ~ nl ~ ")"
 }
 
 list_literal = {

@@ -395,6 +395,11 @@ impl ToAst {
                     },
                 )
             }
+            Rule::tuple_literal => {
+                let elements: Vec<Node> =
+                    pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
+                self.new_node(line_col, NodeKind::TupleLiteral(elements))
+            }
             Rule::list_literal => {
                 let elements: Vec<Node> =
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();

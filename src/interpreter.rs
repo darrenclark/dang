@@ -322,6 +322,13 @@ impl Interpreter {
                 }
             }
             NodeKind::Identifier(_) => unreachable!(),
+            NodeKind::TupleLiteral(elements) => {
+                let mut evaled_elements = Vec::with_capacity(elements.len());
+                for e in elements {
+                    evaled_elements.push(self.eval(e)?);
+                }
+                Ok(Value::Tuple(evaled_elements))
+            }
             NodeKind::ListLiteral(elements) => {
                 let mut evaled_elements = Vec::with_capacity(elements.len());
                 for e in elements {

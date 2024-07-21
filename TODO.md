@@ -22,3 +22,4 @@ Priorities:
 - descriptive assert (show different parts of expression)
 - Shadowing library provided functions (perhaps it gives a warning instead?)
 - Pattern matching?
+- Values printed as valid source code

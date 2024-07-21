@@ -19,6 +19,7 @@ pub enum Value {
     Integer(i64),
     NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
     Func(FunctionLiteral),
+    Tuple(Vec<Value>),
     List(Vec<Value>),
     Dict(BTreeMap<Value, Value>),
 }
@@ -144,6 +145,12 @@ impl Value {
     pub fn at(&self, index: &Value) -> Result<Value, Exception> {
         if self.is_enumerable() {
             self.enum_at(index.to_index()?)
+        } else if let Self::Tuple(v) = self {
+            let i = index.to_index()?;
+            if i >= v.len() {
+                exception!("index {} out of bounds for tuple of size {}", i, v.len())
+            }
+            Ok(v.get(i).cloned().into())
         } else if let Self::Dict(v) = self {
             Ok(v.get(index).cloned().into())
         } else {

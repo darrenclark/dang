@@ -162,6 +162,7 @@ pub enum NodeKind {
         identifier: Box<Node>,
     },
     Identifier(String),
+    TupleLiteral(Vec<Node>),
     ListLiteral(Vec<Node>),
     DictLiteral(Vec<(Node, Node)>),
     NilLiteral,
@@ -281,6 +282,13 @@ impl Node {
                 }
             }
             NodeKind::Identifier(_) => None,
+            NodeKind::TupleLiteral(items) => {
+                if index < items.len() {
+                    Some(&items[index])
+                } else {
+                    None
+                }
+            }
             NodeKind::ListLiteral(items) => {
                 if index < items.len() {
                     Some(&items[index])
@@ -409,6 +417,13 @@ impl Node {
                 }
             }
             NodeKind::Identifier(_) => None,
+            NodeKind::TupleLiteral(items) => {
+                if index < items.len() {
+                    items.get_mut(index)
+                } else {
+                    None
+                }
+            }
             NodeKind::ListLiteral(items) => {
                 if index < items.len() {
                     items.get_mut(index)
@@ -583,6 +598,12 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
         NodeKind::Identifier(name) => {
             writeln!(f, "Identifier({})", name)?;
+        }
+        NodeKind::TupleLiteral(elements) => {
+            writeln!(f, "TupleLiteral")?;
+            for e in elements {
+                fmt_node(e, depth + 1, "element", f)?;
+            }
         }
         NodeKind::ListLiteral(elements) => {
             writeln!(f, "ListLiteral")?;
