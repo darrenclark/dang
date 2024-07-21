@@ -1,9 +1,9 @@
 use core::fmt;
-use std::rc::Rc;
+use std::{collections::BTreeMap, rc::Rc};
 
 use ustr::Ustr;
 
-use crate::module::ModuleName;
+use crate::{module::ModuleName, value::Value};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId {
@@ -609,6 +609,40 @@ impl Node {
             self.iter().find(|n| n.id == id)
         } else {
             None
+        }
+    }
+
+    /// If AST compromised of compile time constants, returns the Value
+    pub fn compile_time_value(&self) -> Option<Value> {
+        match &self.kind {
+            NodeKind::ListLiteral(elements) => {
+                let mut res = Vec::with_capacity(elements.len());
+                for e in elements {
+                    if let Some(v) = e.compile_time_value() {
+                        res.push(v)
+                    } else {
+                        return None;
+                    }
+                }
+                Some(Value::List(res))
+            }
+            NodeKind::DictLiteral(key_values) => {
+                let mut map = BTreeMap::new();
+                for (k, v) in key_values {
+                    match (k.compile_time_value(), v.compile_time_value()) {
+                        (Some(k), Some(v)) => {
+                            map.insert(k, v);
+                        }
+                        _ => return None,
+                    }
+                }
+                Some(Value::Dict(map))
+            }
+            NodeKind::NilLiteral => Some(Value::Nil),
+            NodeKind::BoolLiteral(v) => Some(Value::Bool(*v)),
+            NodeKind::StringLiteral(contents) => Some(Value::String(contents.to_owned())),
+            NodeKind::IntegerLiteral(i) => Some(Value::Integer(*i)),
+            _ => None,
         }
     }
 }
