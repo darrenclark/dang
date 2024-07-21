@@ -61,3 +61,48 @@ for (a, b) in permutations(items_a, items_b) {
     // vs. `(String, Int)` ("tuple, first element is string, second is int")
     ("red", 5)
     ```
+
+## Implementation
+
+### Destructuring
+
+Starting out with:
+
+```
+let (x, y) = (1, 2)
+```
+
+But will want to eventually support something like:
+
+```
+match (1, 2) {
+    (1, _) -> 1
+    (2, 2) -> 0
+    (_, _) -> 0
+}
+```
+
+To implement, perhaps the code looks like
+
+```
+//pseudo code
+
+let pattern = ...;
+let rhs = self.eval(ast)
+let vars_and_vals = self.pattern_match(pattern, rhs)
+
+for (var, val) in vars_and_vals {
+    self.define(var, val)
+}
+```
+
+The AST for `let (x, y) = `should look something like:
+
+```
+Let
+    Pattern:
+        TuplePattern:
+            IdentifierPattern
+            IdentifierPattern
+    Expr: ...
+```

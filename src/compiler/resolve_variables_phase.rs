@@ -212,16 +212,41 @@ impl<'a> ResolveVariablesPhase<'a> {
     fn hoist_variables(&mut self, source_file_children: &[Node]) {
         for node in source_file_children {
             match &node.kind {
-                NodeKind::Builtin { identifier }
-                | NodeKind::Var { identifier, .. }
-                | NodeKind::Let { identifier, .. } => {
+                NodeKind::Builtin { identifier } => {
                     let res = self.define(identifier.unwrap_identifier(), node);
                     if let Ok(location) = res {
                         self.exports
                             .insert(identifier.unwrap_identifier().to_owned(), location);
                     }
                 }
+                NodeKind::Var { pattern, .. } | NodeKind::Let { pattern, .. } => {
+                    for node in pattern.iter() {
+                        if let NodeKind::PatternIdentifier { identifier } = &node.kind {
+                            let res = self.define(identifier.unwrap_identifier(), node);
+                            if let Ok(location) = res {
+                                self.exports
+                                    .insert(identifier.unwrap_identifier().to_owned(), location);
+                            }
+                        }
+                    }
+                }
                 _ => {}
+            }
+        }
+    }
+
+    fn define_all_in_pattern(&mut self, pattern: &Node) {
+        for node in pattern.iter() {
+            if let NodeKind::PatternIdentifier { identifier } = &node.kind {
+                let _ = self.define(identifier.unwrap_identifier(), node);
+            }
+        }
+    }
+
+    fn resolve_all_in_pattern(&mut self, pattern: &Node) {
+        for node in pattern.iter() {
+            if let NodeKind::PatternIdentifier { identifier } = &node.kind {
+                self.resolve_variable(node, identifier.unwrap_identifier())
             }
         }
     }
@@ -257,27 +282,25 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 }
             }
             NodeKind::For {
-                var_name,
+                pattern,
                 enumerable: _,
                 body: _,
             } => {
                 self.push_scope();
-                let _ = self.define(var_name.unwrap_identifier(), node);
+                self.define_all_in_pattern(pattern);
             }
-            NodeKind::Let { identifier, .. } | NodeKind::Var { identifier, .. } => {
+            NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {
                 if self.is_global_scope() {
                     // already defined by hoist_variables(..)
                     return;
                 }
 
-                let _ = self.define(identifier.unwrap_identifier(), node);
+                self.define_all_in_pattern(pattern);
             }
             NodeKind::VariableRef { identifier } => {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }
-            NodeKind::Assignment { identifier, .. } => {
-                self.resolve_variable(node, identifier.unwrap_identifier())
-            }
+            NodeKind::Assignment { pattern, .. } => self.resolve_all_in_pattern(pattern),
             _ => {}
         }
     }

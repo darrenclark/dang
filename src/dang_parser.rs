@@ -113,36 +113,36 @@ impl ToAst {
             }
             Rule::let_stmt => {
                 let mut iter = pair.into_inner();
-                let identifier = self.to_ast(iter.next().unwrap()).unwrap();
+                let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
                     line_col,
                     NodeKind::Let {
-                        identifier: Box::new(identifier),
+                        pattern: Box::new(pattern),
                         expr: Box::new(expr),
                     },
                 )
             }
             Rule::var_stmt => {
                 let mut iter = pair.into_inner();
-                let identifier = self.to_ast(iter.next().unwrap()).unwrap();
+                let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
                     line_col,
                     NodeKind::Var {
-                        identifier: Box::new(identifier),
+                        pattern: Box::new(pattern),
                         expr: Box::new(expr),
                     },
                 )
             }
             Rule::assignment => {
                 let mut iter = pair.into_inner();
-                let identifier = self.to_ast(iter.next().unwrap()).unwrap();
+                let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
                     line_col,
                     NodeKind::Assignment {
-                        identifier: Box::new(identifier),
+                        pattern: Box::new(pattern),
                         expr: Box::new(expr),
                     },
                 )
@@ -163,17 +163,35 @@ impl ToAst {
             }
             Rule::for_stmt => {
                 let mut iter = pair.into_inner();
-                let var_name = self.to_ast(iter.next().unwrap()).unwrap();
+                let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let enumerable = self.to_ast(iter.next().unwrap()).unwrap();
                 let body = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
                     line_col,
                     NodeKind::For {
-                        var_name: Box::new(var_name),
+                        pattern: Box::new(pattern),
                         enumerable: Box::new(enumerable),
                         body: Box::new(body),
                     },
                 )
+            }
+            Rule::pattern => {
+                let child = pair.into_inner().next().unwrap();
+                self.to_ast(child)
+            }
+            Rule::pattern_identifier => {
+                let identifier = self.to_ast(pair.into_inner().next().unwrap()).unwrap();
+                self.new_node(
+                    line_col,
+                    NodeKind::PatternIdentifier {
+                        identifier: Box::new(identifier),
+                    },
+                )
+            }
+            Rule::pattern_tuple => {
+                let elements: Vec<Node> =
+                    pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
+                self.new_node(line_col, NodeKind::PatternTuple { elements })
             }
             Rule::expr => {
                 self.pratt

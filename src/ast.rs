@@ -119,15 +119,15 @@ pub enum NodeKind {
         identifier: Box<Node>,
     },
     Let {
-        identifier: Box<Node>,
+        pattern: Box<Node>,
         expr: Box<Node>,
     },
     Var {
-        identifier: Box<Node>,
+        pattern: Box<Node>,
         expr: Box<Node>,
     },
     Assignment {
-        identifier: Box<Node>,
+        pattern: Box<Node>,
         expr: Box<Node>,
     },
     If {
@@ -136,7 +136,7 @@ pub enum NodeKind {
         else_branch: Option<Box<Node>>,
     },
     For {
-        var_name: Box<Node>,
+        pattern: Box<Node>,
         enumerable: Box<Node>,
         body: Box<Node>,
     },
@@ -160,6 +160,12 @@ pub enum NodeKind {
     },
     VariableRef {
         identifier: Box<Node>,
+    },
+    PatternIdentifier {
+        identifier: Box<Node>,
+    },
+    PatternTuple {
+        elements: Vec<Node>,
     },
     Identifier(String),
     TupleLiteral(Vec<Node>),
@@ -205,17 +211,26 @@ impl Node {
                 0 => Some(identifier.as_ref()),
                 _ => None,
             },
-            NodeKind::Let { identifier, expr } => match index {
+            NodeKind::Let {
+                pattern: identifier,
+                expr,
+            } => match index {
                 0 => Some(identifier.as_ref()),
                 1 => Some(expr.as_ref()),
                 _ => None,
             },
-            NodeKind::Var { identifier, expr } => match index {
+            NodeKind::Var {
+                pattern: identifier,
+                expr,
+            } => match index {
                 0 => Some(identifier.as_ref()),
                 1 => Some(expr.as_ref()),
                 _ => None,
             },
-            NodeKind::Assignment { identifier, expr } => match index {
+            NodeKind::Assignment {
+                pattern: identifier,
+                expr,
+            } => match index {
                 0 => Some(identifier.as_ref()),
                 1 => Some(expr.as_ref()),
                 _ => None,
@@ -240,7 +255,7 @@ impl Node {
                 _ => None,
             },
             NodeKind::For {
-                var_name,
+                pattern: var_name,
                 enumerable,
                 body,
             } => match index {
@@ -277,6 +292,20 @@ impl Node {
             NodeKind::VariableRef { identifier } => {
                 if index == 0 {
                     Some(identifier.as_ref())
+                } else {
+                    None
+                }
+            }
+            NodeKind::PatternIdentifier { identifier } => {
+                if index == 0 {
+                    Some(identifier.as_ref())
+                } else {
+                    None
+                }
+            }
+            NodeKind::PatternTuple { elements } => {
+                if index < elements.len() {
+                    Some(&elements[index])
                 } else {
                     None
                 }
@@ -340,17 +369,26 @@ impl Node {
                 0 => Some(identifier.as_mut()),
                 _ => None,
             },
-            NodeKind::Let { identifier, expr } => match index {
+            NodeKind::Let {
+                pattern: identifier,
+                expr,
+            } => match index {
                 0 => Some(identifier.as_mut()),
                 1 => Some(expr.as_mut()),
                 _ => None,
             },
-            NodeKind::Var { identifier, expr } => match index {
+            NodeKind::Var {
+                pattern: identifier,
+                expr,
+            } => match index {
                 0 => Some(identifier.as_mut()),
                 1 => Some(expr.as_mut()),
                 _ => None,
             },
-            NodeKind::Assignment { identifier, expr } => match index {
+            NodeKind::Assignment {
+                pattern: identifier,
+                expr,
+            } => match index {
                 0 => Some(identifier.as_mut()),
                 1 => Some(expr.as_mut()),
                 _ => None,
@@ -375,7 +413,7 @@ impl Node {
                 _ => None,
             },
             NodeKind::For {
-                var_name,
+                pattern: var_name,
                 enumerable,
                 body,
             } => match index {
@@ -412,6 +450,20 @@ impl Node {
             NodeKind::VariableRef { identifier } => {
                 if index == 0 {
                     Some(identifier.as_mut())
+                } else {
+                    None
+                }
+            }
+            NodeKind::PatternIdentifier { identifier } => {
+                if index == 0 {
+                    Some(identifier.as_mut())
+                } else {
+                    None
+                }
+            }
+            NodeKind::PatternTuple { elements } => {
+                if index < elements.len() {
+                    elements.get_mut(index)
                 } else {
                     None
                 }
@@ -531,19 +583,19 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             writeln!(f, "Builtin:")?;
             fmt_node(identifier, depth + 1, "identifier", f)?;
         }
-        NodeKind::Let { identifier, expr } => {
+        NodeKind::Let { pattern, expr } => {
             writeln!(f, "Let:")?;
-            fmt_node(identifier, depth + 1, "name", f)?;
+            fmt_node(pattern, depth + 1, "pattern", f)?;
             fmt_node(expr, depth + 1, "value", f)?;
         }
-        NodeKind::Var { identifier, expr } => {
+        NodeKind::Var { pattern, expr } => {
             writeln!(f, "Var:")?;
-            fmt_node(identifier, depth + 1, "name", f)?;
+            fmt_node(pattern, depth + 1, "pattern", f)?;
             fmt_node(expr, depth + 1, "value", f)?;
         }
-        NodeKind::Assignment { identifier, expr } => {
+        NodeKind::Assignment { pattern, expr } => {
             writeln!(f, "Assignment:")?;
-            fmt_node(identifier, depth + 1, "name", f)?;
+            fmt_node(pattern, depth + 1, "pattern", f)?;
             fmt_node(expr, depth + 1, "value", f)?;
         }
         NodeKind::If {
@@ -559,12 +611,12 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             }
         }
         NodeKind::For {
-            var_name,
+            pattern,
             enumerable,
             body,
         } => {
             writeln!(f, "For:")?;
-            fmt_node(var_name, depth + 1, "var_name", f)?;
+            fmt_node(pattern, depth + 1, "pattern", f)?;
             fmt_node(enumerable, depth + 1, "enumerable", f)?;
             fmt_node(body, depth + 1, "body", f)?;
         }
@@ -595,6 +647,16 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         NodeKind::VariableRef { identifier } => {
             writeln!(f, "VariableRef:")?;
             fmt_node(identifier, depth + 1, "identifier", f)?;
+        }
+        NodeKind::PatternIdentifier { identifier } => {
+            writeln!(f, "PatternIdentifier:")?;
+            fmt_node(identifier, depth + 1, "identifier", f)?;
+        }
+        NodeKind::PatternTuple { elements } => {
+            writeln!(f, "PatternTuple")?;
+            for e in elements {
+                fmt_node(e, depth + 1, "element", f)?;
+            }
         }
         NodeKind::Identifier(name) => {
             writeln!(f, "Identifier({})", name)?;
@@ -694,11 +756,17 @@ impl<'a> NodeIterator<'a> {
 
 pub trait AstWalker {
     fn enter_node(&mut self, node: &Node);
+    fn walk_children(&mut self, _node: &Node) -> bool {
+        true
+    }
     fn exit_node(&mut self, _node: &Node) {}
 }
 
 pub trait AstWalkerMut {
     fn enter_node(&mut self, node: &mut Node);
+    fn walk_children(&mut self, _node: &Node) -> bool {
+        true
+    }
     fn exit_node(&mut self, _node: &mut Node) {}
 }
 
@@ -706,10 +774,12 @@ impl Node {
     pub fn walk<W: AstWalker>(&self, walker: &mut W) {
         walker.enter_node(self);
 
-        let mut i = 0;
-        while let Some(child) = self.child_at_index(i) {
-            child.walk(walker);
-            i += 1;
+        if walker.walk_children(self) {
+            let mut i = 0;
+            while let Some(child) = self.child_at_index(i) {
+                child.walk(walker);
+                i += 1;
+            }
         }
 
         walker.exit_node(self);
@@ -718,10 +788,12 @@ impl Node {
     pub fn walk_mut<W: AstWalkerMut>(&mut self, walker: &mut W) {
         walker.enter_node(self);
 
-        let mut i = 0;
-        while let Some(child) = self.child_at_index_mut(i) {
-            child.walk_mut(walker);
-            i += 1;
+        if walker.walk_children(self) {
+            let mut i = 0;
+            while let Some(child) = self.child_at_index_mut(i) {
+                child.walk_mut(walker);
+                i += 1;
+            }
         }
 
         walker.exit_node(self);

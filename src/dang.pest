@@ -51,16 +51,22 @@ stmt_end = _{ NEWLINE* ~ ";"? }
 //  etc..
 builtin_stmt = { "__builtin" ~ identifier }
 
-let_stmt = { "let" ~ identifier ~ "=" ~ nl ~ expr }
-var_stmt = { "var" ~ identifier ~ "=" ~ nl ~ expr }
-assignment = { identifier ~ "=" ~ nl ~ expr }
+let_stmt = { "let" ~ pattern ~ "=" ~ nl ~ expr }
+var_stmt = { "var" ~ pattern ~ "=" ~ nl ~ expr }
+assignment = { pattern ~ "=" ~ nl ~ expr }
 if_stmt = {
   "if" ~
   #cond = expr ~
   #if_body = body ~
   ( "else" ~ ( #else_if = if_stmt | #else_body = body ) )?
 }
-for_stmt = { "for" ~ identifier ~ "in" ~ expr ~ body }
+for_stmt = { "for" ~ pattern ~ "in" ~ expr ~ body }
+
+pattern = {
+  pattern_identifier |
+  pattern_tuple
+}
+pattern_identifier = { identifier }
 
 expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
   infix    =  _{ pipe | mul | div | add | sub | gte | gt | lte | lt | eq | neq | logical_and | logical_or }
@@ -120,6 +126,12 @@ tuple_literal = {
   "(" ~ nl ~ ")" |
   "(" ~ nl ~ expr ~ nl ~ "," ~ ")" | // single element requires trailing , to disambiguate
   "(" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)+ ~ ","? ~ nl ~ ")"
+}
+
+pattern_tuple = {
+  "(" ~ nl ~ ")" |
+  "(" ~ nl ~ pattern ~ nl ~ "," ~ ")" | // single element requires trailing , to disambiguate
+  "(" ~ nl ~ pattern ~ nl ~ ("," ~ nl ~ pattern ~ nl)+ ~ ","? ~ nl ~ ")"
 }
 
 list_literal = {

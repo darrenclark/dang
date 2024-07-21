@@ -10,7 +10,7 @@ use crate::{
     ast::{BinOp, Node, NodeKind, Source, UnaryOp},
     compiler::{Compiler, Input},
     module::ModuleName,
-    native_funcs,
+    native_funcs, patterns,
     program::Program,
     scope::VariableLocation,
     value::{FunctionLiteral, Value},
@@ -193,39 +193,33 @@ impl Interpreter {
             NodeKind::Builtin { identifier } => match &identifier.kind {
                 NodeKind::Identifier(name) => {
                     let value = Value::NativeFunc(native_funcs::func(name).unwrap());
-                    self.define(node, false, value.clone())?;
+                    let location = self.variable_location(node);
+                    self.define(&location, false, value.clone())?;
                     Ok(value)
                 }
                 _ => panic!(),
             },
-            NodeKind::Let { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(_) => {
-                    let value = self.eval(expr)?;
-                    self.define(node, false, value.clone())?;
-                    Ok(value)
+            NodeKind::Let { pattern, expr } => {
+                let rhs = self.eval(expr)?;
+                for (location, value) in self.match_pattern(pattern, rhs.clone())? {
+                    self.define(&location, false, value.clone())?;
                 }
-                _ => panic!(),
-            },
-            NodeKind::Var { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(_) => {
-                    let value = self.eval(expr)?;
-                    self.define(node, true, value.clone())?;
-                    Ok(value)
+                Ok(rhs)
+            }
+            NodeKind::Var { pattern, expr } => {
+                let rhs = self.eval(expr)?;
+                for (location, value) in self.match_pattern(pattern, rhs.clone())? {
+                    self.define(&location, true, value.clone())?;
                 }
-                _ => panic!(),
-            },
-            NodeKind::Assignment { identifier, expr } => match &identifier.kind {
-                NodeKind::Identifier(_) => {
-                    let value = self.eval(expr)?;
-                    Environment::assign(
-                        self.environment.clone(),
-                        &self.variable_location(node),
-                        value.clone(),
-                    )?;
-                    Ok(value)
+                Ok(rhs)
+            }
+            NodeKind::Assignment { pattern, expr } => {
+                let rhs = self.eval(expr)?;
+                for (location, value) in self.match_pattern(pattern, rhs.clone())? {
+                    Environment::assign(self.environment.clone(), &location, value.clone())?;
                 }
-                _ => panic!(),
-            },
+                Ok(rhs)
+            }
             NodeKind::If {
                 condition,
                 body,
@@ -242,25 +236,23 @@ impl Interpreter {
                 }
             }
             NodeKind::For {
-                var_name,
+                pattern,
                 enumerable,
                 body,
             } => {
                 let env = self.switch_to_new_env();
                 let e = self.eval(enumerable)?.ensure_enumerable("for")?;
                 let res = (|| {
-                    let var_name = Ustr::from(var_name.unwrap_identifier());
-                    self.define(node, true, Value::Nil)?;
-                    let location = VariableLocation::Closure {
-                        name: var_name,
-                        nth_parent: 0,
-                    };
+                    for location in patterns::get_pattern_vars(&self.program, pattern) {
+                        self.define(&location, true, Value::Nil)?;
+                    }
+
                     for i in 0..e.enum_len() {
-                        Environment::assign(
-                            self.environment.clone(),
-                            &location,
-                            e.enum_at(i).unwrap(),
-                        )?;
+                        for (location, value) in
+                            self.match_pattern(pattern, e.enum_at(i).unwrap())?
+                        {
+                            Environment::assign(self.environment.clone(), &location, value)?;
+                        }
                         self.eval(body)?;
                     }
 
@@ -321,6 +313,8 @@ impl Interpreter {
                     }
                 }
             }
+            NodeKind::PatternIdentifier { .. } => unreachable!(),
+            NodeKind::PatternTuple { .. } => unreachable!(),
             NodeKind::Identifier(_) => unreachable!(),
             NodeKind::TupleLiteral(elements) => {
                 let mut evaled_elements = Vec::with_capacity(elements.len());
@@ -435,25 +429,24 @@ impl Interpreter {
         }
 
         for (arg_name, value) in arg_names.iter().zip(args.iter()) {
-            self.define(arg_name, true, value.clone())?;
+            let location = self.variable_location(arg_name);
+            self.define(&location, true, value.clone())?;
         }
 
         self.eval(body)
     }
 
-    fn define(&mut self, node: &Node, mutable: bool, value: Value) -> Result<(), Exception> {
-        let location = self.variable_location(node);
-        Environment::define(self.environment.clone(), &location, mutable, value)
+    fn define(
+        &mut self,
+        location: &VariableLocation,
+        mutable: bool,
+        value: Value,
+    ) -> Result<(), Exception> {
+        Environment::define(self.environment.clone(), location, mutable, value)
     }
 
     fn variable_location(&self, node: &Node) -> VariableLocation {
-        self.program
-            .get_module(&node.id.module())
-            .expect("expected module loaded")
-            .variable_locations
-            .get(&node.id)
-            .expect("variable location missing for node")
-            .clone()
+        self.program.variable_location(node)
     }
 
     fn module_field_access(&self, module_name: &str, field_name: &str) -> Result<Value, Exception> {
@@ -476,6 +469,14 @@ impl Interpreter {
                 exception!("{}.{} not found", module_name, field_name)
             }
         }
+    }
+
+    fn match_pattern(
+        &self,
+        pattern: &Node,
+        value: Value,
+    ) -> Result<Vec<(VariableLocation, Value)>, Exception> {
+        patterns::match_pattern(&self.program, pattern, value)
     }
 }
 

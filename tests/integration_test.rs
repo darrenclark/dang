@@ -310,6 +310,40 @@ fn test_tuples() {
 }
 
 #[test]
+fn test_tuple_unpacking() {
+    assert_runs! {
+        r#"
+        let (a, b, c) = (5, "two", 3)
+
+        assert(a == 5)
+        assert(b == "two")
+        assert(c == c)
+
+        let pairs = [("red", 5), ("green", 2), ("blue", 114)]
+        var copied = []
+        for (k, v) in pairs {
+            copied = copied + [(k, v)]
+        }
+        assert(copied == pairs)
+        "#
+    };
+
+    assert_raises! {
+        (2, "match failure"),
+        r#"
+        let (a, b, c) = (1, 2)
+        "#
+    }
+
+    assert_raises! {
+        (2, "match failure"),
+        r#"
+        let (a, b, c) = [1, 2, 3]
+        "#
+    }
+}
+
+#[test]
 fn test_dicts() {
     assert_runs! {
         r#"
