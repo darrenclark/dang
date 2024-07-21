@@ -447,6 +447,28 @@ impl ToAst {
                     .collect();
                 self.new_node(line_col, NodeKind::DictLiteral(elements))
             }
+            Rule::struct_literal => {
+                let mut iter = pair.into_inner();
+                let module = self
+                    .to_ast(iter.next().unwrap().into_inner().next().unwrap())
+                    .unwrap();
+
+                let fields: Vec<(Node, Node)> = iter
+                    .map(|p| {
+                        let mut iter = p.into_inner();
+                        let name = self.to_ast(iter.next().unwrap()).unwrap();
+                        let value = self.to_ast(iter.next().unwrap()).unwrap();
+                        (name, value)
+                    })
+                    .collect();
+                self.new_node(
+                    line_col,
+                    NodeKind::StructLiteral {
+                        module: Box::new(module),
+                        fields,
+                    },
+                )
+            }
             Rule::unquoted_dict_key_string => {
                 let string = pair.into_inner().next().unwrap().as_str().to_owned();
                 self.new_node(line_col, NodeKind::StringLiteral(string))

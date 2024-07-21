@@ -341,6 +341,7 @@ impl Interpreter {
                 }
                 Ok(Value::Dict(map))
             }
+            NodeKind::StructLiteral { module, fields } => todo!(),
             NodeKind::NilLiteral => Ok(Value::Nil),
             NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
             NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),

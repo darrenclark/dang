@@ -175,6 +175,10 @@ pub enum NodeKind {
     TupleLiteral(Vec<Node>),
     ListLiteral(Vec<Node>),
     DictLiteral(Vec<(Node, Node)>),
+    StructLiteral {
+        module: Box<Node>,
+        fields: Vec<(Node, Node)>,
+    },
     NilLiteral,
     BoolLiteral(bool),
     StringLiteral(String),
@@ -358,6 +362,23 @@ impl Node {
                     None
                 }
             }
+            NodeKind::StructLiteral { module, fields } => {
+                if index == 0 {
+                    Some(module)
+                } else {
+                    let vec_index = (index - 1) / 2;
+                    let tuple_elem = (index - 1) % 2;
+                    if vec_index < fields.len() {
+                        if tuple_elem == 0 {
+                            Some(&fields[vec_index].0)
+                        } else {
+                            Some(&fields[vec_index].1)
+                        }
+                    } else {
+                        None
+                    }
+                }
+            }
             NodeKind::NilLiteral => None,
             NodeKind::BoolLiteral(_) => None,
             NodeKind::StringLiteral(_) => None,
@@ -532,7 +553,23 @@ impl Node {
                     None
                 }
             }
-
+            NodeKind::StructLiteral { module, fields } => {
+                if index == 0 {
+                    Some(module)
+                } else {
+                    let vec_index = (index - 1) / 2;
+                    let tuple_elem = (index - 1) % 2;
+                    if vec_index < fields.len() {
+                        if tuple_elem == 0 {
+                            fields.get_mut(vec_index).map(|e| &mut e.0)
+                        } else {
+                            fields.get_mut(vec_index).map(|e| &mut e.1)
+                        }
+                    } else {
+                        None
+                    }
+                }
+            }
             NodeKind::NilLiteral => None,
             NodeKind::BoolLiteral(_) => None,
             NodeKind::StringLiteral(_) => None,
@@ -722,6 +759,14 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             writeln!(f, "DictLiteral")?;
             for (k, v) in pairs {
                 fmt_node(k, depth + 1, "key", f)?;
+                fmt_node(v, depth + 1, "value", f)?;
+            }
+        }
+        NodeKind::StructLiteral { module, fields } => {
+            writeln!(f, "StructLiteral")?;
+            fmt_node(module, depth + 1, "module", f)?;
+            for (k, v) in fields {
+                fmt_node(k, depth + 1, "field", f)?;
                 fmt_node(v, depth + 1, "value", f)?;
             }
         }

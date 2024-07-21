@@ -170,7 +170,7 @@ struct_literal = {
   struct_start ~ nl ~ "}" |
   struct_start ~ struct_field ~ ("," ~ struct_field)* ~ ","? ~ nl ~ "}"
 }
-struct_start = ${ identifier ~ "{" }
+struct_start = ${ variable_ref ~ "{" }
 struct_field = { nl ~ identifier ~ nl ~ ":" ~ nl ~ expr ~ nl }
 
 string_literal = ${ "\"" ~ string_contents ~ "\"" }
