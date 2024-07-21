@@ -2,7 +2,7 @@
 
 Priorities:
 
-1. modules refactor
+1. ~modules refactor~ (mostly done)
 2. structs
 3. tuples
 4. iterators

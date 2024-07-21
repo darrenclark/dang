@@ -212,3 +212,14 @@ Current issues:
         - Interpreter must interpret these statements as inserts into `GlobalEnvironment`
 
 - **FUTURE EVOLUTION:**  Each module would have a constants
+
+### Progress
+
+- [x] Getting rid of ModuleId
+- [x] VariableLocation changes
+- [x] Hoisting
+- [x] Interpreter environment changes (kept single type)
+- [x] Compiler - constants & exports changes
+- [ ] Rest of compiler changes re: fields
+- [ ] Dropping insert_prelude_phase
+- [ ] `import Something as SomethingElse`
