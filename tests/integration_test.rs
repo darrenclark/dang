@@ -490,3 +490,52 @@ fn struct_raises_if_an_unknown_field_is_provided() {
         "#
     };
 }
+
+#[test]
+fn struct_field_access() {
+    assert_runs! {
+        r#"
+        import Tests/Note
+
+        let n = Note{
+          text: "It works!",
+          author: "Darren",
+        }
+
+        assert(n.text == "It works!")
+        assert(n.author == "Darren")
+        "#
+    };
+
+    assert_raises! {
+        (9, "field `foo` not found in struct `Tests/Note`"),
+        r#"
+        import Tests/Note
+
+        let n = Note{
+          text: "It works!",
+          author: "Darren",
+        }
+
+        n.foo
+        "#
+    };
+}
+
+#[test]
+fn struct_defaults() {
+    assert_runs! {
+        r#"
+        module TestCase/Defaults
+
+        struct {
+            a: "one",
+            b: "two",
+        }
+
+        assert(Defaults{}.a == "one")
+        assert(Defaults{a: "A"}.a == "A")
+        assert(Defaults{b: "Z"}.a == "one")
+        "#
+    }
+}

@@ -166,6 +166,11 @@ impl Value {
                 None => exception!("field {:?} not found in {:?}", key, self),
                 Some(v) => Ok(v.clone()),
             }
+        } else if let Self::Struct(m, v) = self {
+            match v.get(&Ustr::from(key)) {
+                None => exception!("field `{}` not found in struct `{}`", key, m),
+                Some(v) => Ok(v.clone()),
+            }
         } else {
             exception!("cannot access field {:?} on {:?}", key, self)
         }
