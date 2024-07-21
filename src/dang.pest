@@ -4,7 +4,7 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 // Places where optional newlines can go
 nl = _{ NEWLINE* }
 
-source_file = _{ SOI ~ nl ~ module? ~ nl ~ import* ~ nl ~ stmt* ~ nl ~ EOI }
+source_file = _{ SOI ~ nl ~ module? ~ nl ~ import* ~ nl ~ struct_def? ~ nl ~ stmt* ~ nl ~ EOI }
 
 body = { nl ~ "{" ~ nl ~ stmt* ~ nl ~ "}" ~ nl }
 
@@ -20,7 +20,8 @@ keywords = {
   "nil" |
   "import" |
   "module" |
-  "__builtin"
+  "__builtin" |
+  "struct"
 }
 
 // module Std/Enum
@@ -33,6 +34,22 @@ full_module_name = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_" | "/"
 import = { "import" ~ import_ref ~ stmt_end }
 import_ref = ${ full_module_name ~ (import_all | ("." ~ identifier))? }
 import_all = { ".*" }
+
+// struct {
+//   a: 1,
+//   b,
+//   c: 3
+// }
+
+struct_def = { "struct" ~ nl ~ struct_def_fields }
+struct_def_fields = {
+  "{" ~ nl ~ "}" |
+  "{" ~ struct_def_field ~ ("," ~ struct_def_field)* ~ ","? ~ nl ~ "}"
+}
+struct_def_field = {
+  nl ~ identifier ~ nl ~ ":" ~ nl ~ expr ~ nl |
+  nl ~ identifier ~ nl
+}
 
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ ~ "?"? }
 
@@ -91,6 +108,7 @@ expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
 term = {
   ( function_literal |
     function_call |
+    struct_literal |
     variable_ref |
     tuple_literal |
     list_literal |
@@ -148,6 +166,13 @@ dict_kv = {
   nl ~ expr ~ nl ~ "=>" ~ nl ~ expr ~ nl
 }
 unquoted_dict_key_string = { identifier }
+
+struct_literal = {
+  struct_start ~ nl ~ "}" |
+  struct_start ~ struct_field ~ ("," ~ struct_field)* ~ ","? ~ nl ~ "}"
+}
+struct_start = ${ identifier ~ "{" }
+struct_field = { nl ~ identifier ~ nl ~ ":" ~ nl ~ expr ~ nl }
 
 string_literal = ${ "\"" ~ string_contents ~ "\"" }
 string_contents = @{ char* }

@@ -4,7 +4,7 @@ Priorities:
 
 1. ~modules refactor~ (mostly done)
 2. structs
-3. tuples
+3. ~tuples~
 4. iterators
 
 ## Future
@@ -12,7 +12,6 @@ Priorities:
 - Maps
     - Symbols/atoms for keys?
 - Structs? - or should everything be a map?
-- Tuples?
 - Bitwise operators / functions
 - big int
 - Iterators
