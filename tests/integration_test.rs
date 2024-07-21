@@ -366,6 +366,30 @@ fn test_dicts() {
 }
 
 #[test]
+fn test_iterating_dict() {
+    assert_runs! {
+        r#"
+        let d = {
+            a: 1,
+            b: 2,
+            c: 3
+        }
+
+        var keys = ""
+        var sum = 0
+
+        for (k, v) in d {
+            keys = keys + k
+            sum = sum + v
+        }
+
+        assert(keys == "abc")
+        assert(sum == 6)
+        "#
+    };
+}
+
+#[test]
 fn test_trailing_commas_in_literals() {
     assert_runs! {
         r#"

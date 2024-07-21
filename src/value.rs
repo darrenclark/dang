@@ -202,6 +202,21 @@ impl Value {
             _ => exception!("cannot cast {:?} to symbol", self),
         }
     }
+
+    pub fn iter<'a>(&'a self) -> Option<Box<dyn Iterator<Item = Value> + 'a>> {
+        match self {
+            Self::List(values) => Some(Box::new(values.iter().cloned())),
+            Self::Dict(pairs) => Some(Box::new(
+                pairs
+                    .iter()
+                    .map(|(k, v)| Self::Tuple(vec![k.clone(), v.clone()])),
+            )),
+            Self::String(contents) => Some(Box::new(
+                contents.chars().map(|c| Value::String(String::from(c))),
+            )),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

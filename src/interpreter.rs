@@ -245,16 +245,19 @@ impl Interpreter {
                 body,
             } => {
                 let env = self.switch_to_new_env();
-                let e = self.eval(enumerable)?.ensure_enumerable("for")?;
+                let val = self.eval(enumerable)?;
+                let iter = val.iter();
+                if iter.is_none() {
+                    exception!("not iterable: {:?}", val);
+                }
+
                 let res = (|| {
                     for location in patterns::get_pattern_vars(&self.program, pattern) {
                         self.define(&location, true, Value::Nil)?;
                     }
 
-                    for i in 0..e.enum_len() {
-                        for (location, value) in
-                            self.match_pattern(pattern, e.enum_at(i).unwrap())?
-                        {
+                    for v in iter.unwrap() {
+                        for (location, value) in self.match_pattern(pattern, v)? {
                             Environment::assign(self.environment.clone(), &location, value)?;
                         }
                         self.eval(body)?;
