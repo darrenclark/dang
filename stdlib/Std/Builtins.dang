@@ -20,4 +20,6 @@ __builtin int
 __builtin symbol
 __builtin raise
 
+let some = symbol("some")
+
 var argv = nil

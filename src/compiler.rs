@@ -174,6 +174,10 @@ lazy_static! {
         ImportKind::AllFields {
             module_name: "Std/Enum".to_owned()
         },
+        ImportKind::Field {
+            module_name: "Std/Range".to_owned(),
+            field_name: "range".to_owned()
+        },
     ];
 }
 
