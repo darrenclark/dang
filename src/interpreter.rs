@@ -293,17 +293,16 @@ impl Interpreter {
             }
             NodeKind::FunctionCall { function, args } => {
                 let func = self.eval(function.as_ref())?;
+                let mut evaled_args = Vec::with_capacity(args.len());
+                for n in args {
+                    evaled_args.push(self.eval(n)?)
+                }
+
                 if let Value::NativeFunc(ptr) = func {
-                    let mut evaled_args = Vec::with_capacity(args.len());
-                    for n in args {
-                        evaled_args.push(self.eval(n)?)
-                    }
                     ptr(&evaled_args)
+                } else if let Value::NativeClosure(closure) = func {
+                    closure.closure.borrow_mut()(&evaled_args)
                 } else if let Value::Func(function_literal) = func {
-                    let mut evaled_args = Vec::with_capacity(args.len());
-                    for n in args {
-                        evaled_args.push(self.eval(n)?)
-                    }
                     self.call(&function_literal, &evaled_args)
                 } else {
                     exception!("tried to call a non-function value: {:?}", func)
@@ -448,6 +447,8 @@ impl Interpreter {
 
                 if let Value::NativeFunc(ptr) = func {
                     ptr(&args)
+                } else if let Value::NativeClosure(closure) = func {
+                    closure.closure.borrow_mut()(&args)
                 } else if let Value::Func(function_literal) = func {
                     self.call(&function_literal, &args)
                 } else {

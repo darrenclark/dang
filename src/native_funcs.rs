@@ -1,4 +1,5 @@
 use regex::Regex;
+use ustr::ustr;
 
 use crate::interpreter::{exception, Exception};
 use crate::string_utils::byte_to_char_index;
@@ -16,6 +17,7 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         // enumerables
         ("len", len),
         ("get", get),
+        ("iter", iter),
         // strings
         ("split", split),
         ("trim", trim),
@@ -117,6 +119,33 @@ fn get(args: &[Value]) -> Result<Value, Exception> {
         res = res.at(index)?;
     }
     Ok(res)
+}
+
+fn iter(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("iter(enumerable) expected only a single arg")
+    }
+
+    let value = args[0].clone();
+    let iter = value.into_iter();
+    if iter.is_none() {
+        exception!("not an iterable")
+    }
+    let mut iter = iter.unwrap();
+
+    let sym_item = Value::Symbol(ustr("item"));
+
+    let closure = Value::closure(move |args| {
+        if !args.is_empty() {
+            exception!("expected zero args to iterator function")
+        } else {
+            match iter.next() {
+                Some(val) => Ok(Value::Tuple(vec![sym_item.clone(), val])),
+                None => Ok(Value::Nil),
+            }
+        }
+    });
+    Ok(closure)
 }
 
 fn split(args: &[Value]) -> Result<Value, Exception> {

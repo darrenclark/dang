@@ -6,6 +6,7 @@ __builtin inspect
 __builtin readfile
 __builtin len
 __builtin get
+__builtin iter
 __builtin split
 __builtin trim
 __builtin str_replace

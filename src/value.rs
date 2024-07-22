@@ -1,3 +1,4 @@
+use core::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
 use std::{cell::RefCell, collections::BTreeMap};
@@ -19,6 +20,7 @@ pub enum Value {
     String(String),
     Integer(i64),
     NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
+    NativeClosure(NativeClosure),
     Func(FunctionLiteral),
     Tuple(Vec<Value>),
     List(Vec<Value>),
@@ -85,6 +87,16 @@ impl<T: Into<Value> + Clone> From<Vec<T>> for Value {
 }
 
 impl Value {
+    pub fn closure<F>(func: F) -> Self
+    where
+        F: FnMut(&[Value]) -> Result<Value, Exception> + 'static,
+    {
+        let c = NativeClosure {
+            closure: Rc::new(RefCell::new(func)),
+        };
+        Value::NativeClosure(c)
+    }
+
     pub fn truthy(&self) -> bool {
         match self {
             Self::Nil => false,
@@ -217,6 +229,25 @@ impl Value {
             _ => None,
         }
     }
+
+    pub fn into_iter(self) -> Option<Box<dyn Iterator<Item = Value>>> {
+        match self {
+            Self::List(values) => Some(Box::new(values.into_iter())),
+            Self::Dict(pairs) => Some(Box::new(
+                pairs
+                    .into_iter()
+                    .map(|(k, v)| Self::Tuple(vec![k.clone(), v.clone()])),
+            )),
+            Self::String(contents) => Some(Box::new(
+                contents
+                    .chars()
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .map(|c| Value::String(String::from(c))),
+            )),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -248,6 +279,45 @@ impl Ord for FunctionLiteral {
 }
 
 impl PartialOrd for FunctionLiteral {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Clone)]
+pub struct NativeClosure {
+    pub closure: Rc<RefCell<dyn FnMut(&[Value]) -> Result<Value, Exception>>>,
+}
+
+impl fmt::Debug for NativeClosure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NativeClosure<{:p}>", self.closure)
+    }
+}
+
+impl Eq for NativeClosure {}
+
+impl PartialEq for NativeClosure {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.closure, &other.closure)
+    }
+}
+
+impl Hash for NativeClosure {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        Rc::as_ptr(&self.closure).hash(state)
+    }
+}
+
+impl Ord for NativeClosure {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let self_ptr = Rc::as_ptr(&self.closure);
+        let other_ptr = Rc::as_ptr(&other.closure);
+        self_ptr.cast::<()>().cmp(&other_ptr.cast::<()>())
+    }
+}
+
+impl PartialOrd for NativeClosure {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
