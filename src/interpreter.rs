@@ -50,7 +50,7 @@ macro_rules! exception {
     };
 }
 pub(crate) use exception;
-use ustr::Ustr;
+use ustr::{ustr, Ustr};
 
 #[derive(Debug)]
 pub struct Interpreter {
@@ -246,25 +246,71 @@ impl Interpreter {
             } => {
                 let env = self.switch_to_new_env();
                 let val = self.eval(enumerable)?;
-                let iter = val.iter();
-                if iter.is_none() {
-                    exception!("not iterable: {:?}", val);
-                }
-
-                let res = (|| {
-                    for location in patterns::get_pattern_vars(&self.program, pattern) {
-                        self.define(&location, true, Value::Nil)?;
-                    }
-
-                    for v in iter.unwrap() {
-                        for (location, value) in self.match_pattern(pattern, v)? {
-                            Environment::assign(self.environment.clone(), &location, value)?;
+                let res = if let Some(iter) = val.iter() {
+                    (|| {
+                        for location in patterns::get_pattern_vars(&self.program, pattern) {
+                            self.define(&location, true, Value::Nil)?;
                         }
-                        self.eval(body)?;
-                    }
 
-                    Ok(Value::Nil)
-                })();
+                        for v in iter {
+                            for (location, value) in self.match_pattern(pattern, v)? {
+                                Environment::assign(self.environment.clone(), &location, value)?;
+                            }
+                            self.eval(body)?;
+                        }
+
+                        Ok(Value::Nil)
+                    })()
+                } else if let Value::Struct(module_name, _) = val {
+                    (|| {
+                        let iter_module_func =
+                            match self.module_field_access(module_name.0.as_ref(), "iter") {
+                                Ok(Value::Func(func)) => func,
+                                _ => exception!("value is not iterable: {:?}", val),
+                            };
+                        let iter_func = match self.call(&iter_module_func, &[val.clone()])? {
+                            // TODO: support returning a native function here too (?)
+                            Value::Func(func) => func,
+                            v => {
+                                exception!("expected a function returned from `iter`, got: {:?}", v)
+                            }
+                        };
+
+                        for location in patterns::get_pattern_vars(&self.program, pattern) {
+                            self.define(&location, true, Value::Nil)?;
+                        }
+
+                        let some = ustr("some");
+
+                        loop {
+                            let item = match &self.call(&iter_func, &[])? {
+                                ret @ Value::Tuple(items) if items.len() == 2 => {
+                                    match (&items[0], &items[1]) {
+                                        (Value::Symbol(s), item) if *s == some => item.clone(),
+                                        _ => exception!(
+                                            "expected (some, item) or nil from iterator, got: {:?}",
+                                            ret
+                                        ),
+                                    }
+                                }
+                                Value::Nil => break,
+                                ret => exception!(
+                                    "expected (some, item) or nil from iterator, got: {:?}",
+                                    ret
+                                ),
+                            };
+
+                            for (location, value) in self.match_pattern(pattern, item)? {
+                                Environment::assign(self.environment.clone(), &location, value)?;
+                            }
+                            self.eval(body)?;
+                        }
+
+                        Ok(Value::Nil)
+                    })()
+                } else {
+                    exception!("value is not iterable: {:?}", val)
+                };
                 self.restore_env(env);
                 res
             }

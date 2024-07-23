@@ -563,3 +563,35 @@ fn struct_defaults() {
         "#
     }
 }
+
+#[test]
+fn structs_implementing_iter() {
+    assert_runs! {
+        r#"
+        module TestCase/Repeat
+
+        struct {
+            element,
+            times,
+        }
+
+        let iter = fn (repeat) {
+            var i = 0
+
+            fn () {
+                if i < repeat.times {
+                    i = i + 1
+                    (some, repeat.element)
+                }
+            }
+        }
+
+        var result = ""
+        for e in Repeat{element: "a", times: 3} {
+            result = result + e
+        }
+
+        assert(result == "aaa")
+        "#
+    }
+}
