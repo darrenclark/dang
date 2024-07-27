@@ -102,7 +102,7 @@ impl Interpreter {
                 module: "Std/Builtins".into(),
                 name: "argv".into(),
             },
-            Value::List(converted),
+            Value::List(Rc::new(converted)),
         )
         .unwrap();
     }
@@ -380,7 +380,7 @@ impl Interpreter {
                 for e in elements {
                     evaled_elements.push(self.eval(e)?);
                 }
-                Ok(Value::List(evaled_elements))
+                Ok(Value::List(Rc::new(evaled_elements)))
             }
             NodeKind::DictLiteral(key_values) => {
                 let mut map = BTreeMap::new();
@@ -718,9 +718,9 @@ fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
         (BinOp::Add, Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
         (BinOp::Add, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
         (BinOp::Add, Value::List(l), Value::List(r)) => {
-            let mut res = l.to_owned();
+            let mut res = (**l).clone();
             res.extend(r.iter().cloned());
-            Ok(Value::List(res))
+            Ok(Value::List(Rc::new(res)))
         }
         // Subtraction
         (BinOp::Sub, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),

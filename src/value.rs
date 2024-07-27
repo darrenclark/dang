@@ -23,7 +23,7 @@ pub enum Value {
     NativeClosure(NativeClosure),
     Func(FunctionLiteral),
     Tuple(Vec<Value>),
-    List(Vec<Value>),
+    List(Rc<Vec<Value>>),
     Dict(BTreeMap<Value, Value>),
     Struct(ModuleName, BTreeMap<Ustr, Value>),
 }
@@ -82,7 +82,7 @@ impl<T: Into<Value>> From<Option<T>> for Value {
 impl<T: Into<Value> + Clone> From<Vec<T>> for Value {
     fn from(value: Vec<T>) -> Self {
         let values = value.iter().map(|v| v.clone().into()).collect();
-        Self::List(values)
+        Self::List(Rc::new(values))
     }
 }
 
@@ -232,7 +232,7 @@ impl Value {
 
     pub fn into_iter(self) -> Option<Box<dyn Iterator<Item = Value>>> {
         match self {
-            Self::List(values) => Some(Box::new(values.into_iter())),
+            Self::List(values) => Some(Box::new((*values).clone().into_iter())),
             Self::Dict(pairs) => Some(Box::new(
                 pairs
                     .into_iter()

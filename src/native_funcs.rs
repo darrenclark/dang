@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use regex::Regex;
 use ustr::ustr;
 
@@ -166,7 +168,7 @@ fn split(args: &[Value]) -> Result<Value, Exception> {
         .map(|s| Value::String(s.to_owned()))
         .collect();
 
-    Ok(Value::List(res))
+    Ok(Value::List(Rc::new(res)))
 }
 
 fn trim(args: &[Value]) -> Result<Value, Exception> {

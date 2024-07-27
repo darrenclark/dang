@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, rc::Rc};
 
 use assert_matches::assert_matches;
 use dang::{
@@ -57,11 +57,11 @@ fn compile_time_values() {
 
     assert_eq!(parse("nil").compile_time_value(), Some(Value::Nil));
 
-    let expected_list = Value::List(vec![
+    let expected_list = Value::List(Rc::new(vec![
         Value::Integer(1),
         Value::Integer(2),
         Value::Integer(3),
-    ]);
+    ]));
     assert_eq!(parse("[1, 2, 3]").compile_time_value(), Some(expected_list));
 
     let expected_dict = Value::Dict(BTreeMap::from([

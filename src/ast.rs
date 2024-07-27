@@ -624,7 +624,7 @@ impl Node {
                         return None;
                     }
                 }
-                Some(Value::List(res))
+                Some(Value::List(Rc::new(res)))
             }
             NodeKind::DictLiteral(key_values) => {
                 let mut map = BTreeMap::new();
