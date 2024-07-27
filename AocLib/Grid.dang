@@ -1,0 +1,106 @@
+module AocLib/Grid
+
+struct {
+  rows,
+  width,
+  height
+}
+
+/// Parses from string containing a typical AoC grid of characters
+let parse = fn(input) {
+  let rows =
+    input
+    |> split("\n")
+    |> filter(fn (l) { len(l) > 0 })
+    |> map(to_list)
+
+  let height = len(rows)
+  let width = len(rows[0])
+
+  for row in rows {
+    assert(len(row) == width)
+  }
+
+  Grid{rows: rows, width: width, height: height}
+}
+
+/// Dumps a Grid to console for debugging.
+/// Returns input (so it can be used in a pipe)
+let dump = fn(grid) {
+  for row in grid.rows {
+    for cell in row {
+      print(cell)
+    }
+    println()
+  }
+  grid
+}
+
+let neighbors = fn(grid, x, y) {
+  ensure_bounds(grid, x, y)
+
+  var res = []
+  if check_bounds(grid, x - 1, y - 1) { res = res + [grid.rows[y-1][x-1]] }
+  if check_bounds(grid, x, y - 1) { res = res + [grid.rows[y-1][x]] }
+  if check_bounds(grid, x + 1, y - 1) { res = res + [grid.rows[y-1][x+1]] }
+  if check_bounds(grid, x + 1, y) { res = res + [grid.rows[y][x+1]] }
+  if check_bounds(grid, x + 1, y + 1) { res = res + [grid.rows[y+1][x+1]] }
+  if check_bounds(grid, x, y + 1) { res = res + [grid.rows[y+1][x]] }
+  if check_bounds(grid, x - 1, y + 1) { res = res + [grid.rows[y+1][x-1]] }
+  if check_bounds(grid, x - 1, y) { res = res + [grid.rows[y][x-1]] }
+  res
+}
+
+/// Returns iterator yielding (x, y, cell) for each cell
+/// Iteration goes row by row
+let iter = fn(grid) {
+  var x = 0
+  var y = 0
+
+  fn () {
+    if y >= grid.height {
+      nil
+    } else {
+      let res = (x, y, grid.rows[y][x])
+      x = x + 1
+      if x >= grid.width {
+        x = 0
+        y = y + 1
+      }
+      (some, res)
+    }
+  }
+}
+
+let check_bounds = fn(grid, x, y) {
+  x >= 0 && y >= 0 && x < grid.width && y < grid.height
+}
+
+let ensure_bounds = fn(grid, x, y) {
+  if !check_bounds(grid, x, y) {
+    // TODO: print coordinate
+    raise("out of bounds")
+  }
+}
+
+// --- Tests ---
+
+let tests = fn() {
+  let input = "abc\ndef\nghi\n"
+  let grid = Grid.parse(input)
+  let expected_grid = ["abc", "def", "ghi"]
+
+  // iter
+  var iter_count = 0
+  for (x, y, c) in grid {
+    iter_count = iter_count + 1
+    assert(expected_grid[y][x] == c)
+  }
+  assert(iter_count == 9)
+
+  // neighbors
+  assert(neighbors(grid, 1, 1) == ["a", "b", "c", "f", "i", "h", "g", "d"])
+  assert(neighbors(grid, 0, 0) == ["b", "e", "d"])
+
+}
+tests()

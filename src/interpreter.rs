@@ -732,7 +732,7 @@ fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
         (BinOp::LogicalOr | BinOp::LogicalAnd, _, _) => unreachable!("handled in caller"),
         // == / !=
         (BinOp::Eq, l, r) => Ok(Value::Bool(l == r)),
-        (BinOp::Neq, l, r) => Ok(Value::Bool(l == r)),
+        (BinOp::Neq, l, r) => Ok(Value::Bool(l != r)),
         // >=, <, etc.
         (BinOp::Gt, l, r) if discriminant(l) == discriminant(r) => Ok(Value::Bool(l > r)),
         (BinOp::Gte, l, r) if discriminant(l) == discriminant(r) => Ok(Value::Bool(l >= r)),

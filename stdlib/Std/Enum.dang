@@ -74,3 +74,11 @@ let max = fn(enum) {
   }
   result
 }
+
+let to_list = fn(enum) {
+  var result = []
+  for x in enum {
+    result = result + [x]
+  }
+  result
+}

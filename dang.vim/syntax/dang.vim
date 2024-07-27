@@ -6,7 +6,11 @@ syntax keyword dangKeywords
   \ if
   \ else
   \ for
+  \ in
   \ fn
+  \ import
+  \ module
+  \ struct
 
 syntax match dangNumber "\v<\d+>"
 syntax match dangNumber "\v<\d+\.\d+>"

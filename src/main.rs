@@ -58,6 +58,12 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 
     if execute {
         let mut interpreter = Interpreter::new();
+
+        interpreter
+            .compiler
+            .module_search_paths
+            .push(path.parent().unwrap().to_owned());
+
         interpreter.set_argv(args.args.clone());
 
         handle_input(&mut interpreter, file, path.to_str().unwrap(), false);
