@@ -1,0 +1,66 @@
+import AocLib/Parse
+
+let parse = fn(input) {
+  input
+  |> Parse.lines()
+  |> map(fn(line) {
+    let (card, all_numbers) = Parse.tuple(line, ":")
+    let (numbers, winning_numbers) = Parse.tuple(all_numbers, "|")
+
+    {
+      card_number: Parse.thing_number(card),
+      numbers: Set.new(Parse.list_of_numbers(numbers, " ")),
+      winning_numbers: Set.new(Parse.list_of_numbers(winning_numbers, " ")),
+    }
+  })
+}
+
+let part1 = fn(parsed) {
+  parsed
+  |> map(card_points)
+  |> sum()
+}
+
+let part2 = fn(parsed) {
+  var copies = {}
+  for card in parsed {
+    copies[card.card_number] = 1
+  }
+
+  for card in parsed {
+    let count = copies[card.card_number]
+    let matching = Set.size(Set.intersection(card.numbers, card.winning_numbers))
+
+    for i in range(0, matching) {
+      copies[card.card_number + i + 1] = copies[card.card_number + i + 1] + count
+    }
+  }
+
+  copies
+  |> map(fn(kv) { kv[1] })
+  |> sum()
+}
+
+let card_points = fn (card) {
+  let matching = Set.size(Set.intersection(card.numbers, card.winning_numbers))
+  if matching == 0 {
+    0
+  } else {
+    var result = 1
+    for i in range(0, matching-1) {
+      result = result * 2
+    }
+    result
+  }
+}
+
+// --------------
+
+let input_path = first(argv)
+if input_path == nil { raise("Expected path to input as first arg") }
+let input = readfile(input_path)
+
+let parsed = parse(input)
+
+println("Part one: ", part1(parsed))
+println("Part two: ", part2(parsed))

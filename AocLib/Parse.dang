@@ -1,0 +1,32 @@
+module AocLib/Parse
+
+let lines = fn(input) {
+  input |> split("\n") |> filter(fn(x) { x != "" })
+}
+
+let tuple = fn(input, sep) {
+  let l = input |> split(sep)
+  if len(l) == 2 {
+    (trim(l[0]), trim(l[1]))
+  } else {
+    // TODO: better error message
+    raise("Tuple parse error, too many elements")
+  }
+}
+
+/// "1 2 3 4" -> [1, 2, 3, 4]
+let list_of_numbers = fn(input, sep) {
+  input |> split(sep) |> map(trim) |> filter(fn(x) { x != "" }) |> map(int)
+}
+
+/// "Thing 1" -> 1
+let thing_number = fn(input) {
+  input |> split(" ") |> last() |> int()
+}
+
+// --- Tests ---
+
+let tests = fn() {
+
+}
+tests()

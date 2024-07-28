@@ -178,6 +178,9 @@ lazy_static! {
             module_name: "Std/Range".to_owned(),
             field_name: "range".to_owned()
         },
+        ImportKind::Module {
+            module_name: "Std/Set".to_owned()
+        },
     ];
 }
 

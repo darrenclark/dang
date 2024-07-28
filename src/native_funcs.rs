@@ -106,6 +106,8 @@ fn len(args: &[Value]) -> Result<Value, Exception> {
 
     if let Value::Tuple(v) = &args[0] {
         return Ok(v.len().into());
+    } else if let Value::Dict(v) = &args[0] {
+        return Ok(v.len().into());
     }
 
     args[0].ensure_enumerable("len")?;

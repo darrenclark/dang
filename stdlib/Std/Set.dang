@@ -1,0 +1,54 @@
+module Std/Set
+
+import Std/Builtins
+import Std/Enum
+
+// Backed by a map
+struct {
+  _elements: {}
+}
+
+/// Creates a new Set
+let new = fn(iterable) {
+  var elements = {}
+  for e in iterable {
+    elements[e] = true
+  }
+  Set{_elements: elements}
+}
+
+/// Iterator for Set
+let iter = fn(set) {
+  // TODO: More efficient iterator (no copying to list first)
+  set._elements
+  |> Enum.map(fn (kv) { kv })
+  |> Builtins.iter()
+}
+
+/// Insert into Set
+let insert = fn(set, element) {
+  var s = set
+  s._elements[element] = true
+  s
+}
+
+/// Intersection of two sets
+let intersection = fn(set1, set2) {
+  var e = {}
+  for (k, _) in set1._elements {
+    if set2._elements[k] {
+      e[k] = true
+    }
+  }
+  for (k, _) in set2._elements {
+    if set1._elements[k] {
+      e[k] = true
+    }
+  }
+  Set{_elements: e}
+}
+
+/// Count of elements inside set
+let size = fn (set) {
+  Builtins.len(set._elements)
+}
