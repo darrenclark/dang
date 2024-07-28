@@ -76,6 +76,17 @@ fn test_len() {
 }
 
 #[test]
+fn test_append() {
+    assert_runs! {
+        r#"
+        var list = [1, 2, 3]
+        list = append(list, 4)
+        assert(list == [1, 2, 3, 4])
+        "#
+    };
+}
+
+#[test]
 fn test_get() {
     assert_runs! {
         r#"

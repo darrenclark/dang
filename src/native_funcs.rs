@@ -20,6 +20,8 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("len", len),
         ("get", get),
         ("iter", iter),
+        // lists
+        ("append", append),
         // strings
         ("split", split),
         ("trim", trim),
@@ -148,6 +150,19 @@ fn iter(args: &[Value]) -> Result<Value, Exception> {
         }
     });
     Ok(closure)
+}
+
+fn append(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("append(list, item) expected two args")
+    }
+    let list = match &args[0] {
+        Value::List(l) => Rc::clone(l),
+        _ => exception!("expected list at arg 0"),
+    };
+    let mut new_list = list.as_ref().clone();
+    new_list.push(args[1].clone());
+    Ok(Value::List(Rc::new(new_list)))
 }
 
 fn split(args: &[Value]) -> Result<Value, Exception> {
