@@ -75,6 +75,18 @@ let max = fn(enum) {
   result
 }
 
+let unique = fn(enum) {
+  var seen = {}
+  var result = []
+  for x in enum {
+    if !seen[x] {
+      seen[x] = true
+      result = result + [x]
+    }
+  }
+  result
+}
+
 let to_list = fn(enum) {
   var result = []
   for x in enum {

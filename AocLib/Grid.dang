@@ -36,6 +36,20 @@ let dump = fn(grid) {
   grid
 }
 
+/// Returns cell at (x, y)
+let at = fn(grid, x, y) {
+  ensure_bounds(grid, x, y)
+  grid.rows[y][x]
+}
+
+/// Returns cell at (x, y) or nil if out of bounds
+let try_at = fn(grid, x, y) {
+  if check_bounds(grid, x, y) {
+    grid.rows[y][x]
+  }
+}
+
+/// Returns a list of neighbors for a cell at (x, y)
 let neighbors = fn(grid, x, y) {
   ensure_bounds(grid, x, y)
 
@@ -48,6 +62,22 @@ let neighbors = fn(grid, x, y) {
   if check_bounds(grid, x, y + 1) { res = res + [grid.rows[y+1][x]] }
   if check_bounds(grid, x - 1, y + 1) { res = res + [grid.rows[y+1][x-1]] }
   if check_bounds(grid, x - 1, y) { res = res + [grid.rows[y][x-1]] }
+  res
+}
+
+/// Returns a list valid coordinates for neighbors of the cell at (x, y)
+let neighbor_coords = fn(grid, x, y) {
+  ensure_bounds(grid, x, y)
+
+  var res = []
+  if check_bounds(grid, x - 1, y - 1) { res = res + [(x-1, y-1)] }
+  if check_bounds(grid, x, y - 1) { res = res + [(x, y-1)] }
+  if check_bounds(grid, x + 1, y - 1) { res = res + [(x+1, y-1)] }
+  if check_bounds(grid, x + 1, y) { res = res + [(x+1, y)] }
+  if check_bounds(grid, x + 1, y + 1) { res = res + [(x+1, y+1)] }
+  if check_bounds(grid, x, y + 1) { res = res + [(x, y+1)] }
+  if check_bounds(grid, x - 1, y + 1) { res = res + [(x-1, y+1)] }
+  if check_bounds(grid, x - 1, y) { res = res + [(x-1, y)] }
   res
 }
 
@@ -98,9 +128,18 @@ let tests = fn() {
   }
   assert(iter_count == 9)
 
+  // at
+  assert(at(grid, 2, 0) == "c")
+
+  // try_at
+  assert(try_at(grid, 3, 0) == nil)
+
   // neighbors
   assert(neighbors(grid, 1, 1) == ["a", "b", "c", "f", "i", "h", "g", "d"])
   assert(neighbors(grid, 0, 0) == ["b", "e", "d"])
+
+  // neighbor_coords
+  assert(neighbor_coords(grid, 0, 0) == [(1, 0), (1, 1), (0, 1)])
 
 }
 tests()

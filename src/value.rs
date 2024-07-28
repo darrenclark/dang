@@ -192,7 +192,7 @@ impl Value {
             }
             Ok(&mut v[i])
         } else if let Self::Dict(v) = self {
-            Ok(v.get_mut(index).unwrap())
+            Ok(v.entry(index.clone()).or_insert(Value::Nil))
         } else {
             exception!("cannot index in to {:?}", self)
         }

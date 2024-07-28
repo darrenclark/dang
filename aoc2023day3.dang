@@ -3,7 +3,6 @@ import AocLib/Grid
 let parse = fn(input) {
   input
   |> Grid.parse()
-  |> Grid.dump()
 }
 
 let part1 = fn(grid) {
@@ -41,7 +40,44 @@ let part1 = fn(grid) {
 }
 
 let part2 = fn(grid) {
-  ""
+  // (x,y) -> [number]
+  var possible_gears = {}
+
+  var last_y = -1
+  var number = ""
+  // [(x,y)]
+  var touching_gears = []
+
+  for (x, y, c) in grid {
+    if last_y != y || !is_digit?(c) {
+      for gear in unique(touching_gears) {
+        possible_gears[gear] = append(possible_gears[gear] || [], int(number))
+      }
+
+      last_y = y
+      number = ""
+      touching_gears = []
+    }
+
+    if is_digit?(c) {
+      number = number + c
+
+      for (gx, gy) in Grid.neighbor_coords(grid, x, y) {
+        if Grid.at(grid, gx, gy) == "*" {
+          touching_gears = append(touching_gears, (gx, gy))
+        }
+      }
+    }
+  }
+
+  for gear in unique(touching_gears) {
+    possible_gears[gear] = append(possible_gears[gear] || [], int(number))
+  }
+
+  possible_gears
+  |> filter(fn(kv) { len(kv[1]) == 2 })
+  |> map(fn(kv) { kv[1][0] * kv[1][1] })
+  |> sum()
 }
 
 
