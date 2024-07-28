@@ -3,6 +3,10 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::{cell::RefCell, collections::BTreeMap};
 
+use escape8259::escape;
+use lazy_static::lazy_static;
+use pretty::termcolor::{Color, ColorSpec};
+use pretty::RcDoc;
 use ustr::Ustr;
 
 use crate::interpreter::Environment;
@@ -300,6 +304,110 @@ impl Value {
             )),
             _ => None,
         }
+    }
+
+    pub fn to_doc(&self) -> RcDoc<ColorSpec> {
+        match self {
+            Value::Nil => RcDoc::text("nil").annotate((*PRETTY_KEYWORD).clone()),
+            Value::Symbol(s) => RcDoc::text(format!(":{}", s)).annotate((*PRETTY_SYMBOL).clone()),
+            Value::Bool(true) => RcDoc::text("true").annotate((*PRETTY_KEYWORD).clone()),
+            Value::Bool(false) => RcDoc::text("false").annotate((*PRETTY_KEYWORD).clone()),
+            Value::String(s) => {
+                RcDoc::text(format!("\"{}\"", escape(s))).annotate((*PRETTY_STRING).clone())
+            }
+            Value::Integer(i) => RcDoc::as_string(i).annotate((*PRETTY_NUMBER).clone()),
+            Value::NativeFunc(ptr) => RcDoc::text(format!("<NativeFunc({:?})>", ptr)),
+            Value::NativeClosure(c) => RcDoc::text(format!("<NativeFunc({:?})>", c)),
+            Value::Func(literal) => RcDoc::text(format!("<Func({})>", literal.body.source)),
+            Value::Tuple(list) if list.len() == 1 => RcDoc::text("(")
+                .append(list[0].to_doc())
+                .append(",")
+                .append(RcDoc::text(")")),
+            Value::Tuple(list) => RcDoc::text("(")
+                .append(
+                    RcDoc::intersperse(
+                        list.iter().map(|x| x.to_doc()),
+                        RcDoc::text(",").append(RcDoc::line()),
+                    )
+                    .nest(1)
+                    .group(),
+                )
+                .append(RcDoc::text(")")),
+            Value::List(list) => RcDoc::text("[")
+                .append(
+                    RcDoc::line_()
+                        .append(
+                            RcDoc::intersperse(
+                                list.iter().map(|x| x.to_doc()),
+                                RcDoc::text(",").append(RcDoc::line()),
+                            )
+                            .append(RcDoc::line_()),
+                        )
+                        .nest(2)
+                        .group(),
+                )
+                .append(RcDoc::text("]")),
+            Value::Dict(dict) => RcDoc::text("{")
+                .append(
+                    RcDoc::line_()
+                        .append(
+                            // TODO: format symbol keys differently once we move rest of Dang to
+                            // use symbols for {x: 1} syntax
+                            RcDoc::intersperse(
+                                dict.iter()
+                                    .map(|(k, v)| k.to_doc().append(" => ").append(v.to_doc())),
+                                RcDoc::text(",").append(RcDoc::line()),
+                            )
+                            .append(RcDoc::line_()),
+                        )
+                        .nest(2)
+                        .group(),
+                )
+                .append(RcDoc::text("}")),
+            Value::Struct(module_name, dict) => RcDoc::text(module_name.short_name()).append(
+                RcDoc::text("{")
+                    .append(
+                        RcDoc::line_()
+                            .append(
+                                // TODO: format symbol keys differently once we move rest of Dang to
+                                // use symbols for {x: 1} syntax
+                                RcDoc::intersperse(
+                                    dict.iter().map(|(k, v)| {
+                                        RcDoc::text(k.as_str())
+                                            .append(":")
+                                            .annotate((*PRETTY_SYMBOL).clone())
+                                            .append(RcDoc::space())
+                                            .append(v.to_doc())
+                                    }),
+                                    RcDoc::text(",").append(RcDoc::line()),
+                                )
+                                .append(RcDoc::line_()),
+                            )
+                            .nest(2)
+                            .group(),
+                    )
+                    .append(RcDoc::text("}")),
+            ),
+        }
+    }
+
+    pub fn to_pretty(&self) -> String {
+        let mut w = Vec::new();
+        self.to_doc().render(80, &mut w).unwrap();
+        String::from_utf8(w).unwrap()
+    }
+}
+
+lazy_static! {
+    static ref PRETTY_NUMBER: ColorSpec = ColorSpec::new().set_fg(Some(Color::Yellow)).clone();
+    static ref PRETTY_STRING: ColorSpec = ColorSpec::new().set_fg(Some(Color::Green)).clone();
+    static ref PRETTY_SYMBOL: ColorSpec = ColorSpec::new().set_fg(Some(Color::Cyan)).clone();
+    static ref PRETTY_KEYWORD: ColorSpec = ColorSpec::new().set_fg(Some(Color::Magenta)).clone();
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_pretty())
     }
 }
 

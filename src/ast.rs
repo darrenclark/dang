@@ -60,6 +60,23 @@ pub struct Source {
     pub col: usize,
 }
 
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let components = self.file.split("/").collect::<Vec<_>>();
+        if components.len() > 2 {
+            write!(
+                f,
+                ".../{}/{}:{}",
+                components[components.len() - 2],
+                components[components.len() - 1],
+                self.line
+            )
+        } else {
+            write!(f, "{}:{}", self.file, self.line)
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinOp {
     Add,

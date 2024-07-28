@@ -35,6 +35,14 @@ impl ModuleName {
     pub fn is_std(&self) -> bool {
         self.0.starts_with("Std")
     }
+
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+
+    pub fn short_name(&self) -> &str {
+        self.0.as_str().split('/').last().unwrap()
+    }
 }
 
 impl From<&str> for ModuleName {

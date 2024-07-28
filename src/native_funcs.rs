@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use pretty::termcolor::{ColorChoice, StandardStream};
 use regex::Regex;
 use ustr::ustr;
 
@@ -94,7 +95,10 @@ fn readfile(args: &[Value]) -> Result<Value, Exception> {
 
 fn inspect(args: &[Value]) -> Result<Value, Exception> {
     for v in args {
-        println!("{:?}", v)
+        v.to_doc()
+            .render_colored(80, StandardStream::stdout(ColorChoice::Auto))
+            .unwrap();
+        println!()
     }
 
     Ok(args.first().cloned().unwrap_or(Value::Nil))

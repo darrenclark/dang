@@ -7,6 +7,7 @@ use dang::dang_parser::Rule;
 use dang::interpreter::Interpreter;
 use dirs::home_dir;
 use pest::iterators::Pair;
+use pretty::termcolor::{ColorChoice, StandardStream};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
@@ -133,7 +134,11 @@ fn handle_input(
     }) {
         Ok(value) => {
             if print_result {
-                println!("{:?}", value)
+                value
+                    .to_doc()
+                    .render_colored(80, StandardStream::stdout(ColorChoice::Auto))
+                    .unwrap();
+                println!()
             }
             true
         }
