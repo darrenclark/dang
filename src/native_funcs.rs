@@ -22,6 +22,7 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("iter", iter),
         // lists
         ("append", append),
+        ("sort_impl", sort_impl),
         // strings
         ("split", split),
         ("trim", trim),
@@ -164,6 +165,19 @@ fn append(args: &[Value]) -> Result<Value, Exception> {
     };
     let mut new_list = list.as_ref().clone();
     new_list.push(args[1].clone());
+    Ok(Value::List(Rc::new(new_list)))
+}
+
+fn sort_impl(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("sort(list) expected one arg")
+    }
+    let list = match &args[0] {
+        Value::List(l) => Rc::clone(l),
+        _ => exception!("expected list at arg 0"),
+    };
+    let mut new_list = list.as_ref().clone();
+    new_list.sort();
     Ok(Value::List(Rc::new(new_list)))
 }
 

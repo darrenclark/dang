@@ -1,11 +1,20 @@
 module Std/Enum
 
 import Std/Builtins.*
+import Std/Range.range
 
 let map = fn(enum, func) {
   var result = []
   for x in enum {
     result = result + [func(x)]
+  }
+  result
+}
+
+let flat_map = fn(enum, func) {
+  var result = []
+  for x in enum {
+    result = result + to_list(func(x))
   }
   result
 }
@@ -42,6 +51,14 @@ let last = fn(enum) {
   } else {
     nil
   }
+}
+
+let drop = fn (enum, n) {
+  var result = []
+  for i in range(n, len(enum)) {
+    result = result + [get(enum, i)]
+  }
+  result
 }
 
 let sum = fn(enum) {
@@ -87,7 +104,20 @@ let unique = fn(enum) {
   result
 }
 
+let sort = fn(enum) {
+  sort_impl(to_list(enum))
+}
+
+let sort_by = fn(enum, selector) {
+  enum
+  |> map(fn(x) { (selector(x), x) })
+  |> sort_impl()
+  |> map(fn(x) { x[1] })
+}
+
 let to_list = fn(enum) {
+  // TODO: skip if already a list
+
   var result = []
   for x in enum {
     result = result + [x]

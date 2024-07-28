@@ -1,3 +1,5 @@
+import AocLib/Parse
+
 let parse = fn(input) {
   nil
 }
