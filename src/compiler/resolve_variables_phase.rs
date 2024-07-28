@@ -301,6 +301,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }
             NodeKind::Assignment { pattern, .. } => self.resolve_all_in_pattern(pattern),
+            // NodeKind::FieldAssignment handled by inner VariableRef
             _ => {}
         }
     }

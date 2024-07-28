@@ -134,6 +134,19 @@ pub enum NodeKind {
         pattern: Box<Node>,
         expr: Box<Node>,
     },
+    FieldAssignment {
+        variable_ref: Box<Node>,
+        path: Vec<Node>,
+        expr: Box<Node>,
+    },
+    FieldAssignmentPathSubscript {
+        // (...)[key] = ...
+        key: Box<Node>,
+    },
+    FieldAssignmentPathField {
+        // (...).key = ...
+        key: Box<Node>,
+    },
     If {
         condition: Box<Node>,
         body: Box<Node>,
@@ -259,6 +272,35 @@ impl Node {
                 1 => Some(expr.as_ref()),
                 _ => None,
             },
+            NodeKind::FieldAssignment {
+                variable_ref,
+                path,
+                expr,
+            } => {
+                if index == 0 {
+                    Some(variable_ref.as_ref())
+                } else if index < path.len() + 1 {
+                    path.get(index - 1)
+                } else if index == path.len() + 1 {
+                    Some(expr.as_ref())
+                } else {
+                    None
+                }
+            }
+            NodeKind::FieldAssignmentPathSubscript { key } => {
+                if index == 0 {
+                    Some(key.as_ref())
+                } else {
+                    None
+                }
+            }
+            NodeKind::FieldAssignmentPathField { key } => {
+                if index == 0 {
+                    Some(key.as_ref())
+                } else {
+                    None
+                }
+            }
             NodeKind::If {
                 condition,
                 body,
@@ -450,6 +492,35 @@ impl Node {
                 1 => Some(expr.as_mut()),
                 _ => None,
             },
+            NodeKind::FieldAssignment {
+                variable_ref,
+                path,
+                expr,
+            } => {
+                if index == 0 {
+                    Some(variable_ref.as_mut())
+                } else if index < path.len() + 1 {
+                    path.get_mut(index - 1)
+                } else if index == path.len() + 1 {
+                    Some(expr.as_mut())
+                } else {
+                    None
+                }
+            }
+            NodeKind::FieldAssignmentPathSubscript { key } => {
+                if index == 0 {
+                    Some(key.as_mut())
+                } else {
+                    None
+                }
+            }
+            NodeKind::FieldAssignmentPathField { key } => {
+                if index == 0 {
+                    Some(key.as_mut())
+                } else {
+                    None
+                }
+            }
             NodeKind::If {
                 condition,
                 body,
@@ -713,6 +784,26 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             writeln!(f, "Assignment:")?;
             fmt_node(pattern, depth + 1, "pattern", f)?;
             fmt_node(expr, depth + 1, "value", f)?;
+        }
+        NodeKind::FieldAssignment {
+            variable_ref,
+            path,
+            expr,
+        } => {
+            writeln!(f, "FieldAssignment:")?;
+            fmt_node(variable_ref, depth + 1, "variable_ref", f)?;
+            for p in path {
+                fmt_node(p, depth + 1, "path", f)?;
+            }
+            fmt_node(expr, depth + 1, "value", f)?;
+        }
+        NodeKind::FieldAssignmentPathSubscript { key } => {
+            writeln!(f, "FieldAssignmentPathSubscript:")?;
+            fmt_node(key, depth + 1, "key", f)?;
+        }
+        NodeKind::FieldAssignmentPathField { key } => {
+            writeln!(f, "FieldAssignmentPathField:")?;
+            fmt_node(key, depth + 1, "key", f)?;
         }
         NodeKind::If {
             condition,

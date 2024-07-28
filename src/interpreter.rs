@@ -13,7 +13,7 @@ use crate::{
     native_funcs, patterns,
     program::Program,
     scope::VariableLocation,
-    value::{FunctionLiteral, Value},
+    value::{FunctionLiteral, Value, ValuePath},
 };
 
 #[derive(Debug, Clone)]
@@ -224,6 +224,38 @@ impl Interpreter {
                 }
                 Ok(rhs)
             }
+            NodeKind::FieldAssignment {
+                variable_ref,
+                path,
+                expr,
+            } => {
+                let mut object = self.eval(variable_ref)?;
+                let value = self.eval(expr)?;
+
+                let mut value_path = Vec::new();
+                for n in path {
+                    value_path.push(match &n.kind {
+                        NodeKind::FieldAssignmentPathField { key } => {
+                            ValuePath::AtField(key.unwrap_identifier())
+                        }
+                        NodeKind::FieldAssignmentPathSubscript { key } => {
+                            let key = self.eval(key)?;
+                            ValuePath::At(key)
+                        }
+                        _ => unreachable!(),
+                    })
+                }
+
+                *object.at_path_mut(&value_path)? = value.clone();
+                Environment::assign(
+                    self.environment.clone(),
+                    &self.variable_location(variable_ref),
+                    object.clone(),
+                )?;
+                Ok(value)
+            }
+            NodeKind::FieldAssignmentPathField { .. }
+            | NodeKind::FieldAssignmentPathSubscript { .. } => unreachable!(),
             NodeKind::If {
                 condition,
                 body,

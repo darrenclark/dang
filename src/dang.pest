@@ -53,7 +53,7 @@ struct_def_field = {
 identifier = @{ !keywords ~ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ ~ "?"? }
 
 stmt = _{
-  (builtin_stmt | let_stmt | var_stmt | assignment | if_stmt | for_stmt | expr) ~ stmt_end
+  (builtin_stmt | let_stmt | var_stmt | field_assignment | assignment | if_stmt | for_stmt | expr) ~ stmt_end
 }
 
 stmt_end = _{ NEWLINE* ~ ";"? }
@@ -70,6 +70,7 @@ builtin_stmt = { "__builtin" ~ identifier }
 let_stmt = { "let" ~ pattern ~ "=" ~ nl ~ expr }
 var_stmt = { "var" ~ pattern ~ "=" ~ nl ~ expr }
 assignment = { pattern ~ "=" ~ nl ~ expr }
+field_assignment = { field_assignment_path ~ "=" ~ nl ~ expr }
 if_stmt = {
   "if" ~
   #cond = expr ~
@@ -77,6 +78,10 @@ if_stmt = {
   ( "else" ~ ( #else_if = if_stmt | #else_body = body ) )?
 }
 for_stmt = { "for" ~ pattern ~ "in" ~ expr ~ body }
+
+field_assignment_path = {
+  variable_ref ~ (subscript | field_access)+
+}
 
 pattern = {
   pattern_identifier |

@@ -606,3 +606,23 @@ fn structs_implementing_iter() {
         "#
     }
 }
+
+#[test]
+fn assigning_to_fields() {
+    assert_runs! {
+        r#"
+        module TestCase/Fields
+
+        struct {
+            one,
+            two,
+        }
+
+        var f = Fields{one: {a: "a", b: [1, 2, 3]}, two: 2}
+        f.one["b"][1] = 36
+
+        let expected = Fields{one: {a: "a", b: [1, 36, 3]}, two: 2}
+        assert(f == expected)
+        "#
+    }
+}

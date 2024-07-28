@@ -159,6 +159,49 @@ impl ToAst {
                     },
                 )
             }
+            Rule::field_assignment => {
+                let mut iter = pair.into_inner();
+
+                let mut path_iter = iter.next().unwrap().into_inner();
+                let object = self.to_ast(path_iter.next().unwrap()).unwrap();
+                let path = path_iter
+                    .map(|p| {
+                        let line_col = p.line_col();
+                        let rule = p.as_rule();
+                        let expr = self.to_ast(p.into_inner().next().unwrap()).unwrap();
+                        match rule {
+                            Rule::subscript => self
+                                .new_node(
+                                    line_col,
+                                    NodeKind::FieldAssignmentPathSubscript {
+                                        key: Box::new(expr),
+                                    },
+                                )
+                                .unwrap(),
+                            Rule::field_access => self
+                                .new_node(
+                                    line_col,
+                                    NodeKind::FieldAssignmentPathField {
+                                        key: Box::new(expr),
+                                    },
+                                )
+                                .unwrap(),
+                            _ => unreachable!(),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                let expr = self.to_ast(iter.next().unwrap()).unwrap();
+
+                self.new_node(
+                    line_col,
+                    NodeKind::FieldAssignment {
+                        variable_ref: Box::new(object),
+                        path,
+                        expr: Box::new(expr),
+                    },
+                )
+            }
             Rule::if_stmt => {
                 let mut iter = pair.into_inner();
                 let condition = self.to_ast(iter.next().unwrap()).unwrap();

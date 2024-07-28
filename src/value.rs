@@ -28,6 +28,12 @@ pub enum Value {
     Struct(ModuleName, BTreeMap<Ustr, Value>),
 }
 
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub enum ValuePath<'a> {
+    At(Value),
+    AtField(&'a str),
+}
+
 impl From<()> for Value {
     fn from(_: ()) -> Self {
         Self::Nil
@@ -172,6 +178,26 @@ impl Value {
         }
     }
 
+    pub fn at_mut(&mut self, index: &Value) -> Result<&mut Value, Exception> {
+        if let Self::List(ref mut v) = self {
+            let i = index.to_index()?;
+            if i >= v.len() {
+                exception!("index {} out of bounds for list of length {}", i, v.len())
+            }
+            Ok(Rc::make_mut(v).get_mut(i).unwrap())
+        } else if let Self::Tuple(v) = self {
+            let i = index.to_index()?;
+            if i >= v.len() {
+                exception!("index {} out of bounds for tuple of size {}", i, v.len())
+            }
+            Ok(&mut v[i])
+        } else if let Self::Dict(v) = self {
+            Ok(v.get_mut(index).unwrap())
+        } else {
+            exception!("cannot index in to {:?}", self)
+        }
+    }
+
     pub fn at_field(&self, key: &str) -> Result<Value, Exception> {
         if let Self::Dict(v) = self {
             match v.get(&Value::from(key)) {
@@ -186,6 +212,33 @@ impl Value {
         } else {
             exception!("cannot access field {:?} on {:?}", key, self)
         }
+    }
+
+    pub fn at_field_mut(&mut self, key: &str) -> Result<&mut Value, Exception> {
+        if let Self::Dict(v) = self {
+            match v.get_mut(&Value::from(key)) {
+                None => exception!("field {:?} not found in dict", key),
+                Some(v) => Ok(v),
+            }
+        } else if let Self::Struct(m, v) = self {
+            match v.get_mut(&Ustr::from(key)) {
+                None => exception!("field `{}` not found in struct `{}`", key, m),
+                Some(v) => Ok(v),
+            }
+        } else {
+            exception!("cannot access field {:?} on {:?}", key, self)
+        }
+    }
+
+    pub fn at_path_mut<'a>(&mut self, path: &'a [ValuePath<'a>]) -> Result<&mut Value, Exception> {
+        let mut current = self;
+        for p in path {
+            match p {
+                ValuePath::At(v) => current = current.at_mut(v)?,
+                ValuePath::AtField(f) => current = current.at_field_mut(f)?,
+            }
+        }
+        Ok(current)
     }
 
     pub fn to_index(&self) -> Result<usize, Exception> {

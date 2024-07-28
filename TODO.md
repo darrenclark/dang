@@ -36,7 +36,17 @@ Lower priority:
 - Pattern matching?
 - UFCS? Is it even possible?
 
-## Bugs
+## Bugs / Limitations
 
 - Bad error message when escape code is invalid, i.e. `"\ghi"`
 - Vim != highlight doesn't work
+- Can't assign to vars in other modules, i.e.:
+    ```
+    import SomeModule
+    SomeModule.y = 5
+    ```
+- Can't assign to chars within a string, i.e.:
+    ```
+    var s = "123"
+    s[1] = "9"
+    ```
