@@ -10,6 +10,10 @@ struct {
   step: 1
 }
 
+let new = fn(begin, end, step) {
+  Range{begin: begin, end: end, step: step}
+}
+
 let range = fn(begin, end) {
   Range{begin: begin, end: end}
 }

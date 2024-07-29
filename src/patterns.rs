@@ -72,8 +72,7 @@ impl<'a> MatchPattern<'a> {
                 if elements.len() == values.len() =>
             {
                 for (element, value) in elements.iter().zip(values.iter()) {
-                    let location = self.program.variable_location(element);
-                    self.vars.push((location, value.clone()));
+                    self.do_match(element, value)?;
                 }
             }
             // TODO: improve error message

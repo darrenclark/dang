@@ -1,43 +1,127 @@
 import AocLib/Parse
 
+import Std/Range
+
 let parse = fn(input) {
   let parts = input |> split("\n\n")
 
   let (_s, seeds_str) = parts[0] |> Parse.tuple(": ")
   let seeds = Parse.list_of_numbers(seeds_str, " ")
 
-  parts
-  |> drop(1)
-  |> map(fn(m) {
-    m
-    |> split("\n")
+  let maps =
+    parts
     |> drop(1)
-    |> flat_map(fn (l) {
-      let ls = Parse.list_of_numbers(l, " ")
-      let dest = ls[0]
-      let src = ls[1]
-      let ln = ls[2]
+    |> map(fn(m) {
+      var res =
+        m
+        |> Parse.lines()
+        |> drop(1)
+        |> flat_map(fn (l) {
+          let ls = Parse.list_of_numbers(l, " ")
+          let dest = ls[0]
+          let src = ls[1]
+          let ln = ls[2]
 
-      [
-        (src, dest),
-        (src + ln-1, dest + ln-1),
-      ]
+          [
+            (src, dest),
+            (src + ln-1, dest + ln-1),
+          ]
+        })
+        |> sort_by(fn (x) { x[0] })
+
+      if res[0][0] != 0 {
+        res = [(0, 0)] + res
+      }
+      res = res |> append((last(res)[0] + 1, last(res)[0] + 1)) |> append((INT64_MAX, INT64_MAX))
     })
-    |> sort_by(fn (x) { x[0] })
-  })
-  |> inspect()
 
-  inspect(parts)
+  var flat = maps[0]
+  for m in drop(maps, 1) {
+    flat = flatten_maps(flat, m)
+  }
+
+  {maps: maps, flat: flat, seeds: seeds}
 }
 
 let part1 = fn(parsed) {
-  ""
+  parsed.seeds
+  |> map(fn (seed) { lookup(parsed.maps, seed) })
+  |> min()
 }
 
 let part2 = fn(parsed) {
-  ""
+  var min_loc = INT64_MAX
+
+  Range.new(0, len(parsed.seeds), 2)
+  |> map(fn (i) {
+    let range_min = parsed.seeds[i]
+    let range_len = parsed.seeds[i+1]
+
+    min_dest_in_range(parsed.flat, range_min, range_min + range_len)
+  })
+  |> min()
 }
 
+
+let lookup = fn(maps, seed) {
+  reduce(maps, seed, fn (m, acc) {
+    src_to_dest(m, acc)
+  })
+}
+
+let src_to_dest = fn(m, src) {
+  var r = (0, 0)
+  for (s, d) in m {
+    if src >= s { r = (s, d) }
+  }
+
+  r[1] + (src - r[0])
+}
+
+let flatten_maps = fn (a, b) {
+  var out = []
+
+  let convert = fn (s) {
+    src_to_dest(b, src_to_dest(a, s))
+  }
+
+  for (i, (s, d)) in enumerate(a) {
+    out = append(out, (s, convert(s)))
+    if i < len(a) - 1 {
+      let range_len = a[i+1][0] - s
+      for br in breaks_in_range(b, d, d + range_len) {
+        let of = br - d
+        out = append(out, (s + of, convert(s + of)))
+      }
+    }
+  }
+
+  out
+}
+
+let breaks_in_range = fn (m, start, end) {
+  var breaks = []
+  for (s, d) in m {
+    if s > start && s <= end {
+      breaks = append(breaks, s)
+    }
+  }
+  breaks
+}
+
+let min_dest_in_range = fn(m, start, end) {
+  var min_dest = INT64_MAX
+
+  for (s, d) in m {
+    if s >= start && s <= end {
+      if d < min_dest {
+        min_dest = d
+      }
+    }
+  }
+
+  min_dest
+}
 
 // --------------
 

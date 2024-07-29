@@ -41,11 +41,17 @@ impl Program {
     }
 
     pub fn variable_location(&self, node: &Node) -> VariableLocation {
-        self.get_module(&node.id.module())
+        match self
+            .get_module(&node.id.module())
             .expect("expected module loaded")
             .variable_locations
             .get(&node.id)
-            .expect("variable location missing for node")
-            .clone()
+        {
+            Some(l) => l.clone(),
+            None => panic!(
+                "variable location not found for node at {}: {:?}",
+                node.source, node
+            ),
+        }
     }
 }

@@ -92,6 +92,15 @@ let max = fn(enum) {
   result
 }
 
+let enumerate = fn(enum) {
+  var i = 0
+  map(enum, fn (x) {
+    let result = (i, x)
+    i = i + 1
+    result
+  })
+}
+
 let unique = fn(enum) {
   var seen = {}
   var result = []

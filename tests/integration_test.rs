@@ -330,6 +330,11 @@ fn test_tuple_unpacking() {
         assert(b == "two")
         assert(c == c)
 
+        let (x, (y, z)) = (1, (2, 3))
+        assert(x == 1)
+        assert(y == 2)
+        assert(z == 3)
+
         let pairs = [("red", 5), ("green", 2), ("blue", 114)]
         var copied = []
         for (k, v) in pairs {
