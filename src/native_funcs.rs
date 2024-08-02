@@ -24,6 +24,7 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         // lists
         ("append", append),
         ("sort_impl", sort_impl),
+        ("reverse", reverse),
         // strings
         ("split", split),
         ("trim", trim),
@@ -169,6 +170,19 @@ fn append(args: &[Value]) -> Result<Value, Exception> {
     };
     let mut new_list = list.as_ref().clone();
     new_list.push(args[1].clone());
+    Ok(Value::List(Rc::new(new_list)))
+}
+
+fn reverse(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("reverse(list) expected one arg")
+    }
+    let list = match &args[0] {
+        Value::List(l) => Rc::clone(l),
+        _ => exception!("expected list at arg 0"),
+    };
+    let mut new_list = list.as_ref().clone();
+    new_list.reverse();
     Ok(Value::List(Rc::new(new_list)))
 }
 

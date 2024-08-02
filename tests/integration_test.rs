@@ -87,6 +87,15 @@ fn test_append() {
 }
 
 #[test]
+fn test_reverse() {
+    assert_runs! {
+        r#"
+        assert(reverse([1, 2, 3]) == [3, 2, 1])
+        "#
+    };
+}
+
+#[test]
 fn test_get() {
     assert_runs! {
         r#"

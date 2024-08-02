@@ -8,6 +8,7 @@ __builtin len
 __builtin get
 __builtin iter
 __builtin append
+__builtin reverse
 __builtin sort_impl
 __builtin split
 __builtin trim
