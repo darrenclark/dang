@@ -11,3 +11,4 @@ pub mod stdlib;
 pub mod string_utils;
 pub mod struct_info;
 pub mod value;
+pub mod vm;
