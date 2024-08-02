@@ -265,6 +265,15 @@ impl Value {
         }
     }
 
+    pub fn cast_to_string(&self) -> Result<Value, Exception> {
+        match self {
+            Self::String(_) => Ok(self.clone()),
+            Self::Integer(i) => Ok(Value::String(i.to_string())),
+            Self::Bool(b) => Ok(Value::String(b.to_string())),
+            _ => exception!("cannot cast {:?} to string", self),
+        }
+    }
+
     pub fn cast_to_symbol(&self) -> Result<Value, Exception> {
         match self {
             Self::String(contents) => Ok(Self::Symbol(Ustr::from(contents))),

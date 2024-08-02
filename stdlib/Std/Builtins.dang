@@ -20,6 +20,7 @@ __builtin regex_match
 __builtin regex_find
 __builtin regex_find_index
 __builtin int
+__builtin str
 __builtin symbol
 __builtin raise
 

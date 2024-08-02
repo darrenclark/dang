@@ -113,6 +113,10 @@ let unique = fn(enum) {
   result
 }
 
+let join = fn(enum) {
+  reduce(enum, "", fn(x, acc) { acc + x })
+}
+
 let sort = fn(enum) {
   sort_impl(to_list(enum))
 }
