@@ -34,6 +34,8 @@ Lower priority:
 - descriptive assert (show different parts of expression)
 - Shadowing library provided functions (perhaps it gives a warning instead?)
 - Pattern matching?
+    - `match` statement
+    - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`
 - UFCS? Is it even possible?
 
 ## Bugs / Limitations
