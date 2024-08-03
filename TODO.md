@@ -1,11 +1,21 @@
 # Todo
 
-Priorities:
+## VM
 
-1. ~modules refactor~ (mostly done)
-2. structs
-3. ~tuples~
-4. iterators
+- Remove emit_bytecode_phase from Interpreter's compiler
+- Pipe -> Function compiler phase (and remove pipe handling from interpreter)
+
+- If statements
+- Short circuiting
+- Strings
+
+- Debug info in compiled chunks:
+    - line numbers per instruction
+
+- Functions
+    - local variables
+
+- Closures
 
 ## Future
 

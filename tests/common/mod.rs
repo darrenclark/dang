@@ -5,9 +5,11 @@
 use std::path::PathBuf;
 
 use dang::ast::Node;
+use dang::compiler::Compiler;
 use dang::compiler::Input;
 use dang::interpreter::Exception;
 use dang::interpreter::Interpreter;
+use dang::program::Program;
 use dang::value::Value;
 
 macro_rules! assert_runs {
@@ -26,6 +28,22 @@ macro_rules! assert_runs {
 }
 pub(crate) use assert_runs;
 
+macro_rules! assert_runs_vm {
+    ($c:expr) => {
+        match common::run_vm($c, "(run)") {
+            Ok(val) => val,
+            Err(reason) => panic!("{}", reason),
+        }
+    };
+    ($module_name: literal, $c:expr) => {
+        match common::run_vm($c, $module_name) {
+            Ok(val) => val,
+            Err(reason) => panic!("{}", reason),
+        }
+    };
+}
+pub(crate) use assert_runs_vm;
+
 macro_rules! assert_raises {
     (($line: literal, $msg: literal), $c:expr) => {
         match common::run($c, "(run)") {
@@ -41,6 +59,7 @@ macro_rules! assert_raises {
     };
 }
 pub(crate) use assert_raises;
+use dang::vm::VM;
 
 pub fn run(code: &str, module_name: &str) -> Result<Value, Exception> {
     let mut interpreter = Interpreter::new();
@@ -53,6 +72,30 @@ pub fn run(code: &str, module_name: &str) -> Result<Value, Exception> {
         text: code.to_owned(),
         name: module_name.to_owned(),
     })
+}
+
+pub fn run_vm(code: &str, module_name: &str) -> Result<Value, Exception> {
+    let mut compiler = Compiler::default();
+    compiler.implicit_imports.clear();
+
+    let mut program = Program::default();
+
+    let input = Input::SourceCode {
+        text: code.to_owned(),
+        name: module_name.to_owned(),
+    };
+
+    match compiler.compile(input, &mut program) {
+        Ok(_) => {
+            let module_name = program.module_names().first().cloned().unwrap();
+            let module = program.get_module(&module_name).unwrap();
+            let mut vm = VM::new(module.chunk.clone());
+            vm.run()
+        }
+        Err(e) => {
+            panic!("failed to compile: {:?}", e);
+        }
+    }
 }
 
 pub fn parse(code: &str) -> Node {

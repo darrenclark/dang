@@ -72,10 +72,16 @@ impl VM {
 
                 Instr {
                     op: OpCode::Call,
-                    arg0: _,
+                    arg0,
                     ..
                 } => {
-                    todo!()
+                    let args = self.stack.split_off(self.stack.len() - arg0 as usize);
+                    let callee = self.stack.pop().unwrap();
+                    let res = match callee {
+                        Value::NativeFunc(ptr) => ptr(&args)?,
+                        _ => todo!(),
+                    };
+                    self.stack.push(res);
                 }
 
                 Instr {

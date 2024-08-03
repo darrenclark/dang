@@ -1,6 +1,7 @@
 use crate::{
     ast::{BinOp, Node, NodeKind, UnaryOp},
     interpreter::Exception,
+    native_funcs,
     program::Program,
     scope::VariableLocation,
     value::Value,
@@ -40,6 +41,12 @@ impl Emitter<'_> {
                     self.emit(statement);
                 }
                 self.chunk.write(Instr::return_());
+            }
+            NodeKind::Builtin { identifier } => {
+                let ptr = native_funcs::func(identifier.unwrap_identifier()).unwrap();
+                let constant = self.chunk.write_constant(Value::NativeFunc(ptr));
+                self.chunk.write(Instr::constant(constant));
+                self.emit_set(node);
             }
             NodeKind::Let { pattern, expr }
             | NodeKind::Var { pattern, expr }
@@ -105,6 +112,13 @@ impl Emitter<'_> {
                         self.chunk.write(Instr::logical_neg());
                     }
                 }
+            }
+            NodeKind::FunctionCall { function, args } => {
+                self.emit_get(function);
+                for arg in args {
+                    self.emit(arg);
+                }
+                self.chunk.write(Instr::call(args.len() as u8));
             }
             _ => todo!(),
         }
