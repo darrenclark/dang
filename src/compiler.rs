@@ -30,7 +30,7 @@ use crate::{
     interpreter::Exception,
     module::ModuleName,
     program::Program,
-    scope::VariableLocation,
+    scope::{VariableAllocation, VariableLocation},
     struct_info::StructInfo,
     value::Value,
     vm::chunk::Chunk,
@@ -62,6 +62,7 @@ pub struct CompilationState {
     pub exports: HashMap<String, VariableLocation>,
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
+    pub variable_allocations: HashMap<NodeId, VariableAllocation>,
     pub struct_info: Option<StructInfo>,
     pub chunk: Chunk,
 }
@@ -83,6 +84,7 @@ impl CompilationState {
             exports: HashMap::new(),
             constants: HashMap::new(),
             variable_locations: HashMap::new(),
+            variable_allocations: HashMap::new(),
             struct_info: None,
             chunk: Chunk::new(),
         }

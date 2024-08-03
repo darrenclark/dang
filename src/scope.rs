@@ -5,32 +5,58 @@ use ustr::Ustr;
 
 use crate::{ast::NodeId, module::ModuleName};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Scope {
-    size: usize,
     definitions: HashMap<String, NodeId>,
-    definition_indices: HashMap<String, usize>,
+    base_offset: usize,
+    indices: Vec<String>,
 }
 
 impl Scope {
+    pub fn new_global_scope() -> Self {
+        Self {
+            definitions: HashMap::new(),
+            base_offset: 0,
+            indices: Vec::new(),
+        }
+    }
+
+    pub fn new_function_scope() -> Self {
+        Self {
+            definitions: HashMap::new(),
+            base_offset: 0,
+            indices: Vec::new(),
+        }
+    }
+
+    pub fn new_child_scope(parent: &Scope) -> Self {
+        Self {
+            definitions: HashMap::new(),
+            base_offset: parent.base_offset + parent.definitions.len(),
+            indices: Vec::new(),
+        }
+    }
+
     pub fn define(&mut self, name: &str, node_id: NodeId) {
         assert!(!self.is_defined(name));
 
         self.definitions.insert(name.to_owned(), node_id);
-        self.definition_indices.insert(name.to_owned(), self.size);
-        self.size += 1;
+        self.indices.push(name.to_owned());
     }
 
     pub fn is_defined(&self, name: &str) -> bool {
         self.definitions.contains_key(name)
     }
 
-    pub fn get_node_id(&self, name: &str) -> Option<NodeId> {
-        self.definitions.get(name).cloned()
+    pub fn get_index(&self, name: &str) -> Option<usize> {
+        self.indices
+            .iter()
+            .position(|n| n == name)
+            .map(|i| i + self.base_offset)
     }
 
-    pub fn get_index(&self, name: &str) -> Option<usize> {
-        self.definition_indices.get(name).cloned()
+    pub fn get_node_id(&self, name: &str) -> Option<NodeId> {
+        self.definitions.get(name).cloned()
     }
 
     pub fn get_definitions(&self) -> &HashMap<String, NodeId> {
@@ -85,4 +111,17 @@ impl VariableLocation {
             VariableLocation::Local { name } => (*LOCAL, *name),
         }
     }
+}
+
+/// VM equivalent of VariableLocation
+#[derive(Debug, Clone)]
+pub enum VariableAllocation {
+    Global {
+        module: ModuleName,
+        name: Ustr,
+    },
+    /// index relative to the frame base
+    Local {
+        index: usize,
+    },
 }

@@ -3,7 +3,7 @@ use crate::{
     interpreter::Exception,
     native_funcs,
     program::Program,
-    scope::VariableLocation,
+    scope::VariableAllocation,
     value::Value,
     vm::{chunk::Chunk, function::Function, inst::Instr},
 };
@@ -204,14 +204,14 @@ impl Emitter<'_> {
     }
 
     fn emit_set(&mut self, node: &Node) {
-        let variable_location = self
+        let variable_allocation = self
             .compilation_state
-            .variable_locations
+            .variable_allocations
             .get(&node.id)
             .unwrap();
 
-        match variable_location {
-            VariableLocation::Global { module, name } => {
+        match variable_allocation {
+            VariableAllocation::Global { module, name } => {
                 let module = self.chunk.write_constant(Value::Symbol(module.0));
                 let name = self.chunk.write_constant(Value::Symbol(*name));
                 self.chunk.write(Instr::set_global(module, name));
@@ -221,13 +221,13 @@ impl Emitter<'_> {
     }
 
     fn emit_get(&mut self, node: &Node) {
-        let variable_location = self
+        let variable_allocation = self
             .compilation_state
-            .variable_locations
+            .variable_allocations
             .get(&node.id)
             .unwrap();
-        match variable_location {
-            VariableLocation::Global { module, name } => {
+        match variable_allocation {
+            VariableAllocation::Global { module, name } => {
                 let module = self.chunk.write_constant(Value::Symbol(module.0));
                 let name = self.chunk.write_constant(Value::Symbol(*name));
                 self.chunk.write(Instr::get_global(module, name));

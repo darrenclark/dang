@@ -6,7 +6,7 @@ use crate::{
     ast::{AstWalker, ImportKind, Node, NodeId, NodeKind},
     interpreter::{exception, Exception},
     program::Program,
-    scope::{Scope, VariableLocation},
+    scope::{Scope, VariableAllocation, VariableLocation},
     value::Value,
 };
 
@@ -18,6 +18,7 @@ pub fn resolve_variables_phase(
     program: &mut Program,
 ) -> Result<(), Exception> {
     let variable_locations: HashMap<NodeId, VariableLocation>;
+    let variable_allocations: HashMap<NodeId, VariableAllocation>;
     let exports: HashMap<String, VariableLocation>;
     let constants: HashMap<String, Value>;
 
@@ -30,6 +31,7 @@ pub fn resolve_variables_phase(
         }
 
         variable_locations = phase.variable_locations;
+        variable_allocations = phase.variable_allocations;
         exports = phase.exports;
         constants = phase.constants;
     }
@@ -37,6 +39,9 @@ pub fn resolve_variables_phase(
     compilation_state
         .variable_locations
         .clone_from(&variable_locations);
+    compilation_state
+        .variable_allocations
+        .clone_from(&variable_allocations);
     compilation_state.exports.clone_from(&exports);
     compilation_state.constants.clone_from(&constants);
     Ok(())
@@ -50,6 +55,7 @@ pub struct ResolveVariablesPhase<'a> {
     pub constants: HashMap<String, Value>,
     pub scopes: HashMap<NodeId, Scope>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
+    pub variable_allocations: HashMap<NodeId, VariableAllocation>,
     pub global_scope: Scope,
     scopes_stack: Vec<Scope>,
     pub errors: Vec<Exception>,
@@ -67,7 +73,8 @@ impl<'a> ResolveVariablesPhase<'a> {
             constants: HashMap::new(),
             scopes: HashMap::new(),
             variable_locations: HashMap::new(),
-            global_scope: Scope::default(),
+            variable_allocations: HashMap::new(),
+            global_scope: Scope::new_global_scope(),
             scopes_stack: Vec::new(),
             errors: Vec::new(),
         }
@@ -77,8 +84,17 @@ impl<'a> ResolveVariablesPhase<'a> {
         self.compilation_state.ast().walk(self)
     }
 
-    fn push_scope(&mut self) {
-        self.scopes_stack.push(Scope::default());
+    fn push_child_scope(&mut self) {
+        let parent = self.scopes_stack.last().unwrap();
+        self.scopes_stack.push(Scope::new_child_scope(parent));
+    }
+
+    fn push_global_scope(&mut self) {
+        self.scopes_stack.push(Scope::new_global_scope());
+    }
+
+    fn push_function_scope(&mut self) {
+        self.scopes_stack.push(Scope::new_function_scope());
     }
 
     fn pop_scope(&mut self) -> Option<Scope> {
@@ -100,6 +116,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             Err(())
         } else {
             scope.define(name, node.id);
+            let index = scope.get_index(name).unwrap();
 
             let location = if self.is_global_scope() {
                 VariableLocation::Global {
@@ -111,6 +128,17 @@ impl<'a> ResolveVariablesPhase<'a> {
             };
 
             self.variable_locations.insert(node.id, location.clone());
+
+            let allocation = if self.is_global_scope() {
+                VariableAllocation::Global {
+                    module: self.compilation_state.module_name,
+                    name: name.into(),
+                }
+            } else {
+                VariableAllocation::Local { index }
+            };
+            self.variable_allocations.insert(node.id, allocation);
+
             Ok(location)
         }
     }
@@ -125,25 +153,39 @@ impl<'a> ResolveVariablesPhase<'a> {
         }
     }
 
-    fn lookup(&self, name: &str) -> Option<VariableLocation> {
+    fn lookup(&self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
         self.scopes_stack
             .iter()
             .rev()
             .enumerate()
             .find_map(|(i, s)| {
-                if let Some(_) = s.get_node_id(name) {
+                if s.get_node_id(name).is_some() {
                     if i >= self.scopes_stack.len() - 1 {
-                        Some(VariableLocation::Global {
+                        let location = VariableLocation::Global {
                             module: self.compilation_state.module_name,
                             name: name.into(),
-                        })
+                        };
+                        let allocation = VariableAllocation::Global {
+                            module: self.compilation_state.module_name,
+                            name: name.into(),
+                        };
+                        Some((location, allocation))
                     } else if i == 0 {
-                        Some(VariableLocation::Local { name: name.into() })
+                        let location = VariableLocation::Local { name: name.into() };
+                        let allocation = VariableAllocation::Local {
+                            index: s.get_index(name).unwrap(),
+                        };
+                        Some((location, allocation))
                     } else {
-                        Some(VariableLocation::Closure {
+                        let location = VariableLocation::Closure {
                             name: name.into(),
                             nth_parent: i,
-                        })
+                        };
+                        // TODO: Handle closed over variables
+                        let allocation = VariableAllocation::Local {
+                            index: s.get_index(name).unwrap(),
+                        };
+                        Some((location, allocation))
                     }
                 } else {
                     None
@@ -152,7 +194,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             .or_else(|| self.lookup_imported(name))
     }
 
-    fn lookup_imported(&self, name: &str) -> Option<VariableLocation> {
+    fn lookup_imported(&self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
         for resolved_import in &self.compilation_state.imports {
             match &resolved_import.kind {
                 super::ResolvedImportKind::Module => {
@@ -171,10 +213,15 @@ impl<'a> ResolveVariablesPhase<'a> {
                         {
                             None => panic!("importing by field name, but field does not exist"),
                             Some(_) => {
-                                return Some(VariableLocation::Global {
+                                let location = VariableLocation::Global {
                                     module: resolved_import.module_name,
                                     name: name.into(),
-                                })
+                                };
+                                let allocation = VariableAllocation::Global {
+                                    module: resolved_import.module_name,
+                                    name: name.into(),
+                                };
+                                return Some((location, allocation));
                             }
                         }
                     }
@@ -184,11 +231,16 @@ impl<'a> ResolveVariablesPhase<'a> {
                         .program
                         .get_module(&resolved_import.module_name)
                         .unwrap();
-                    if let Some(_) = module.exports.get(name) {
-                        return Some(VariableLocation::Global {
+                    if module.exports.contains_key(name) {
+                        let location = VariableLocation::Global {
                             module: resolved_import.module_name,
                             name: name.into(),
-                        });
+                        };
+                        let allocation = VariableAllocation::Global {
+                            module: resolved_import.module_name,
+                            name: name.into(),
+                        };
+                        return Some((location, allocation));
                     }
                 }
             }
@@ -199,8 +251,9 @@ impl<'a> ResolveVariablesPhase<'a> {
 
     fn resolve_variable(&mut self, node: &Node, name: &str) {
         match self.lookup(name) {
-            Some(location) => {
+            Some((location, allocaction)) => {
                 self.variable_locations.insert(node.id, location);
+                self.variable_allocations.insert(node.id, allocaction);
             }
             None => self.errors.push(Exception {
                 source: Some(node.source.clone()),
@@ -256,7 +309,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn enter_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(children) => {
-                self.push_scope();
+                self.push_global_scope();
                 self.hoist_variables(children);
             }
             NodeKind::Module(name) => {
@@ -273,10 +326,10 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.define_constant(short_name, node, value);
             }
             NodeKind::Body(_) => {
-                self.push_scope();
+                self.push_child_scope();
             }
             NodeKind::FunctionLiteral { arg_names, .. } => {
-                self.push_scope();
+                self.push_function_scope();
                 for arg_name in arg_names {
                     let _ = self.define(arg_name.unwrap_identifier(), arg_name);
                 }
@@ -286,7 +339,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 enumerable: _,
                 body: _,
             } => {
-                self.push_scope();
+                self.push_child_scope();
                 self.define_all_in_pattern(pattern);
             }
             NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {
