@@ -42,6 +42,11 @@ impl Emitter<'_> {
                 }
                 self.chunk.write(Instr::return_());
             }
+            NodeKind::Body(statements) => {
+                for statement in statements {
+                    self.emit(statement);
+                }
+            }
             NodeKind::Builtin { identifier } => {
                 let ptr = native_funcs::func(identifier.unwrap_identifier()).unwrap();
                 let constant = self.chunk.write_constant(Value::NativeFunc(ptr));
@@ -146,6 +151,28 @@ impl Emitter<'_> {
                     self.emit(arg);
                 }
                 self.chunk.write(Instr::call(args.len() as u8));
+            }
+            NodeKind::If {
+                condition,
+                body,
+                else_branch,
+            } => {
+                self.emit(condition);
+                let branch = self.chunk.write(Instr::branch_if_false(0));
+
+                // body - first pop off condition
+                self.chunk.write(Instr::pop());
+                self.emit(body);
+                let jump = self.chunk.write(Instr::jump(0));
+
+                // else branch - always needs to pop off the condition
+                self.chunk.patch_jump(branch);
+                self.chunk.write(Instr::pop());
+                if let Some(else_branch) = else_branch {
+                    self.emit(else_branch);
+                }
+
+                self.chunk.patch_jump(jump);
             }
             _ => todo!(),
         }

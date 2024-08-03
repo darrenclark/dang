@@ -60,3 +60,20 @@ fn short_circuiting() {
         "#
     };
 }
+
+#[test]
+fn if_statements() {
+    assert_runs_vm! {
+        r#"
+        __builtin raise
+
+        let a = 5
+        let b = 3
+        if a > b {
+            "ok"
+        } else {
+            raise("This should not be called")
+        }
+        "#
+    };
+}

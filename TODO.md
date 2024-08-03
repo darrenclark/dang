@@ -2,8 +2,6 @@
 
 ## VM
 
-- If statements
-
 - Debug info in compiled chunks:
     - line numbers per instruction
 

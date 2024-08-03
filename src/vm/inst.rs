@@ -51,6 +51,8 @@ pub enum OpCode {
     BranchIfFalse,
     /// Pop -1 +0 - pops value from stack
     Pop,
+    /// Jump(offset:24bit) -0 +0 - jumps forward to the given offset
+    Jump,
 }
 
 impl Instr {
@@ -142,6 +144,15 @@ impl Instr {
 
     pub fn pop() -> Self {
         Self::new(OpCode::Pop, 0, 0, 0)
+    }
+
+    pub fn jump(offset: usize) -> Self {
+        Self::new(
+            OpCode::Jump,
+            offset as u8,
+            (offset >> 8) as u8,
+            (offset >> 16) as u8,
+        )
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

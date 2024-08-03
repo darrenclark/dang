@@ -215,6 +215,12 @@ impl VM {
                 } => {
                     self.stack.pop().unwrap();
                 }
+
+                Instr {
+                    op: OpCode::Jump, ..
+                } => {
+                    self.ip += self.chunk.code[ip].wide_arg();
+                }
             }
         }
     }

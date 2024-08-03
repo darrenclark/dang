@@ -17,4 +17,12 @@ d = d + 5
 let y = true && "it works!"
 inspect(y)
 
-inspect(d) / inspect(a * -b)
+let result = inspect(d) / inspect(a * -b)
+
+if result > 0 {
+  println("positive")
+  1
+} else {
+  println("negative")
+  -1
+}

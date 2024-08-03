@@ -88,6 +88,9 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Pop, ..
         } => println!("Pop"),
+        Instr {
+            op: OpCode::Jump, ..
+        } => println!("Jump {}", instr.wide_arg()),
     }
 }
 
