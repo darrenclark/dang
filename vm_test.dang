@@ -38,4 +38,6 @@ add_plus_ten(5, 2)
 let l = [1, 2, 3, 4]
 let l2 = [a, b, c, d]
 
-(l, l2)
+{a: 1, b: 2}
+
+{result: (l, l2), add_plus_ten: add_plus_ten}

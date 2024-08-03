@@ -61,6 +61,8 @@ pub enum OpCode {
     MakeList,
     /// MakeTuple(size:24bit) -n +1 - makes a tuple with n elements
     MakeTuple,
+    /// MakeDict(size:24bit) -n*2 +1 - makes a dictionary with n key value pairs
+    MakeDict,
 }
 
 impl Instr {
@@ -162,6 +164,10 @@ impl Instr {
 
     pub fn make_tuple(size: usize) -> Self {
         Self::new_wide(OpCode::MakeTuple, size)
+    }
+
+    pub fn make_dict(size: usize) -> Self {
+        Self::new_wide(OpCode::MakeDict, size)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

@@ -219,6 +219,18 @@ impl Emitter<'_> {
                     self.chunk.write(Instr::make_tuple(items.len()));
                 }
             }
+            NodeKind::DictLiteral(pairs) => {
+                if let Some(v) = node.compile_time_value() {
+                    let constant = self.chunk.write_constant(v);
+                    self.chunk.write(Instr::constant(constant));
+                } else {
+                    for (key, value) in pairs {
+                        self.emit(key);
+                        self.emit(value);
+                    }
+                    self.chunk.write(Instr::make_dict(pairs.len()));
+                }
+            }
             _ => todo!(),
         }
     }

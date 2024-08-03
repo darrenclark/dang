@@ -275,22 +275,39 @@ impl VM {
                     *self.ip_mut() += self.chunk().code[ip].wide_arg();
                 }
 
-                Instr {
+                instr @ Instr {
                     op: OpCode::MakeList,
-                    arg0,
                     ..
                 } => {
-                    let args = self.stack.split_off(self.stack.len() - arg0 as usize);
+                    let args = self.stack.split_off(self.stack.len() - instr.wide_arg());
                     self.stack.push(Value::List(Rc::new(args)));
                 }
 
-                Instr {
+                instr @ Instr {
                     op: OpCode::MakeTuple,
-                    arg0,
                     ..
                 } => {
-                    let args = self.stack.split_off(self.stack.len() - arg0 as usize);
+                    let args = self.stack.split_off(self.stack.len() - instr.wide_arg());
                     self.stack.push(Value::Tuple(args));
+                }
+
+                instr @ Instr {
+                    op: OpCode::MakeDict,
+                    ..
+                } => {
+                    #[allow(clippy::mutable_key_type)]
+                    let dict = self
+                        .stack
+                        .split_off(self.stack.len() - 2 * instr.wide_arg())
+                        .chunks(2)
+                        .map(|chunk| {
+                            let key = chunk[0].clone();
+                            let value = chunk[1].clone();
+                            (key, value)
+                        })
+                        .collect();
+
+                    self.stack.push(Value::Dict(dict));
                 }
             }
         }

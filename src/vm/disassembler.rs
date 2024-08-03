@@ -120,6 +120,10 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::MakeTuple,
             ..
         } => println!("MakeTuple {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::MakeDict,
+            ..
+        } => println!("MakeDict {}", instr.wide_arg()),
     }
 }
 
