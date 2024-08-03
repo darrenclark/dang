@@ -13,6 +13,7 @@ use ustr::Ustr;
 use crate::ast::{BinOp, UnaryOp};
 use crate::interpreter::Environment;
 use crate::module::ModuleName;
+use crate::vm::function::Function;
 use crate::{
     ast::Node,
     interpreter::{exception, Exception},
@@ -28,6 +29,7 @@ pub enum Value {
     NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
     NativeClosure(NativeClosure),
     Func(FunctionLiteral),
+    Function(Function),
     Tuple(Vec<Value>),
     List(Rc<Vec<Value>>),
     Dict(BTreeMap<Value, Value>),
@@ -371,6 +373,7 @@ impl Value {
             Value::NativeFunc(ptr) => RcDoc::text(format!("<NativeFunc({:?})>", ptr)),
             Value::NativeClosure(c) => RcDoc::text(format!("<NativeFunc({:?})>", c)),
             Value::Func(literal) => RcDoc::text(format!("<Func({})>", literal.body.source)),
+            Value::Function(function) => RcDoc::text(format!("<Func({:?})>", function)),
             Value::Tuple(list) if list.len() == 1 => RcDoc::text("(")
                 .append(list[0].to_doc())
                 .append(",")

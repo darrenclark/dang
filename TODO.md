@@ -7,6 +7,8 @@
 
 - Functions
     - local variables
+    - arguments
+    - some way to disassemble them
 
 - Closures
 

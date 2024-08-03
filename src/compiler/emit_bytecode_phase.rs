@@ -5,7 +5,7 @@ use crate::{
     program::Program,
     scope::VariableLocation,
     value::Value,
-    vm::{chunk::Chunk, inst::Instr},
+    vm::{chunk::Chunk, function::Function, inst::Instr},
 };
 
 use super::{CompilationState, Compiler};
@@ -174,6 +174,19 @@ impl Emitter<'_> {
 
                 self.chunk.patch_jump(jump);
             }
+            NodeKind::FunctionLiteral { arg_names, body } => {
+                let mut chunk = Chunk::new();
+
+                let mut emitter = Emitter {
+                    compilation_state: self.compilation_state,
+                    chunk: &mut chunk,
+                };
+                emitter.emit_function(arg_names, body);
+
+                let function = Value::Function(Function::new(chunk));
+                let constant = self.chunk.write_constant(function);
+                self.chunk.write(Instr::constant(constant));
+            }
             _ => todo!(),
         }
     }
@@ -221,5 +234,14 @@ impl Emitter<'_> {
             }
             _ => todo!(),
         }
+    }
+
+    fn emit_function(&mut self, arg_names: &[Node], body: &Node) {
+        if !arg_names.is_empty() {
+            todo!("support function parameters")
+        }
+
+        self.emit(body);
+        self.chunk.write(Instr::return_());
     }
 }

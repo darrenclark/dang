@@ -12,6 +12,7 @@ use crate::{
 
 pub mod chunk;
 pub mod disassembler;
+pub mod function;
 pub mod inst;
 
 pub struct VM {
