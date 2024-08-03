@@ -283,6 +283,15 @@ impl VM {
                     let args = self.stack.split_off(self.stack.len() - arg0 as usize);
                     self.stack.push(Value::List(Rc::new(args)));
                 }
+
+                Instr {
+                    op: OpCode::MakeTuple,
+                    arg0,
+                    ..
+                } => {
+                    let args = self.stack.split_off(self.stack.len() - arg0 as usize);
+                    self.stack.push(Value::Tuple(args));
+                }
             }
         }
     }

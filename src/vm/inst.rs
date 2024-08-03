@@ -59,6 +59,8 @@ pub enum OpCode {
     Jump,
     /// MakeList(size:24bit) -n +1 - makes a list with n elements
     MakeList,
+    /// MakeTuple(size:24bit) -n +1 - makes a tuple with n elements
+    MakeTuple,
 }
 
 impl Instr {
@@ -156,6 +158,10 @@ impl Instr {
 
     pub fn make_list(size: usize) -> Self {
         Self::new_wide(OpCode::MakeList, size)
+    }
+
+    pub fn make_tuple(size: usize) -> Self {
+        Self::new_wide(OpCode::MakeTuple, size)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

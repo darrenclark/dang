@@ -116,6 +116,10 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::MakeList,
             ..
         } => println!("MakeList {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::MakeTuple,
+            ..
+        } => println!("MakeTuple {}", instr.wide_arg()),
     }
 }
 

@@ -208,6 +208,17 @@ impl Emitter<'_> {
                     self.chunk.write(Instr::make_list(items.len()));
                 }
             }
+            NodeKind::TupleLiteral(items) => {
+                if let Some(v) = node.compile_time_value() {
+                    let constant = self.chunk.write_constant(v);
+                    self.chunk.write(Instr::constant(constant));
+                } else {
+                    for item in items {
+                        self.emit(item);
+                    }
+                    self.chunk.write(Instr::make_tuple(items.len()));
+                }
+            }
             _ => todo!(),
         }
     }

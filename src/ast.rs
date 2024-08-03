@@ -714,6 +714,17 @@ impl Node {
                 }
                 Some(Value::List(Rc::new(res)))
             }
+            NodeKind::TupleLiteral(elements) => {
+                let mut res = Vec::with_capacity(elements.len());
+                for e in elements {
+                    if let Some(v) = e.compile_time_value() {
+                        res.push(v)
+                    } else {
+                        return None;
+                    }
+                }
+                Some(Value::Tuple(res))
+            }
             NodeKind::DictLiteral(key_values) => {
                 let mut map = BTreeMap::new();
                 for (k, v) in key_values {
