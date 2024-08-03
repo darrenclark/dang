@@ -97,6 +97,13 @@ impl VM {
                     let callee = self.stack.pop().unwrap();
                     let res = match callee {
                         Value::NativeFunc(ptr) => ptr(&args)?,
+                        Value::Function(function) => {
+                            if !args.is_empty() {
+                                todo!("Support args");
+                            }
+                            self.frames.push(Frame::new(function, self.stack.len()));
+                            continue;
+                        }
                         _ => todo!(),
                     };
                     self.stack.push(res);
@@ -105,7 +112,14 @@ impl VM {
                 Instr {
                     op: OpCode::Return, ..
                 } => {
-                    return Ok(self.stack.pop().unwrap());
+                    if self.frames.len() == 1 {
+                        return Ok(self.stack.pop().unwrap());
+                    } else {
+                        let res = self.stack.pop().unwrap();
+                        let frame = self.frames.pop().unwrap();
+                        self.stack.truncate(frame.base);
+                        self.stack.push(res);
+                    }
                 }
                 Instr {
                     op: OpCode::Add, ..

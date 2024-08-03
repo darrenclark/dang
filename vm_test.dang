@@ -28,4 +28,4 @@ if result > 0 {
 }
 
 let x = fn() { 8 }
-x
+x()
