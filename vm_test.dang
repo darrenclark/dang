@@ -1,4 +1,9 @@
 __builtin inspect
+__builtin str
+__builtin println
+
+println(str(true))
+println(str(false))
 
 let a = 3
 let b = 5

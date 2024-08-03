@@ -53,6 +53,18 @@ impl Emitter<'_> {
             | NodeKind::Assignment { pattern, expr } => {
                 self.emit_assignment(pattern, expr);
             }
+            NodeKind::NilLiteral => {
+                let constant = self.chunk.write_constant(Value::Nil);
+                self.chunk.write(Instr::constant(constant));
+            }
+            NodeKind::BoolLiteral(bool) => {
+                let constant = self.chunk.write_constant(Value::Bool(*bool));
+                self.chunk.write(Instr::constant(constant));
+            }
+            NodeKind::StringLiteral(string) => {
+                let constant = self.chunk.write_constant(Value::String(string.clone()));
+                self.chunk.write(Instr::constant(constant));
+            }
             NodeKind::IntegerLiteral(int) => {
                 let constant = self.chunk.write_constant(Value::Integer(*int));
                 self.chunk.write(Instr::constant(constant));

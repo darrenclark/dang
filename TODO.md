@@ -7,7 +7,6 @@
 
 - If statements
 - Short circuiting
-- Strings
 
 - Debug info in compiled chunks:
     - line numbers per instruction
