@@ -2,7 +2,7 @@ use crate::value::Value;
 
 use super::inst::Instr;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Chunk {
     pub code: Vec<Instr>,
     pub constants: Vec<Value>,

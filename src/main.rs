@@ -2,9 +2,11 @@ use std::fs;
 
 use clap::Parser;
 use dang::ast::ImportKind;
-use dang::compiler::Input;
+use dang::compiler::{Compiler, Input};
 use dang::dang_parser::Rule;
 use dang::interpreter::Interpreter;
+use dang::program::Program;
+use dang::vm::VM;
 use dirs::home_dir;
 use pest::iterators::Pair;
 use pretty::termcolor::{ColorChoice, StandardStream};
@@ -22,6 +24,10 @@ struct Cli {
     #[arg(long)]
     print_ast: bool,
 
+    /// use VM instead of interpreter
+    #[arg(long)]
+    vm: bool,
+
     /// path to .dang file to execute
     path: Option<std::path::PathBuf>,
 
@@ -35,11 +41,12 @@ const HISTORY_FILE: &str = ".dang_history";
 fn main() -> Result<()> {
     let args = Cli::parse();
 
-    if (args.print_pest_parse_output || args.print_ast) && args.path.is_none() {
+    if (args.print_pest_parse_output || args.print_ast || args.vm) && args.path.is_none() {
         panic!("expected a file")
     }
 
     match &args.path {
+        Some(path) if args.vm => run_file_vm(&args, path),
         Some(path) => run_file(&args, path),
         None => repl(&args),
     }
@@ -69,6 +76,47 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 
         handle_input(&mut interpreter, file, path.to_str().unwrap(), false);
     }
+    Ok(())
+}
+
+fn run_file_vm(_args: &Cli, path: &std::path::PathBuf) -> Result<()> {
+    let file = fs::read_to_string(path)?;
+
+    let mut compiler = Compiler::default();
+    compiler.implicit_imports.clear();
+
+    let mut program = Program::default();
+
+    let input = Input::SourceCode {
+        text: file,
+        name: path.to_str().unwrap().to_owned(),
+    };
+
+    match compiler.compile(input, &mut program) {
+        Ok(_) => {
+            let module_name = program.module_names().first().cloned().unwrap();
+            let module = program.get_module(&module_name).unwrap();
+            let mut vm = VM::new(module.chunk.clone());
+            match vm.run() {
+                Ok(value) => {
+                    value
+                        .to_doc()
+                        .render_colored(80, StandardStream::stdout(ColorChoice::Auto))
+                        .unwrap();
+                    println!()
+                }
+                Err(e) => {
+                    println!("{}", e);
+                }
+            }
+        }
+        Err(errors) => {
+            for e in errors {
+                println!("{}", e);
+            }
+        }
+    }
+
     Ok(())
 }
 

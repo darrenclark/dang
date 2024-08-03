@@ -1,4 +1,5 @@
 pub mod compile_dependencies_phase;
+mod emit_bytecode_phase;
 pub mod finish_phase;
 mod insert_prelude_phase;
 pub mod node_ids_phase;
@@ -11,6 +12,7 @@ pub mod struct_info_phase;
 use std::{collections::HashMap, path::PathBuf};
 
 use compile_dependencies_phase::compile_dependencies_phase;
+use emit_bytecode_phase::emit_bytecode_phase;
 use finish_phase::finish_phase;
 use insert_prelude_phase::insert_prelude_phase;
 use lazy_static::lazy_static;
@@ -29,6 +31,7 @@ use crate::{
     scope::VariableLocation,
     struct_info::StructInfo,
     value::Value,
+    vm::chunk::Chunk,
 };
 
 #[derive(Clone, Debug)]
@@ -58,6 +61,7 @@ pub struct CompilationState {
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub struct_info: Option<StructInfo>,
+    pub chunk: Chunk,
 }
 
 impl CompilationState {
@@ -78,6 +82,7 @@ impl CompilationState {
             constants: HashMap::new(),
             variable_locations: HashMap::new(),
             struct_info: None,
+            chunk: Chunk::new(),
         }
     }
 
@@ -143,11 +148,12 @@ pub enum Phase {
     StructInfo,
     ResolveImports,
     ResolveVariables,
+    EmitBytecode,
     Finish,
 }
 
 impl Phase {
-    const PHASES: [(Self, PhaseFn); 9] = [
+    const PHASES: [(Self, PhaseFn); 10] = [
         (Self::ReadFile, read_file_phase),
         (Self::ParseAst, parse_ast_phase),
         (Self::InsertPrelude, insert_prelude_phase),
@@ -156,6 +162,7 @@ impl Phase {
         (Self::StructInfo, struct_info_phase),
         (Self::ResolveImports, resolve_imports_phase),
         (Self::ResolveVariables, resolve_variables_phase),
+        (Self::EmitBytecode, emit_bytecode_phase),
         (Self::Finish, finish_phase),
     ];
 }
