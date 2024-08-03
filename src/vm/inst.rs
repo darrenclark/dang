@@ -19,6 +19,30 @@ pub enum OpCode {
     Call,
     /// Return -1 - returns from function
     Return,
+    /// Add -2 +1 - adds two values
+    Add,
+    /// Sub -2 +1 - subtracts two values
+    Sub,
+    /// Mul -2 +1 - multiplies two values
+    Mul,
+    /// Div -2 +1 - divides two values
+    Div,
+    /// LogicalOr -2 +1 - logical OR between two values
+    LogicalOr,
+    /// LogicalAnd -2 +1 - logical AND between two values
+    LogicalAnd,
+    /// Eq -2 +1 - checks equality between two values
+    Eq,
+    /// Neq -2 +1 - checks inequality between two values
+    Neq,
+    /// Gt -2 +1 - checks if left value is greater than right value
+    Gt,
+    /// Gte -2 +1 - checks if left value is greater than or equal to right value
+    Gte,
+    /// Lt -2 +1 - checks if left value is less than right value
+    Lt,
+    /// Lte -2 +1 - checks if left value is less than or equal to right value
+    Lte,
 }
 
 impl Instr {
@@ -40,6 +64,54 @@ impl Instr {
 
     pub fn return_() -> Self {
         Self::new(OpCode::Return, 0, 0, 0)
+    }
+
+    pub fn add() -> Self {
+        Self::new(OpCode::Add, 0, 0, 0)
+    }
+
+    pub fn sub() -> Self {
+        Self::new(OpCode::Sub, 0, 0, 0)
+    }
+
+    pub fn mul() -> Self {
+        Self::new(OpCode::Mul, 0, 0, 0)
+    }
+
+    pub fn div() -> Self {
+        Self::new(OpCode::Div, 0, 0, 0)
+    }
+
+    pub fn logical_or() -> Self {
+        Self::new(OpCode::LogicalOr, 0, 0, 0)
+    }
+
+    pub fn logical_and() -> Self {
+        Self::new(OpCode::LogicalAnd, 0, 0, 0)
+    }
+
+    pub fn eq() -> Self {
+        Self::new(OpCode::Eq, 0, 0, 0)
+    }
+
+    pub fn neq() -> Self {
+        Self::new(OpCode::Neq, 0, 0, 0)
+    }
+
+    pub fn gt() -> Self {
+        Self::new(OpCode::Gt, 0, 0, 0)
+    }
+
+    pub fn gte() -> Self {
+        Self::new(OpCode::Gte, 0, 0, 0)
+    }
+
+    pub fn lt() -> Self {
+        Self::new(OpCode::Lt, 0, 0, 0)
+    }
+
+    pub fn lte() -> Self {
+        Self::new(OpCode::Lte, 0, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

@@ -46,6 +46,38 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Return, ..
         } => println!("Return"),
+        Instr {
+            op: OpCode::Add, ..
+        } => println!("Add"),
+        Instr {
+            op: OpCode::Sub, ..
+        } => println!("Sub"),
+        Instr {
+            op: OpCode::Mul, ..
+        } => println!("Mul"),
+        Instr {
+            op: OpCode::Div, ..
+        } => println!("Div"),
+        Instr {
+            op: OpCode::LogicalOr,
+            ..
+        } => println!("LogicalOr"),
+        Instr {
+            op: OpCode::LogicalAnd,
+            ..
+        } => println!("LogicalAnd"),
+        Instr { op: OpCode::Eq, .. } => println!("Eq"),
+        Instr {
+            op: OpCode::Neq, ..
+        } => println!("Neq"),
+        Instr { op: OpCode::Gt, .. } => println!("Gt"),
+        Instr {
+            op: OpCode::Gte, ..
+        } => println!("Gte"),
+        Instr { op: OpCode::Lt, .. } => println!("Lt"),
+        Instr {
+            op: OpCode::Lte, ..
+        } => println!("Lte"),
     }
 }
 

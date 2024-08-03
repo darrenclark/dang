@@ -1,5 +1,6 @@
 use core::fmt;
 use std::hash::Hash;
+use std::mem::discriminant;
 use std::rc::Rc;
 use std::{cell::RefCell, collections::BTreeMap};
 
@@ -9,6 +10,7 @@ use pretty::termcolor::{Color, ColorSpec};
 use pretty::RcDoc;
 use ustr::Ustr;
 
+use crate::ast::BinOp;
 use crate::interpreter::Environment;
 use crate::module::ModuleName;
 use crate::{
@@ -312,6 +314,39 @@ impl Value {
                     .map(|c| Value::String(String::from(c))),
             )),
             _ => None,
+        }
+    }
+
+    pub fn bin_op(op: BinOp, lhs: &Value, rhs: &Value) -> Result<Value, Exception> {
+        match (op, &lhs, &rhs) {
+            // Addition
+            (BinOp::Add, Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
+            (BinOp::Add, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
+            (BinOp::Add, Value::List(l), Value::List(r)) => {
+                let mut res = (**l).clone();
+                res.extend(r.iter().cloned());
+                Ok(Value::List(Rc::new(res)))
+            }
+            // Subtraction
+            (BinOp::Sub, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l - r)),
+            // Multiplication
+            (BinOp::Mul, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l * r)),
+            // Division
+            (BinOp::Div, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l / r)),
+            // || &&
+            (BinOp::LogicalOr | BinOp::LogicalAnd, _, _) => unreachable!("handled in caller"),
+            // == / !=
+            (BinOp::Eq, l, r) => Ok(Value::Bool(l == r)),
+            (BinOp::Neq, l, r) => Ok(Value::Bool(l != r)),
+            // >=, <, etc.
+            (BinOp::Gt, l, r) if discriminant(*l) == discriminant(*r) => Ok(Value::Bool(l > r)),
+            (BinOp::Gte, l, r) if discriminant(*l) == discriminant(*r) => Ok(Value::Bool(l >= r)),
+            (BinOp::Lt, l, r) if discriminant(*l) == discriminant(*r) => Ok(Value::Bool(l < r)),
+            (BinOp::Lte, l, r) if discriminant(*l) == discriminant(*r) => Ok(Value::Bool(l <= r)),
+            // Error
+            (_, l, r) => {
+                exception!("cannot apply `{:?}` to {:?} and {:?}", op, l, r)
+            }
         }
     }
 

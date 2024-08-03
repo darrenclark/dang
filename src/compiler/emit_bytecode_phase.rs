@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Node, NodeKind},
+    ast::{BinOp, Node, NodeKind},
     interpreter::Exception,
     program::Program,
     scope::VariableLocation,
@@ -50,6 +50,48 @@ impl Emitter<'_> {
             }
             NodeKind::VariableRef { .. } => {
                 self.emit_get(node);
+            }
+            NodeKind::BinaryOp { op, lhs, rhs } => {
+                self.emit(lhs);
+                self.emit(rhs);
+                match op {
+                    BinOp::Add => {
+                        self.chunk.write(Instr::add());
+                    }
+                    BinOp::Sub => {
+                        self.chunk.write(Instr::sub());
+                    }
+                    BinOp::Mul => {
+                        self.chunk.write(Instr::mul());
+                    }
+                    BinOp::Div => {
+                        self.chunk.write(Instr::div());
+                    }
+                    BinOp::Gt => {
+                        self.chunk.write(Instr::gt());
+                    }
+                    BinOp::Gte => {
+                        self.chunk.write(Instr::gte());
+                    }
+                    BinOp::Lt => {
+                        self.chunk.write(Instr::lt());
+                    }
+                    BinOp::Lte => {
+                        self.chunk.write(Instr::lte());
+                    }
+                    BinOp::Eq => {
+                        self.chunk.write(Instr::eq());
+                    }
+                    BinOp::Neq => {
+                        self.chunk.write(Instr::neq());
+                    }
+                    BinOp::LogicalOr => {
+                        self.chunk.write(Instr::logical_or());
+                    }
+                    BinOp::LogicalAnd => {
+                        self.chunk.write(Instr::logical_and());
+                    }
+                }
             }
             _ => todo!(),
         }

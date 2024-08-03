@@ -5,6 +5,7 @@ use inst::{Instr, OpCode};
 use ustr::Ustr;
 
 use crate::{
+    ast::BinOp,
     interpreter::{exception, Exception},
     value::Value,
 };
@@ -43,6 +44,7 @@ impl VM {
                 } => {
                     self.stack.push(self.chunk.constants[arg0 as usize].clone());
                 }
+
                 Instr {
                     op: OpCode::GetGlobal,
                     arg0,
@@ -56,6 +58,7 @@ impl VM {
                         exception!("Global not found: {:?}", key);
                     }
                 }
+
                 Instr {
                     op: OpCode::SetGlobal,
                     arg0,
@@ -66,6 +69,7 @@ impl VM {
                     let value = self.stack.pop().unwrap();
                     self.globals.insert(key, value);
                 }
+
                 Instr {
                     op: OpCode::Call,
                     arg0: _,
@@ -73,10 +77,114 @@ impl VM {
                 } => {
                     todo!()
                 }
+
                 Instr {
                     op: OpCode::Return, ..
                 } => {
                     return Ok(self.stack.pop().unwrap());
+                }
+                Instr {
+                    op: OpCode::Add, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Add, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Sub, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Sub, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Mul, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Mul, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Div, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Div, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::LogicalOr,
+                    ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::LogicalOr, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::LogicalAnd,
+                    ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::LogicalAnd, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr { op: OpCode::Eq, .. } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Eq, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Neq, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Neq, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr { op: OpCode::Gt, .. } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Gt, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Gte, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Gte, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr { op: OpCode::Lt, .. } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Lt, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Lte, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let lhs = self.stack.pop().unwrap();
+                    let res = Value::bin_op(BinOp::Lte, &lhs, &rhs)?;
+                    self.stack.push(res);
                 }
             }
         }

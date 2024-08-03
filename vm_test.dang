@@ -1,2 +1,5 @@
-let x = 5
-x
+let a = 3
+let b = 5
+let c = 40
+
+(c + 5) / (a * b)
