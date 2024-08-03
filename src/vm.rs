@@ -125,26 +125,6 @@ impl VM {
                     self.stack.push(res);
                 }
 
-                Instr {
-                    op: OpCode::LogicalOr,
-                    ..
-                } => {
-                    let rhs = self.stack.pop().unwrap();
-                    let lhs = self.stack.pop().unwrap();
-                    let res = Value::bin_op(BinOp::LogicalOr, &lhs, &rhs)?;
-                    self.stack.push(res);
-                }
-
-                Instr {
-                    op: OpCode::LogicalAnd,
-                    ..
-                } => {
-                    let rhs = self.stack.pop().unwrap();
-                    let lhs = self.stack.pop().unwrap();
-                    let res = Value::bin_op(BinOp::LogicalAnd, &lhs, &rhs)?;
-                    self.stack.push(res);
-                }
-
                 Instr { op: OpCode::Eq, .. } => {
                     let rhs = self.stack.pop().unwrap();
                     let lhs = self.stack.pop().unwrap();
@@ -208,6 +188,32 @@ impl VM {
                     let rhs = self.stack.pop().unwrap();
                     let res = Value::unary_op(UnaryOp::LogicalNeg, &rhs)?;
                     self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::BranchIfTrue,
+                    ..
+                } => {
+                    let cond = self.stack.last().unwrap();
+                    if cond.truthy() {
+                        self.ip += self.chunk.code[ip].wide_arg();
+                    }
+                }
+
+                Instr {
+                    op: OpCode::BranchIfFalse,
+                    ..
+                } => {
+                    let cond = self.stack.last().unwrap();
+                    if !cond.truthy() {
+                        self.ip += self.chunk.code[ip].wide_arg();
+                    }
+                }
+
+                Instr {
+                    op: OpCode::Pop, ..
+                } => {
+                    self.stack.pop().unwrap();
                 }
             }
         }

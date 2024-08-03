@@ -46,3 +46,17 @@ fn simple_math() {
 
     assert_eq!(val, Value::Integer(-3));
 }
+
+#[test]
+fn short_circuiting() {
+    assert_runs_vm! {
+        r#"
+        __builtin raise
+
+        let a = true
+        let b = "true"
+
+        (a && b) || raise("This should not be called")
+        "#
+    };
+}

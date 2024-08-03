@@ -58,14 +58,6 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Div, ..
         } => println!("Div"),
-        Instr {
-            op: OpCode::LogicalOr,
-            ..
-        } => println!("LogicalOr"),
-        Instr {
-            op: OpCode::LogicalAnd,
-            ..
-        } => println!("LogicalAnd"),
         Instr { op: OpCode::Eq, .. } => println!("Eq"),
         Instr {
             op: OpCode::Neq, ..
@@ -85,6 +77,17 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::LogicalNeg,
             ..
         } => println!("LogicalNeg"),
+        Instr {
+            op: OpCode::BranchIfTrue,
+            ..
+        } => println!("BranchIfTrue  {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::BranchIfFalse,
+            ..
+        } => println!("BranchIfFalse {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::Pop, ..
+        } => println!("Pop"),
     }
 }
 

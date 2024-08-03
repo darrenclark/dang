@@ -2,10 +2,7 @@
 
 ## VM
 
-- Pipe -> Function compiler phase (and remove pipe handling from interpreter)
-
 - If statements
-- Short circuiting
 
 - Debug info in compiled chunks:
     - line numbers per instruction

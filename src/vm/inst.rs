@@ -27,10 +27,6 @@ pub enum OpCode {
     Mul,
     /// Div -2 +1 - divides two values
     Div,
-    /// LogicalOr -2 +1 - logical OR between two values
-    LogicalOr,
-    /// LogicalAnd -2 +1 - logical AND between two values
-    LogicalAnd,
     /// Eq -2 +1 - checks equality between two values
     Eq,
     /// Neq -2 +1 - checks inequality between two values
@@ -47,6 +43,14 @@ pub enum OpCode {
     Neg,
     /// LogicalNeg -1 +1 - negates value
     LogicalNeg,
+    /// BranchIfTrue(offset:24bit) -0 +0 - branches if value at top of stack is truthy.
+    /// Doesn't pop value.
+    BranchIfTrue,
+    /// BranchIfFalse(offset:24bit) -0 +0 - branches if value at top of stack is falsey.
+    /// Doesn't pop value.
+    BranchIfFalse,
+    /// Pop -1 +0 - pops value from stack
+    Pop,
 }
 
 impl Instr {
@@ -86,14 +90,6 @@ impl Instr {
         Self::new(OpCode::Div, 0, 0, 0)
     }
 
-    pub fn logical_or() -> Self {
-        Self::new(OpCode::LogicalOr, 0, 0, 0)
-    }
-
-    pub fn logical_and() -> Self {
-        Self::new(OpCode::LogicalAnd, 0, 0, 0)
-    }
-
     pub fn eq() -> Self {
         Self::new(OpCode::Eq, 0, 0, 0)
     }
@@ -126,6 +122,28 @@ impl Instr {
         Self::new(OpCode::LogicalNeg, 0, 0, 0)
     }
 
+    pub fn branch_if_true(offset: usize) -> Self {
+        Self::new(
+            OpCode::BranchIfTrue,
+            offset as u8,
+            (offset >> 8) as u8,
+            (offset >> 16) as u8,
+        )
+    }
+
+    pub fn branch_if_false(offset: usize) -> Self {
+        Self::new(
+            OpCode::BranchIfFalse,
+            offset as u8,
+            (offset >> 8) as u8,
+            (offset >> 16) as u8,
+        )
+    }
+
+    pub fn pop() -> Self {
+        Self::new(OpCode::Pop, 0, 0, 0)
+    }
+
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {
         Instr {
             op,
@@ -134,12 +152,30 @@ impl Instr {
             arg2,
         }
     }
+
+    pub fn wide_arg(&self) -> usize {
+        usize::from(self.arg0) | (usize::from(self.arg1) << 8) | (usize::from(self.arg2) << 16)
+    }
+
+    pub fn set_wide_arg(&mut self, offset: usize) {
+        self.arg0 = offset as u8;
+        self.arg1 = (offset >> 8) as u8;
+        self.arg2 = (offset >> 16) as u8;
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use super::Instr;
+
     #[test]
     fn instr_is_4_bytes() {
         assert_eq!(std::mem::size_of::<super::Instr>(), 4);
+    }
+
+    #[test]
+    fn wide_operands() {
+        let instr = Instr::branch_if_true(0x010203);
+        assert_eq!(instr.wide_arg(), 0x010203);
     }
 }

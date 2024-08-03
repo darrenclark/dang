@@ -72,6 +72,26 @@ impl Emitter<'_> {
             NodeKind::VariableRef { .. } => {
                 self.emit_get(node);
             }
+            NodeKind::BinaryOp {
+                op: BinOp::LogicalOr,
+                lhs,
+                rhs,
+            } => {
+                self.emit(lhs);
+                let branch = self.chunk.write(Instr::branch_if_true(0));
+                self.emit(rhs);
+                self.chunk.patch_jump(branch);
+            }
+            NodeKind::BinaryOp {
+                op: BinOp::LogicalAnd,
+                lhs,
+                rhs,
+            } => {
+                self.emit(lhs);
+                let branch = self.chunk.write(Instr::branch_if_false(0));
+                self.emit(rhs);
+                self.chunk.patch_jump(branch);
+            }
             NodeKind::BinaryOp { op, lhs, rhs } => {
                 self.emit(lhs);
                 self.emit(rhs);
@@ -106,12 +126,7 @@ impl Emitter<'_> {
                     BinOp::Neq => {
                         self.chunk.write(Instr::neq());
                     }
-                    BinOp::LogicalOr => {
-                        self.chunk.write(Instr::logical_or());
-                    }
-                    BinOp::LogicalAnd => {
-                        self.chunk.write(Instr::logical_and());
-                    }
+                    BinOp::LogicalOr | BinOp::LogicalAnd => unreachable!("handled above"),
                 }
             }
             NodeKind::UnaryOp { op, rhs } => {
