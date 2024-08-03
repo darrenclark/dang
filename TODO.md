@@ -2,7 +2,6 @@
 
 ## VM
 
-- Remove emit_bytecode_phase from Interpreter's compiler
 - Pipe -> Function compiler phase (and remove pipe handling from interpreter)
 
 - If statements

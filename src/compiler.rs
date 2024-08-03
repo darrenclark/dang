@@ -138,7 +138,7 @@ pub enum ResolvedImportKind {
 
 type PhaseFn = fn(&Compiler, &mut CompilationState, &mut Program) -> Result<(), Exception>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Phase {
     ReadFile,
     ParseAst,
@@ -152,18 +152,18 @@ pub enum Phase {
     Finish,
 }
 
-impl Phase {
-    const PHASES: [(Self, PhaseFn); 10] = [
-        (Self::ReadFile, read_file_phase),
-        (Self::ParseAst, parse_ast_phase),
-        (Self::InsertPrelude, insert_prelude_phase),
-        (Self::CompileDependencies, compile_dependencies_phase),
-        (Self::NodeIds, node_ids_phase),
-        (Self::StructInfo, struct_info_phase),
-        (Self::ResolveImports, resolve_imports_phase),
-        (Self::ResolveVariables, resolve_variables_phase),
-        (Self::EmitBytecode, emit_bytecode_phase),
-        (Self::Finish, finish_phase),
+lazy_static! {
+    static ref ALL_PHASES: Vec<(Phase, PhaseFn)> = vec![
+        (Phase::ReadFile, read_file_phase),
+        (Phase::ParseAst, parse_ast_phase),
+        (Phase::InsertPrelude, insert_prelude_phase),
+        (Phase::CompileDependencies, compile_dependencies_phase),
+        (Phase::NodeIds, node_ids_phase),
+        (Phase::StructInfo, struct_info_phase),
+        (Phase::ResolveImports, resolve_imports_phase),
+        (Phase::ResolveVariables, resolve_variables_phase),
+        (Phase::EmitBytecode, emit_bytecode_phase),
+        (Phase::Finish, finish_phase),
     ];
 }
 
@@ -195,13 +195,27 @@ lazy_static! {
 pub struct Compiler {
     pub implicit_imports: Vec<ImportKind>,
     pub module_search_paths: Vec<PathBuf>,
+    phases: Vec<(Phase, PhaseFn)>,
 }
 
 impl Default for Compiler {
     fn default() -> Self {
+        let mut c = Compiler {
+            implicit_imports: DEFAULT_IMPLICIT_IMPORTS.clone(),
+            module_search_paths: Vec::default(),
+            phases: (*ALL_PHASES).clone(),
+        };
+        c.remove_phase(Phase::EmitBytecode);
+        c
+    }
+}
+
+impl Compiler {
+    pub fn for_vm() -> Self {
         Compiler {
             implicit_imports: DEFAULT_IMPLICIT_IMPORTS.clone(),
             module_search_paths: Vec::default(),
+            phases: (*ALL_PHASES).clone(),
         }
     }
 }
@@ -214,7 +228,7 @@ impl Compiler {
 
         let mut state = CompilationState::new(input);
 
-        for (_phase, phase_fn) in Phase::PHASES {
+        for (_phase, phase_fn) in &self.phases {
             let result = { phase_fn(self, &mut state, program) };
             match result {
                 Ok(_) => {}
@@ -237,7 +251,7 @@ impl Compiler {
     ) -> Result<CompilationState, Vec<Exception>> {
         let mut state = CompilationState::new(input);
 
-        for (p, phase_fn) in Phase::PHASES {
+        for (p, phase_fn) in &self.phases {
             let result = { phase_fn(self, &mut state, program) };
             match result {
                 Ok(_) => {}
@@ -248,11 +262,15 @@ impl Compiler {
                 }
             }
 
-            if p == phase {
+            if *p == phase {
                 return Ok(state);
             }
         }
 
         Ok(state)
+    }
+
+    pub fn remove_phase(&mut self, phase: Phase) {
+        self.phases.retain(|(p, _)| *p != phase);
     }
 }

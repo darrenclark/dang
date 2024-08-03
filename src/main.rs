@@ -89,7 +89,7 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     let file = fs::read_to_string(path)?;
 
-    let mut compiler = Compiler::default();
+    let mut compiler = Compiler::for_vm();
     compiler.implicit_imports.clear();
 
     let mut program = Program::default();

@@ -75,7 +75,7 @@ pub fn run(code: &str, module_name: &str) -> Result<Value, Exception> {
 }
 
 pub fn run_vm(code: &str, module_name: &str) -> Result<Value, Exception> {
-    let mut compiler = Compiler::default();
+    let mut compiler = Compiler::for_vm();
     compiler.implicit_imports.clear();
 
     let mut program = Program::default();
