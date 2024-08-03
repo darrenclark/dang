@@ -112,6 +112,10 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Jump, ..
         } => println!("Jump {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::MakeList,
+            ..
+        } => println!("MakeList {}", instr.wide_arg()),
     }
 }
 

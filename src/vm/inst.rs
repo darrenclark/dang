@@ -57,6 +57,8 @@ pub enum OpCode {
     Pop,
     /// Jump(offset:24bit) -0 +0 - jumps forward to the given offset
     Jump,
+    /// MakeList(size:24bit) -n +1 - makes a list with n elements
+    MakeList,
 }
 
 impl Instr {
@@ -137,21 +139,11 @@ impl Instr {
     }
 
     pub fn branch_if_true(offset: usize) -> Self {
-        Self::new(
-            OpCode::BranchIfTrue,
-            offset as u8,
-            (offset >> 8) as u8,
-            (offset >> 16) as u8,
-        )
+        Self::new_wide(OpCode::BranchIfTrue, offset)
     }
 
     pub fn branch_if_false(offset: usize) -> Self {
-        Self::new(
-            OpCode::BranchIfFalse,
-            offset as u8,
-            (offset >> 8) as u8,
-            (offset >> 16) as u8,
-        )
+        Self::new_wide(OpCode::BranchIfFalse, offset)
     }
 
     pub fn pop() -> Self {
@@ -159,12 +151,11 @@ impl Instr {
     }
 
     pub fn jump(offset: usize) -> Self {
-        Self::new(
-            OpCode::Jump,
-            offset as u8,
-            (offset >> 8) as u8,
-            (offset >> 16) as u8,
-        )
+        Self::new_wide(OpCode::Jump, offset)
+    }
+
+    pub fn make_list(size: usize) -> Self {
+        Self::new_wide(OpCode::MakeList, size)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {
@@ -173,6 +164,15 @@ impl Instr {
             arg0,
             arg1,
             arg2,
+        }
+    }
+
+    fn new_wide(op: OpCode, arg: usize) -> Self {
+        Instr {
+            op,
+            arg0: arg as u8,
+            arg1: (arg >> 8) as u8,
+            arg2: (arg >> 16) as u8,
         }
     }
 

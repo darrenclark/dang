@@ -197,6 +197,17 @@ impl Emitter<'_> {
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
             }
+            NodeKind::ListLiteral(items) => {
+                if let Some(v) = node.compile_time_value() {
+                    let constant = self.chunk.write_constant(v);
+                    self.chunk.write(Instr::constant(constant));
+                } else {
+                    for item in items {
+                        self.emit(item);
+                    }
+                    self.chunk.write(Instr::make_list(items.len()));
+                }
+            }
             _ => todo!(),
         }
     }

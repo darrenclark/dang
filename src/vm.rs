@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use chunk::Chunk;
 use function::Function;
@@ -273,6 +273,15 @@ impl VM {
                     op: OpCode::Jump, ..
                 } => {
                     *self.ip_mut() += self.chunk().code[ip].wide_arg();
+                }
+
+                Instr {
+                    op: OpCode::MakeList,
+                    arg0,
+                    ..
+                } => {
+                    let args = self.stack.split_off(self.stack.len() - arg0 as usize);
+                    self.stack.push(Value::List(Rc::new(args)));
                 }
             }
         }

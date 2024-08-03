@@ -32,3 +32,7 @@ let add_plus_ten = fn(a, b) {
   a + b + c
 }
 add_plus_ten(5, 2)
+
+let l = [1, 2, 3, 4]
+let l2 = [a, b, c, d]
+l2
