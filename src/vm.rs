@@ -89,6 +89,25 @@ impl VM {
                 }
 
                 Instr {
+                    op: OpCode::GetLocal,
+                    arg0,
+                    ..
+                } => {
+                    let index = self.frames.last().unwrap().base + arg0 as usize;
+                    self.stack.push(self.stack[index].clone());
+                }
+
+                Instr {
+                    op: OpCode::SetLocal,
+                    arg0,
+                    ..
+                } => {
+                    let index = self.frames.last().unwrap().base + arg0 as usize;
+                    let value = self.stack.pop().unwrap();
+                    self.stack[index] = value;
+                }
+
+                Instr {
                     op: OpCode::Call,
                     arg0,
                     ..
@@ -98,10 +117,12 @@ impl VM {
                     let res = match callee {
                         Value::NativeFunc(ptr) => ptr(&args)?,
                         Value::Function(function) => {
-                            if !args.is_empty() {
-                                todo!("Support args");
-                            }
                             self.frames.push(Frame::new(function, self.stack.len()));
+                            // TODO: Optimize this, so that we don't split_off args on this code
+                            // path & repush them
+                            for arg in args {
+                                self.stack.push(arg);
+                            }
                             continue;
                         }
                         _ => todo!(),

@@ -1,3 +1,5 @@
+use crate::value::Value;
+
 use super::{
     chunk::Chunk,
     function::Function,
@@ -5,8 +7,16 @@ use super::{
 };
 
 pub fn disassemble(function: &Function) {
+    println!("==== {:?} ====", function);
     for instr in function.chunk().code.iter() {
         disassemble_instruction(function.chunk(), instr);
+    }
+    println!();
+
+    for c in function.chunk().constants.iter() {
+        if let Value::Function(f) = c {
+            disassemble(f);
+        }
     }
 }
 
@@ -39,6 +49,16 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             arg1,
             consts(chunk, &[*arg0, *arg1])
         ),
+        Instr {
+            op: OpCode::GetLocal,
+            arg0,
+            ..
+        } => println!("GetLocal   \t{}", arg0),
+        Instr {
+            op: OpCode::SetLocal,
+            arg0,
+            ..
+        } => println!("SetLocal   \t{}", arg0),
         Instr {
             op: OpCode::Call,
             arg0,

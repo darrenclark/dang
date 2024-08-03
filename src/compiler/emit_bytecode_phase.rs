@@ -20,6 +20,7 @@ pub fn emit_bytecode_phase(
     let mut emitter = Emitter {
         compilation_state,
         chunk: &mut chunk,
+        pushed_locals: Vec::new(),
     };
     emitter.emit(compilation_state.ast.as_ref().unwrap());
 
@@ -31,6 +32,7 @@ pub fn emit_bytecode_phase(
 struct Emitter<'a> {
     compilation_state: &'a CompilationState,
     chunk: &'a mut Chunk,
+    pushed_locals: Vec<usize>,
 }
 
 impl Emitter<'_> {
@@ -43,8 +45,14 @@ impl Emitter<'_> {
                 self.chunk.write(Instr::return_());
             }
             NodeKind::Body(statements) => {
+                self.pushed_locals.push(0);
+
                 for statement in statements {
                     self.emit(statement);
+                }
+
+                for _ in 0..self.pushed_locals.pop().unwrap() {
+                    self.chunk.write(Instr::pop());
                 }
             }
             NodeKind::Builtin { identifier } => {
@@ -53,9 +61,10 @@ impl Emitter<'_> {
                 self.chunk.write(Instr::constant(constant));
                 self.emit_set(node);
             }
-            NodeKind::Let { pattern, expr }
-            | NodeKind::Var { pattern, expr }
-            | NodeKind::Assignment { pattern, expr } => {
+            NodeKind::Let { pattern, expr } | NodeKind::Var { pattern, expr } => {
+                self.emit_define(pattern, expr);
+            }
+            NodeKind::Assignment { pattern, expr } => {
                 self.emit_assignment(pattern, expr);
             }
             NodeKind::NilLiteral => {
@@ -180,12 +189,29 @@ impl Emitter<'_> {
                 let mut emitter = Emitter {
                     compilation_state: self.compilation_state,
                     chunk: &mut chunk,
+                    pushed_locals: Vec::new(),
                 };
                 emitter.emit_function(arg_names, body);
 
                 let function = Value::Function(Function::new(chunk));
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn emit_define(&mut self, pattern: &Node, expr: &Node) {
+        // push value of expr on to stack
+        self.emit(expr);
+
+        match &pattern.kind {
+            NodeKind::PatternIdentifier { .. } => {
+                if let VariableAllocation::Global { .. } = self.get_variable_allocation(pattern) {
+                    self.emit_set(pattern);
+                } else {
+                    *self.pushed_locals.last_mut().unwrap() += 1;
+                }
             }
             _ => todo!(),
         }
@@ -204,44 +230,53 @@ impl Emitter<'_> {
     }
 
     fn emit_set(&mut self, node: &Node) {
-        let variable_allocation = self
-            .compilation_state
-            .variable_allocations
-            .get(&node.id)
-            .unwrap();
-
-        match variable_allocation {
+        match self.get_variable_allocation(node) {
             VariableAllocation::Global { module, name } => {
                 let module = self.chunk.write_constant(Value::Symbol(module.0));
-                let name = self.chunk.write_constant(Value::Symbol(*name));
+                let name = self.chunk.write_constant(Value::Symbol(name));
                 self.chunk.write(Instr::set_global(module, name));
             }
-            _ => todo!(),
+            VariableAllocation::Local { index } => {
+                self.chunk.write(Instr::set_local(index as u8));
+            }
         }
     }
 
     fn emit_get(&mut self, node: &Node) {
-        let variable_allocation = self
-            .compilation_state
-            .variable_allocations
-            .get(&node.id)
-            .unwrap();
-        match variable_allocation {
+        match self.get_variable_allocation(node) {
             VariableAllocation::Global { module, name } => {
                 let module = self.chunk.write_constant(Value::Symbol(module.0));
-                let name = self.chunk.write_constant(Value::Symbol(*name));
+                let name = self.chunk.write_constant(Value::Symbol(name));
                 self.chunk.write(Instr::get_global(module, name));
             }
-            _ => todo!(),
+            VariableAllocation::Local { index } => {
+                self.chunk.write(Instr::get_local(index as u8));
+            }
         }
     }
 
-    fn emit_function(&mut self, arg_names: &[Node], body: &Node) {
-        if !arg_names.is_empty() {
-            todo!("support function parameters")
-        }
+    fn emit_function(&mut self, _arg_names: &[Node], body: &Node) {
+        // can't use usual handling of Body because we need to avoid
+        // popping locals before the final return
+        if let NodeKind::Body(statements) = &body.kind {
+            self.pushed_locals.push(0);
+            for statement in statements {
+                self.emit(statement);
+            }
+            // ignore number of pushed locals since the return value
+            // is at the top of the stack (and the VM will pop to
+            // the frame base anyways)
+            self.pushed_locals.pop();
 
-        self.emit(body);
-        self.chunk.write(Instr::return_());
+            self.chunk.write(Instr::return_());
+        }
+    }
+
+    fn get_variable_allocation(&self, node: &Node) -> VariableAllocation {
+        self.compilation_state
+            .variable_allocations
+            .get(&node.id)
+            .unwrap()
+            .clone()
     }
 }

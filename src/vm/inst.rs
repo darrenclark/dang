@@ -13,8 +13,12 @@ pub enum OpCode {
     Constant,
     /// GetGlobal(module, name) +1 - gets global value and pushes to stack
     GetGlobal,
-    /// SetGlobal(module, name) +0 - sets global value to value at top of stack
+    /// SetGlobal(module, name) -1 - sets global value to value at top of stack
     SetGlobal,
+    /// GetLocal(index) +1 - gets local variable and pushes to stack
+    GetLocal,
+    /// SetLocal(index) -1 - sets local variable to value at top of stack
+    SetLocal,
     /// Call(num_args) -1 -n +1 - calls function
     Call,
     /// Return -1 - returns from function
@@ -66,6 +70,14 @@ impl Instr {
 
     pub fn set_global(module: u8, name: u8) -> Self {
         Self::new(OpCode::SetGlobal, module, name, 0)
+    }
+
+    pub fn get_local(index: u8) -> Self {
+        Self::new(OpCode::GetLocal, index, 0, 0)
+    }
+
+    pub fn set_local(index: u8) -> Self {
+        Self::new(OpCode::SetLocal, index, 0, 0)
     }
 
     pub fn call(num_args: u8) -> Self {

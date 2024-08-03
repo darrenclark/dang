@@ -27,5 +27,8 @@ if result > 0 {
   -1
 }
 
-let x = fn() { 8 }
-x()
+let add_plus_ten = fn(a, b) {
+  let c = 10
+  a + b + c
+}
+add_plus_ten(5, 2)

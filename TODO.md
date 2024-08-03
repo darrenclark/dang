@@ -5,11 +5,6 @@
 - Debug info in compiled chunks:
     - line numbers per instruction
 
-- Functions
-    - local variables
-    - arguments
-    - some way to disassemble them
-
 - Closures
 
 ## Future
