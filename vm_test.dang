@@ -2,4 +2,8 @@ let a = 3
 let b = 5
 let c = 40
 
-(c + 5) / (a * -b)
+var d = 0
+d = d + c
+d = d + 5
+
+d / (a * -b)

@@ -41,8 +41,10 @@ impl Emitter<'_> {
                 }
                 self.chunk.write(Instr::return_());
             }
-            NodeKind::Let { pattern, expr } => {
-                self.emit_let_var(pattern, expr);
+            NodeKind::Let { pattern, expr }
+            | NodeKind::Var { pattern, expr }
+            | NodeKind::Assignment { pattern, expr } => {
+                self.emit_assignment(pattern, expr);
             }
             NodeKind::IntegerLiteral(int) => {
                 let constant = self.chunk.write_constant(Value::Integer(*int));
@@ -108,7 +110,7 @@ impl Emitter<'_> {
         }
     }
 
-    fn emit_let_var(&mut self, pattern: &Node, expr: &Node) {
+    fn emit_assignment(&mut self, pattern: &Node, expr: &Node) {
         // push value of expr on to stack
         self.emit(expr);
 
