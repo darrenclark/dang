@@ -104,9 +104,9 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
             let module_name = program.module_names().first().cloned().unwrap();
             let module = program.get_module(&module_name).unwrap();
             if args.print_disasm {
-                disassemble(&module.chunk);
+                disassemble(&module.function);
             } else {
-                let mut vm = VM::new(module.chunk.clone());
+                let mut vm = VM::new(module.function.clone());
                 match vm.run() {
                     Ok(value) => {
                         value

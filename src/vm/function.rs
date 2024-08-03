@@ -15,6 +15,10 @@ impl Function {
             inner: Rc::new(FunctionInner { chunk }),
         }
     }
+
+    pub fn chunk(&self) -> &Chunk {
+        &self.inner.chunk
+    }
 }
 
 impl fmt::Debug for Function {

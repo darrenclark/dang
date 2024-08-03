@@ -1,7 +1,7 @@
 use common::assert_runs_vm;
 use dang::{
     value::Value,
-    vm::{chunk::Chunk, inst::Instr, VM},
+    vm::{chunk::Chunk, function::Function, inst::Instr, VM},
 };
 
 mod common;
@@ -22,7 +22,7 @@ fn example() {
     chunk.write(Instr::get_global(module, test_var));
     chunk.write(Instr::return_());
 
-    let mut vm = VM::new(chunk);
+    let mut vm = VM::new(Function::new(chunk));
 
     assert_eq!(vm.run().unwrap(), Value::Integer(5));
 }

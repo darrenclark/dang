@@ -1,11 +1,12 @@
 use super::{
     chunk::Chunk,
+    function::Function,
     inst::{Instr, OpCode},
 };
 
-pub fn disassemble(chunk: &Chunk) {
-    for instr in chunk.code.iter() {
-        disassemble_instruction(chunk, instr);
+pub fn disassemble(function: &Function) {
+    for instr in function.chunk().code.iter() {
+        disassemble_instruction(function.chunk(), instr);
     }
 }
 

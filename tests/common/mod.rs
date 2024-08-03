@@ -89,7 +89,7 @@ pub fn run_vm(code: &str, module_name: &str) -> Result<Value, Exception> {
         Ok(_) => {
             let module_name = program.module_names().first().cloned().unwrap();
             let module = program.get_module(&module_name).unwrap();
-            let mut vm = VM::new(module.chunk.clone());
+            let mut vm = VM::new(module.function.clone());
             vm.run()
         }
         Err(e) => {

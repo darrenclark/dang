@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chunk::Chunk;
+use function::Function;
 use inst::{Instr, OpCode};
 use ustr::Ustr;
 
@@ -17,33 +18,49 @@ pub mod inst;
 
 pub struct VM {
     stack: Vec<Value>,
+    frames: Vec<Frame>,
     globals: HashMap<(Ustr, Ustr), Value>,
-    chunk: Chunk,
+}
+
+struct Frame {
     ip: usize,
+    base: usize,
+    function: Function,
+}
+
+impl Frame {
+    fn new(function: Function, base: usize) -> Self {
+        Frame {
+            ip: 0,
+            base,
+            function,
+        }
+    }
 }
 
 impl VM {
-    pub fn new(chunk: Chunk) -> Self {
+    pub fn new(function: Function) -> Self {
+        let frame = Frame::new(function, 0);
         VM {
             stack: Vec::new(),
+            frames: vec![frame],
             globals: HashMap::new(),
-            chunk,
-            ip: 0,
         }
     }
 
     pub fn run(&mut self) -> Result<Value, Exception> {
         loop {
-            let ip = self.ip;
-            self.ip += 1;
+            let ip = self.ip();
+            *self.ip_mut() += 1;
 
-            match self.chunk.code[ip] {
+            match self.chunk().code[ip] {
                 Instr {
                     op: OpCode::Constant,
                     arg0,
                     ..
                 } => {
-                    self.stack.push(self.chunk.constants[arg0 as usize].clone());
+                    self.stack
+                        .push(self.chunk().constants[arg0 as usize].clone());
                 }
 
                 Instr {
@@ -197,7 +214,7 @@ impl VM {
                 } => {
                     let cond = self.stack.last().unwrap();
                     if cond.truthy() {
-                        self.ip += self.chunk.code[ip].wide_arg();
+                        *self.ip_mut() += self.chunk().code[ip].wide_arg();
                     }
                 }
 
@@ -207,7 +224,7 @@ impl VM {
                 } => {
                     let cond = self.stack.last().unwrap();
                     if !cond.truthy() {
-                        self.ip += self.chunk.code[ip].wide_arg();
+                        *self.ip_mut() += self.chunk().code[ip].wide_arg();
                     }
                 }
 
@@ -220,16 +237,28 @@ impl VM {
                 Instr {
                     op: OpCode::Jump, ..
                 } => {
-                    self.ip += self.chunk.code[ip].wide_arg();
+                    *self.ip_mut() += self.chunk().code[ip].wide_arg();
                 }
             }
         }
     }
 
     pub fn read_symbol(&self, index: u8) -> Ustr {
-        match &self.chunk.constants[index as usize] {
+        match &self.chunk().constants[index as usize] {
             Value::Symbol(s) => *s,
             other => panic!("Expected symbol, got {}", other),
         }
+    }
+
+    fn chunk(&self) -> &Chunk {
+        self.frames.last().unwrap().function.chunk()
+    }
+
+    fn ip(&self) -> usize {
+        self.frames.last().unwrap().ip
+    }
+
+    fn ip_mut(&mut self) -> &mut usize {
+        &mut self.frames.last_mut().unwrap().ip
     }
 }

@@ -8,7 +8,7 @@ use crate::{
     scope::VariableLocation,
     struct_info::StructInfo,
     value::Value,
-    vm::chunk::Chunk,
+    vm::function::Function,
 };
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub struct Module {
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub struct_info: Option<StructInfo>,
-    pub chunk: Chunk,
+    pub function: Function,
 }
 
 pub fn module_name_to_file_path(name: &str) -> String {
