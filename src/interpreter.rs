@@ -28,6 +28,13 @@ impl Exception {
             message,
         }
     }
+
+    pub fn at_node(node: &Node, message: &str) -> Exception {
+        Exception {
+            source: Some(node.source.clone()),
+            message: message.to_owned(),
+        }
+    }
 }
 
 impl fmt::Display for Exception {
@@ -505,33 +512,7 @@ impl Interpreter {
                 let func_literal = FunctionLiteral { body, environment };
                 Ok(Value::Func(func_literal))
             }
-            NodeKind::Pipe { lhs, rhs } => {
-                let lhs = self.eval(lhs)?;
-
-                let (func, mut rest_args) = match &rhs.kind {
-                    NodeKind::FunctionCall { function, args } => {
-                        let mut evaled_args = Vec::with_capacity(args.len());
-                        for n in args {
-                            evaled_args.push(self.eval(n)?)
-                        }
-                        (self.eval(function.as_ref())?, evaled_args)
-                    }
-                    _ => exception!("not piping in to a function"),
-                };
-
-                let mut args = vec![lhs];
-                args.append(&mut rest_args);
-
-                if let Value::NativeFunc(ptr) = func {
-                    ptr(&args)
-                } else if let Value::NativeClosure(closure) = func {
-                    closure.closure.borrow_mut()(&args)
-                } else if let Value::Func(function_literal) = func {
-                    self.call(&function_literal, &args)
-                } else {
-                    exception!("tried to call a non-function value: {:?}", func)
-                }
-            }
+            NodeKind::Pipe { .. } => unreachable!("pipe should have been desugared"),
         }
     }
 

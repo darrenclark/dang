@@ -1,4 +1,5 @@
 pub mod compile_dependencies_phase;
+mod desugar_pipe_phase;
 mod emit_bytecode_phase;
 pub mod finish_phase;
 mod insert_prelude_phase;
@@ -12,6 +13,7 @@ pub mod struct_info_phase;
 use std::{collections::HashMap, path::PathBuf};
 
 use compile_dependencies_phase::compile_dependencies_phase;
+use desugar_pipe_phase::desugar_pipe_phase;
 use emit_bytecode_phase::emit_bytecode_phase;
 use finish_phase::finish_phase;
 use insert_prelude_phase::insert_prelude_phase;
@@ -144,6 +146,7 @@ pub enum Phase {
     ParseAst,
     InsertPrelude,
     CompileDependencies,
+    DesugarPipePhase,
     NodeIds,
     StructInfo,
     ResolveImports,
@@ -158,6 +161,7 @@ lazy_static! {
         (Phase::ParseAst, parse_ast_phase),
         (Phase::InsertPrelude, insert_prelude_phase),
         (Phase::CompileDependencies, compile_dependencies_phase),
+        (Phase::DesugarPipePhase, desugar_pipe_phase),
         (Phase::NodeIds, node_ids_phase),
         (Phase::StructInfo, struct_info_phase),
         (Phase::ResolveImports, resolve_imports_phase),

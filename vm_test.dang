@@ -4,6 +4,7 @@ __builtin println
 
 println(str(true))
 println(str(false))
+"hello" |> println(" ", "world")
 
 let a = 3
 let b = 5
