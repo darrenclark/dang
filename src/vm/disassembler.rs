@@ -78,6 +78,13 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Lte, ..
         } => println!("Lte"),
+        Instr {
+            op: OpCode::Neg, ..
+        } => println!("Neg"),
+        Instr {
+            op: OpCode::LogicalNeg,
+            ..
+        } => println!("LogicalNeg"),
     }
 }
 

@@ -10,7 +10,7 @@ use pretty::termcolor::{Color, ColorSpec};
 use pretty::RcDoc;
 use ustr::Ustr;
 
-use crate::ast::BinOp;
+use crate::ast::{BinOp, UnaryOp};
 use crate::interpreter::Environment;
 use crate::module::ModuleName;
 use crate::{
@@ -347,6 +347,14 @@ impl Value {
             (_, l, r) => {
                 exception!("cannot apply `{:?}` to {:?} and {:?}", op, l, r)
             }
+        }
+    }
+
+    pub fn unary_op(op: UnaryOp, rhs: &Value) -> Result<Value, Exception> {
+        match (op, &rhs) {
+            (UnaryOp::Neg, Value::Integer(r)) => Ok(Value::Integer(-r)),
+            (UnaryOp::LogicalNeg, v) => Ok(Value::Bool(!v.truthy())),
+            (_, v) => exception!("cannot {:?} {:?}", op, v),
         }
     }
 

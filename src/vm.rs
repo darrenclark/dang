@@ -5,7 +5,7 @@ use inst::{Instr, OpCode};
 use ustr::Ustr;
 
 use crate::{
-    ast::BinOp,
+    ast::{BinOp, UnaryOp},
     interpreter::{exception, Exception},
     value::Value,
 };
@@ -184,6 +184,23 @@ impl VM {
                     let rhs = self.stack.pop().unwrap();
                     let lhs = self.stack.pop().unwrap();
                     let res = Value::bin_op(BinOp::Lte, &lhs, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::Neg, ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let res = Value::unary_op(UnaryOp::Neg, &rhs)?;
+                    self.stack.push(res);
+                }
+
+                Instr {
+                    op: OpCode::LogicalNeg,
+                    ..
+                } => {
+                    let rhs = self.stack.pop().unwrap();
+                    let res = Value::unary_op(UnaryOp::LogicalNeg, &rhs)?;
                     self.stack.push(res);
                 }
             }

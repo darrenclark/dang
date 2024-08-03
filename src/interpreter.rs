@@ -748,9 +748,5 @@ fn bin_op(op: BinOp, lhs: Value, rhs: Value) -> Result<Value, Exception> {
 }
 
 fn unary_op(op: UnaryOp, rhs: Value) -> Result<Value, Exception> {
-    match (op, &rhs) {
-        (UnaryOp::Neg, Value::Integer(r)) => Ok(Value::Integer(-r)),
-        (UnaryOp::LogicalNeg, v) => Ok(Value::Bool(!v.truthy())),
-        (_, v) => exception!("cannot {:?} {:?}", op, v),
-    }
+    Value::unary_op(op, &rhs)
 }

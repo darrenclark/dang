@@ -43,6 +43,10 @@ pub enum OpCode {
     Lt,
     /// Lte -2 +1 - checks if left value is less than or equal to right value
     Lte,
+    /// Neg -1 +1 - negates value
+    Neg,
+    /// LogicalNeg -1 +1 - negates value
+    LogicalNeg,
 }
 
 impl Instr {
@@ -112,6 +116,14 @@ impl Instr {
 
     pub fn lte() -> Self {
         Self::new(OpCode::Lte, 0, 0, 0)
+    }
+
+    pub fn neg() -> Self {
+        Self::new(OpCode::Neg, 0, 0, 0)
+    }
+
+    pub fn logical_neg() -> Self {
+        Self::new(OpCode::LogicalNeg, 0, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

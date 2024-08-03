@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinOp, Node, NodeKind},
+    ast::{BinOp, Node, NodeKind, UnaryOp},
     interpreter::Exception,
     program::Program,
     scope::VariableLocation,
@@ -90,6 +90,17 @@ impl Emitter<'_> {
                     }
                     BinOp::LogicalAnd => {
                         self.chunk.write(Instr::logical_and());
+                    }
+                }
+            }
+            NodeKind::UnaryOp { op, rhs } => {
+                self.emit(rhs);
+                match op {
+                    UnaryOp::Neg => {
+                        self.chunk.write(Instr::neg());
+                    }
+                    UnaryOp::LogicalNeg => {
+                        self.chunk.write(Instr::logical_neg());
                     }
                 }
             }
