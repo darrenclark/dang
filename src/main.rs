@@ -6,6 +6,7 @@ use dang::compiler::{Compiler, Input};
 use dang::dang_parser::Rule;
 use dang::interpreter::Interpreter;
 use dang::program::Program;
+use dang::vm::disassembler::disassemble;
 use dang::vm::VM;
 use dirs::home_dir;
 use pest::iterators::Pair;
@@ -28,6 +29,10 @@ struct Cli {
     #[arg(long)]
     vm: bool,
 
+    /// print disassembly of byte code
+    #[arg(long)]
+    print_disasm: bool,
+
     /// path to .dang file to execute
     path: Option<std::path::PathBuf>,
 
@@ -41,12 +46,14 @@ const HISTORY_FILE: &str = ".dang_history";
 fn main() -> Result<()> {
     let args = Cli::parse();
 
-    if (args.print_pest_parse_output || args.print_ast || args.vm) && args.path.is_none() {
+    if (args.print_pest_parse_output || args.print_ast || args.vm || args.print_disasm)
+        && args.path.is_none()
+    {
         panic!("expected a file")
     }
 
     match &args.path {
-        Some(path) if args.vm => run_file_vm(&args, path),
+        Some(path) if args.vm || args.print_disasm => run_file_vm(&args, path),
         Some(path) => run_file(&args, path),
         None => repl(&args),
     }
@@ -79,7 +86,7 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn run_file_vm(_args: &Cli, path: &std::path::PathBuf) -> Result<()> {
+fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     let file = fs::read_to_string(path)?;
 
     let mut compiler = Compiler::default();
@@ -96,17 +103,21 @@ fn run_file_vm(_args: &Cli, path: &std::path::PathBuf) -> Result<()> {
         Ok(_) => {
             let module_name = program.module_names().first().cloned().unwrap();
             let module = program.get_module(&module_name).unwrap();
-            let mut vm = VM::new(module.chunk.clone());
-            match vm.run() {
-                Ok(value) => {
-                    value
-                        .to_doc()
-                        .render_colored(80, StandardStream::stdout(ColorChoice::Auto))
-                        .unwrap();
-                    println!()
-                }
-                Err(e) => {
-                    println!("{}", e);
+            if args.print_disasm {
+                disassemble(&module.chunk);
+            } else {
+                let mut vm = VM::new(module.chunk.clone());
+                match vm.run() {
+                    Ok(value) => {
+                        value
+                            .to_doc()
+                            .render_colored(80, StandardStream::stdout(ColorChoice::Auto))
+                            .unwrap();
+                        println!()
+                    }
+                    Err(e) => {
+                        println!("{}", e);
+                    }
                 }
             }
         }
