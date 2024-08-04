@@ -246,6 +246,65 @@ impl Emitter<'_> {
                 self.emit(key);
                 self.chunk.write(Instr::get_subscript());
             }
+            NodeKind::FieldAssignment {
+                variable_ref,
+                path,
+                expr,
+            } => {
+                self.emit_get(variable_ref);
+
+                for key in path[0..path.len() - 1].iter() {
+                    match &key.kind {
+                        NodeKind::FieldAssignmentPathField { key } => {
+                            let constant = self
+                                .chunk
+                                .write_constant(Value::String(key.unwrap_identifier().to_owned()));
+                            self.chunk.write(Instr::constant(constant));
+                            self.chunk.write(Instr::dup(1));
+                            self.chunk.write(Instr::dup(1));
+                            self.chunk.write(Instr::get_field());
+                        }
+                        NodeKind::FieldAssignmentPathSubscript { key } => {
+                            self.emit(key);
+                            self.chunk.write(Instr::dup(1));
+                            self.chunk.write(Instr::dup(1));
+                            self.chunk.write(Instr::get_subscript());
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+
+                match &path.last().unwrap().kind {
+                    NodeKind::FieldAssignmentPathField { key } => {
+                        let constant = self
+                            .chunk
+                            .write_constant(Value::String(key.unwrap_identifier().to_owned()));
+                        self.chunk.write(Instr::constant(constant));
+                        self.emit(expr);
+                        self.chunk.write(Instr::set_field());
+                    }
+                    NodeKind::FieldAssignmentPathSubscript { key } => {
+                        self.emit(key);
+                        self.emit(expr);
+                        self.chunk.write(Instr::set_subscript());
+                    }
+                    _ => unreachable!(),
+                }
+
+                for key in path[0..path.len() - 1].iter() {
+                    match &key.kind {
+                        NodeKind::FieldAssignmentPathField { .. } => {
+                            self.chunk.write(Instr::set_field());
+                        }
+                        NodeKind::FieldAssignmentPathSubscript { .. } => {
+                            self.chunk.write(Instr::set_subscript());
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+
+                self.emit_set(variable_ref);
+            }
             _ => todo!(),
         }
     }

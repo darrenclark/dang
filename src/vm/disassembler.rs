@@ -132,6 +132,19 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::GetSubscript,
             ..
         } => println!("GetSubscript"),
+        Instr {
+            op: OpCode::SetField,
+            ..
+        } => println!("SetField"),
+        Instr {
+            op: OpCode::SetSubscript,
+            ..
+        } => println!("SetSubscript"),
+        Instr {
+            op: OpCode::Dup,
+            arg0,
+            ..
+        } => println!("Dup {}", arg0),
     }
 }
 

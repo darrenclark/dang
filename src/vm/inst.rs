@@ -67,6 +67,13 @@ pub enum OpCode {
     GetField,
     /// GetSubscript -2 +1 - accesses a field via subscript (object[key])
     GetSubscript,
+    /// SetField -3 +1 - sets a field (object.key = value)
+    SetField,
+    /// SetSubscript -3 +1 - sets a field via subscript (object[key] = value)
+    SetSubscript,
+    /// Dup(n:24bit) -0 +1 - duplicate element at stack[top - n]
+    /// Dup 0 - duplicate top of stack, Dup 1 - duplicate second topmost value in stack, etc.
+    Dup,
 }
 
 impl Instr {
@@ -180,6 +187,18 @@ impl Instr {
 
     pub fn get_subscript() -> Self {
         Self::new(OpCode::GetSubscript, 0, 0, 0)
+    }
+
+    pub fn set_field() -> Self {
+        Self::new(OpCode::SetField, 0, 0, 0)
+    }
+
+    pub fn set_subscript() -> Self {
+        Self::new(OpCode::SetSubscript, 0, 0, 0)
+    }
+
+    pub fn dup(n: u8) -> Self {
+        Self::new(OpCode::Dup, n, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

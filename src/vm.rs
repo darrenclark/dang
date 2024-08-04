@@ -329,6 +329,36 @@ impl VM {
                     let value = obj.at(&index)?;
                     self.stack.push(value);
                 }
+
+                Instr {
+                    op: OpCode::SetField,
+                    ..
+                } => {
+                    let value = self.stack.pop().unwrap();
+                    let key = self.stack.pop().unwrap();
+                    let obj = self.stack.last_mut().unwrap();
+                    *obj.at_field_mut(key.unwrap_string())? = value;
+                }
+
+                Instr {
+                    op: OpCode::SetSubscript,
+                    ..
+                } => {
+                    let value = self.stack.pop().unwrap();
+                    let index = self.stack.pop().unwrap();
+                    let obj = self.stack.last_mut().unwrap();
+                    *obj.at_mut(&index)? = value;
+                }
+
+                Instr {
+                    op: OpCode::Dup,
+                    arg0,
+                    ..
+                } => {
+                    let index = self.stack.len() - 1 - arg0 as usize;
+                    let value = self.stack[index].clone();
+                    self.stack.push(value);
+                }
             }
         }
     }

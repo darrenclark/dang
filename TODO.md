@@ -2,9 +2,6 @@
 
 ## VM
 
-- Subscript/field access
-- Subscript/field assignment
-
 - Pattern matching let/var
 
 - Modules
