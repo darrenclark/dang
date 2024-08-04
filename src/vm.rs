@@ -127,6 +127,7 @@ impl VM {
                     let callee = self.stack.pop().unwrap();
                     let res = match callee {
                         Value::NativeFunc(ptr) => ptr(&args)?,
+                        Value::NativeClosure(closure) => closure.closure.borrow_mut()(&args)?,
                         Value::Function(function) => {
                             self.frames.push(Frame::new(function, self.stack.len()));
                             // TODO: Optimize this, so that we don't split_off args on this code

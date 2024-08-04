@@ -46,23 +46,25 @@ inspect(di)
 
 {result: (l, l2), add_plus_ten: add_plus_ten}
 
-// a[b] = c
+let it = iter([1, 2, 3, 4])
+inspect(it())
+inspect(it())
+inspect(it())
+inspect(it())
+inspect(it())
+
+// let list = [1, 2, 3, 4]
+// for x in list {
+//    println(x)
+// }
 //
-// get_local 1
-// push b
-// push c
-// set_subscript
-// set_local 1
+// desugars to:
 //
-//
-// a[b][c] = d
-//
-// get_local 1    // a,
-// push b         // a, b
-// dup  2         // a, b, a, b
-// get_subscript  // a, b, a[b]
-// push c         // a, b, a[b], c
-// push d         // a, b, a[b], c, d
-// set_subscript  // a, b, a[b]*
-// set_subscript  // a*
-// set_local      //
+// let list = [1, 2, 3, 4]
+// let iter = iter(list)        // if is_struct, iter, else inner
+// @loop:
+//   let x = iter.next()        // get_local, call 0
+//   if x == nil { goto @end }  // unwrap_iter_elem, jump_if_false @end
+//   println(x)                 // get_global, get_local, call 1
+//   goto @loop                 // jump_back @loop
+// @end:                        // pop unwrap_iter_elem
