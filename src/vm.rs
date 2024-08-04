@@ -309,6 +309,26 @@ impl VM {
 
                     self.stack.push(Value::Dict(dict));
                 }
+
+                Instr {
+                    op: OpCode::GetField,
+                    ..
+                } => {
+                    let key = self.stack.pop().unwrap();
+                    let obj = self.stack.pop().unwrap();
+                    let value = obj.at_field(key.unwrap_string())?;
+                    self.stack.push(value);
+                }
+
+                Instr {
+                    op: OpCode::GetSubscript,
+                    ..
+                } => {
+                    let index = self.stack.pop().unwrap();
+                    let obj = self.stack.pop().unwrap();
+                    let value = obj.at(&index)?;
+                    self.stack.push(value);
+                }
             }
         }
     }

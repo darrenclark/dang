@@ -124,6 +124,14 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::MakeDict,
             ..
         } => println!("MakeDict {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::GetField,
+            ..
+        } => println!("GetField"),
+        Instr {
+            op: OpCode::GetSubscript,
+            ..
+        } => println!("GetSubscript"),
     }
 }
 

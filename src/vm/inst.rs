@@ -63,6 +63,10 @@ pub enum OpCode {
     MakeTuple,
     /// MakeDict(size:24bit) -n*2 +1 - makes a dictionary with n key value pairs
     MakeDict,
+    /// GetField -2 +1 - accesses a field (object.key)
+    GetField,
+    /// GetSubscript -2 +1 - accesses a field via subscript (object[key])
+    GetSubscript,
 }
 
 impl Instr {
@@ -168,6 +172,14 @@ impl Instr {
 
     pub fn make_dict(size: usize) -> Self {
         Self::new_wide(OpCode::MakeDict, size)
+    }
+
+    pub fn get_field() -> Self {
+        Self::new(OpCode::GetField, 0, 0, 0)
+    }
+
+    pub fn get_subscript() -> Self {
+        Self::new(OpCode::GetSubscript, 0, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

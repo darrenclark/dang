@@ -101,6 +101,13 @@ impl<T: Into<Value> + Clone> From<Vec<T>> for Value {
 }
 
 impl Value {
+    pub fn unwrap_string(&self) -> &str {
+        match self {
+            Self::String(s) => s,
+            _ => panic!("expected string, got {:?}", self),
+        }
+    }
+
     pub fn closure<F>(func: F) -> Self
     where
         F: FnMut(&[Value]) -> Result<Value, Exception> + 'static,

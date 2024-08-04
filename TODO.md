@@ -2,6 +2,14 @@
 
 ## VM
 
+- Subscript/field access
+- Subscript/field assignment
+
+- Pattern matching let/var
+
+- Modules
+    - Struct literals
+
 - Debug info in compiled chunks:
     - line numbers per instruction
 

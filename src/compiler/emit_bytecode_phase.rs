@@ -231,6 +231,21 @@ impl Emitter<'_> {
                     self.chunk.write(Instr::make_dict(pairs.len()));
                 }
             }
+            NodeKind::FieldAccess { object, key } => {
+                self.emit(object);
+
+                let constant = self
+                    .chunk
+                    .write_constant(Value::String(key.unwrap_identifier().to_owned()));
+                self.chunk.write(Instr::constant(constant));
+
+                self.chunk.write(Instr::get_field());
+            }
+            NodeKind::Subscript { object, key } => {
+                self.emit(object);
+                self.emit(key);
+                self.chunk.write(Instr::get_subscript());
+            }
             _ => todo!(),
         }
     }
