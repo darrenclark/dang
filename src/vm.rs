@@ -53,6 +53,11 @@ impl VM {
             let ip = self.ip();
             *self.ip_mut() += 1;
 
+            //println!("======= ip: {} ========", ip);
+            //disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
+            //println!("stack: {:?}", self.stack);
+            //println!("=====================");
+
             match self.chunk().code[ip] {
                 Instr {
                     op: OpCode::Constant,
@@ -137,7 +142,7 @@ impl VM {
                             }
                             continue;
                         }
-                        _ => todo!(),
+                        _ => todo!("unexpected function: {}", callee),
                     };
                     self.stack.push(res);
                 }
@@ -287,6 +292,14 @@ impl VM {
                     *self.ip_mut() += self.chunk().code[ip].wide_arg();
                 }
 
+                Instr {
+                    op: OpCode::JumpBack,
+                    ..
+                } => {
+                    let offset = self.chunk().code[ip].wide_arg();
+                    *self.ip_mut() -= offset + 1;
+                }
+
                 instr @ Instr {
                     op: OpCode::MakeList,
                     ..
@@ -370,6 +383,29 @@ impl VM {
                     let index = self.stack.len() - 1 - arg0 as usize;
                     let value = self.stack[index].clone();
                     self.stack.push(value);
+                }
+
+                Instr {
+                    op: OpCode::CheckIterItem,
+                    ..
+                } => {
+                    let res = self.stack.pop().unwrap();
+                    match res {
+                        Value::Tuple(t) if t.len() == 2 => {
+                            self.stack.push(t[1].clone());
+                            self.stack.push(Value::Bool(true));
+                        }
+                        Value::Nil => {
+                            self.stack.push(Value::Nil);
+                            self.stack.push(Value::Bool(false));
+                        }
+                        _ => {
+                            exception!(
+                                "Expected tuple with 2 elements or nil from iterator, got {:?}",
+                                res
+                            )
+                        }
+                    }
                 }
             }
         }

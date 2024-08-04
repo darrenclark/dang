@@ -7,14 +7,23 @@ use crate::{ast::NodeId, module::ModuleName};
 
 #[derive(Debug)]
 pub struct Scope {
+    kind: ScopeKind,
     definitions: HashMap<String, NodeId>,
     base_offset: usize,
     indices: Vec<String>,
 }
 
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+enum ScopeKind {
+    Global,
+    Function,
+    Child,
+}
+
 impl Scope {
     pub fn new_global_scope() -> Self {
         Self {
+            kind: ScopeKind::Global,
             definitions: HashMap::new(),
             base_offset: 0,
             indices: Vec::new(),
@@ -23,6 +32,7 @@ impl Scope {
 
     pub fn new_function_scope() -> Self {
         Self {
+            kind: ScopeKind::Function,
             definitions: HashMap::new(),
             base_offset: 0,
             indices: Vec::new(),
@@ -30,9 +40,16 @@ impl Scope {
     }
 
     pub fn new_child_scope(parent: &Scope) -> Self {
+        let base_offset = if parent.kind != ScopeKind::Global {
+            parent.base_offset + parent.definitions.len()
+        } else {
+            0
+        };
+
         Self {
+            kind: ScopeKind::Child,
             definitions: HashMap::new(),
-            base_offset: parent.base_offset + parent.definitions.len(),
+            base_offset,
             indices: Vec::new(),
         }
     }
@@ -42,6 +59,11 @@ impl Scope {
 
         self.definitions.insert(name.to_owned(), node_id);
         self.indices.push(name.to_owned());
+    }
+
+    pub fn allocate_anonymous_local(&mut self) -> usize {
+        self.indices.push(String::new());
+        self.indices.len() - 1 + self.base_offset
     }
 
     pub fn is_defined(&self, name: &str) -> bool {

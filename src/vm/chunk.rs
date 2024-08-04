@@ -28,4 +28,13 @@ impl Chunk {
         let jump_instr = &mut self.code[jump_instr_offset];
         jump_instr.set_wide_arg(offset);
     }
+
+    pub fn write_jump_back(&mut self, label: usize) -> usize {
+        let offset = self.code.len() - label;
+        self.write(Instr::jump_back(offset))
+    }
+
+    pub fn label(&self, _name: &'static str) -> usize {
+        self.code.len()
+    }
 }

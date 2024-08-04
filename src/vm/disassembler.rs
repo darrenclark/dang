@@ -20,7 +20,7 @@ pub fn disassemble(function: &Function) {
     }
 }
 
-fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
+pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
     match instr {
         Instr {
             op: OpCode::Constant,
@@ -124,6 +124,10 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::Jump, ..
         } => println!("Jump {}", instr.wide_arg()),
         Instr {
+            op: OpCode::JumpBack,
+            ..
+        } => println!("JumpBack -{}", instr.wide_arg()),
+        Instr {
             op: OpCode::MakeList,
             ..
         } => println!("MakeList {}", instr.wide_arg()),
@@ -156,6 +160,10 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             arg0,
             ..
         } => println!("Dup {}", arg0),
+        Instr {
+            op: OpCode::CheckIterItem,
+            ..
+        } => println!("CheckIterItem"),
     }
 }
 

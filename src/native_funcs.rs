@@ -134,7 +134,7 @@ fn get(args: &[Value]) -> Result<Value, Exception> {
     Ok(res)
 }
 
-fn iter(args: &[Value]) -> Result<Value, Exception> {
+pub fn iter(args: &[Value]) -> Result<Value, Exception> {
     if args.len() != 1 {
         exception!("iter(enumerable) expected only a single arg")
     }

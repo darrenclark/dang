@@ -60,6 +60,7 @@ impl Emitter<'_> {
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
                 self.chunk.write(Instr::call(0));
+                self.chunk.write(Instr::pop());
             }
             NodeKind::Body(statements) => {
                 self.pushed_locals.push(0);
@@ -322,6 +323,71 @@ impl Emitter<'_> {
                 }
 
                 self.emit_set(variable_ref);
+            }
+            NodeKind::For {
+                pattern,
+                enumerable,
+                body,
+            } => {
+                self.pushed_locals.push(0);
+
+                // get iterator
+                // TODO: support structs implementing iter
+                let iter_fn = self
+                    .chunk
+                    .write_constant(Value::NativeFunc(native_funcs::iter));
+                self.chunk.write(Instr::constant(iter_fn));
+                self.emit(enumerable);
+                self.chunk.write(Instr::call(1));
+                *self.pushed_locals.last_mut().unwrap() += 1;
+
+                // allocate loop variable
+                match &pattern.kind {
+                    NodeKind::PatternIdentifier { .. } => {
+                        if let VariableAllocation::Global { .. } =
+                            self.get_variable_allocation(pattern)
+                        {
+                            unreachable!("for loop variables will never be global");
+                        } else {
+                            //let n = self.chunk.write_constant(Value::Nil);
+                            //self.chunk.write(Instr::constant(n));
+                            // no need to push the nil, since the code later on will leave the
+                            // variable in the right stack spot
+                            //*self.pushed_locals.last_mut().unwrap() += 1;
+                        }
+                    }
+                    _ => todo!(),
+                }
+
+                let loop_start = self.chunk.label("loop_start");
+
+                // call iterator function
+                self.emit_get(node);
+                self.chunk.write(Instr::call(0));
+
+                // handle result
+                self.chunk.write(Instr::check_iter_item());
+                let loop_exit_branch = self.chunk.write(Instr::branch_if_false(0));
+                // pop off CheckIterItem boolean, leaving the item in the correct stack spot
+                self.chunk.write(Instr::pop());
+
+                // loop body
+                self.emit(body);
+                self.chunk.write(Instr::pop()); // to pop result of body
+
+                // loop back to top - pop local var off the stack first
+                self.chunk.write(Instr::pop());
+                self.chunk.write_jump_back(loop_start);
+
+                self.chunk.patch_jump(loop_exit_branch);
+                // pop of CheckIterItem results
+                self.chunk.write(Instr::pop());
+                self.chunk.write(Instr::pop());
+
+                // pop off iterator & pattern vars
+                for _ in 0..self.pushed_locals.pop().unwrap() {
+                    self.chunk.write(Instr::pop());
+                }
             }
             ast => todo!("not yet implemented for: {:?}", ast),
         }

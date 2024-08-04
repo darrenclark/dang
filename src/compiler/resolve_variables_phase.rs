@@ -340,6 +340,15 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 body: _,
             } => {
                 self.push_child_scope();
+
+                let iter_index = self
+                    .scopes_stack
+                    .last_mut()
+                    .unwrap()
+                    .allocate_anonymous_local();
+                self.variable_allocations
+                    .insert(node.id, VariableAllocation::Local { index: iter_index });
+
                 self.define_all_in_pattern(pattern);
             }
             NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {

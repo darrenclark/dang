@@ -60,6 +60,8 @@ pub enum OpCode {
     Pop,
     /// Jump(offset:24bit) -0 +0 - jumps forward to the given offset
     Jump,
+    /// JumpBack(offset:24bit) -0 +0 - jumps back to the given offset
+    JumpBack,
     /// MakeList(size:24bit) -n +1 - makes a list with n elements
     MakeList,
     /// MakeTuple(size:24bit) -n +1 - makes a tuple with n elements
@@ -77,6 +79,9 @@ pub enum OpCode {
     /// Dup(n:24bit) -0 +1 - duplicate element at stack[top - n]
     /// Dup 0 - duplicate top of stack, Dup 1 - duplicate second topmost value in stack, etc.
     Dup,
+    /// CheckIterItem -1 +2 - checks if iter returned (:some, value) or nil
+    /// Pushes value (or nil) to stack, and boolean indicating if value is present
+    CheckIterItem,
 }
 
 impl Instr {
@@ -176,6 +181,10 @@ impl Instr {
         Self::new_wide(OpCode::Jump, offset)
     }
 
+    pub fn jump_back(offset: usize) -> Self {
+        Self::new_wide(OpCode::JumpBack, offset)
+    }
+
     pub fn make_list(size: usize) -> Self {
         Self::new_wide(OpCode::MakeList, size)
     }
@@ -206,6 +215,10 @@ impl Instr {
 
     pub fn dup(n: u8) -> Self {
         Self::new(OpCode::Dup, n, 0, 0)
+    }
+
+    pub fn check_iter_item() -> Self {
+        Self::new(OpCode::CheckIterItem, 0, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {
