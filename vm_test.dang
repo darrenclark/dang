@@ -1,6 +1,4 @@
-__builtin inspect
-__builtin str
-__builtin println
+import Std/Builtins.*
 
 println(str(true))
 println(str(false))

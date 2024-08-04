@@ -101,7 +101,7 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 
     match compiler.compile(input, &mut program) {
         Ok(_) => {
-            let module_name = program.module_names().first().cloned().unwrap();
+            let module_name = program.module_names().last().cloned().unwrap();
             let module = program.get_module(&module_name).unwrap();
             if args.print_disasm {
                 disassemble(&module.function);

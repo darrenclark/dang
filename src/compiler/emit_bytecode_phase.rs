@@ -1,6 +1,7 @@
 use crate::{
     ast::{BinOp, Node, NodeKind, UnaryOp},
     interpreter::Exception,
+    module::ModuleName,
     native_funcs,
     program::Program,
     scope::VariableAllocation,
@@ -13,12 +14,13 @@ use super::{CompilationState, Compiler};
 pub fn emit_bytecode_phase(
     _compiler: &Compiler,
     compilation_state: &mut CompilationState,
-    _program: &mut Program,
+    program: &mut Program,
 ) -> Result<(), Exception> {
     let mut chunk = Chunk::new();
 
     let mut emitter = Emitter {
         compilation_state,
+        program,
         chunk: &mut chunk,
         pushed_locals: Vec::new(),
     };
@@ -31,6 +33,7 @@ pub fn emit_bytecode_phase(
 
 struct Emitter<'a> {
     compilation_state: &'a CompilationState,
+    program: &'a Program,
     chunk: &'a mut Chunk,
     pushed_locals: Vec<usize>,
 }
@@ -39,10 +42,24 @@ impl Emitter<'_> {
     fn emit(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(statements) => {
+                self.emit_module_load_guard(self.compilation_state.module_name);
+
                 for statement in statements {
                     self.emit(statement);
                 }
+
+                let constant = self.chunk.write_constant(Value::Bool(true));
+                self.chunk.write(Instr::constant(constant));
                 self.chunk.write(Instr::return_());
+            }
+            NodeKind::Module(_) => {}
+            NodeKind::Import(kind) => {
+                let module_name = ModuleName::from(kind.module_name());
+                let module = self.program.get_module(&module_name).unwrap();
+                let function = Value::Function(module.function.clone());
+                let constant = self.chunk.write_constant(function);
+                self.chunk.write(Instr::constant(constant));
+                self.chunk.write(Instr::call(0));
             }
             NodeKind::Body(statements) => {
                 self.pushed_locals.push(0);
@@ -188,6 +205,7 @@ impl Emitter<'_> {
 
                 let mut emitter = Emitter {
                     compilation_state: self.compilation_state,
+                    program: self.program,
                     chunk: &mut chunk,
                     pushed_locals: Vec::new(),
                 };
@@ -305,7 +323,7 @@ impl Emitter<'_> {
 
                 self.emit_set(variable_ref);
             }
-            _ => todo!(),
+            ast => todo!("not yet implemented for: {:?}", ast),
         }
     }
 
@@ -386,5 +404,18 @@ impl Emitter<'_> {
             .get(&node.id)
             .unwrap()
             .clone()
+    }
+
+    fn emit_module_load_guard(&mut self, module_name: ModuleName) {
+        let module = self.chunk.write_constant(Value::Symbol(module_name.0));
+        let name = self.chunk.write_constant(Value::Symbol("<loaded>".into()));
+        self.chunk.write(Instr::global_is_defined(module, name));
+
+        let branch = self.chunk.write(Instr::branch_if_false(0));
+        self.chunk.write(Instr::return_());
+
+        self.chunk.patch_jump(branch);
+        self.chunk.write(Instr::logical_neg());
+        self.chunk.write(Instr::set_global(module, name));
     }
 }

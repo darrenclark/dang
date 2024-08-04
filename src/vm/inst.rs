@@ -15,6 +15,9 @@ pub enum OpCode {
     GetGlobal,
     /// SetGlobal(module, name) -1 - sets global value to value at top of stack
     SetGlobal,
+    /// GlobalIsDefined(module, name) +1 - checks if global is defined (used to guard against
+    /// loading a module twice)
+    GlobalIsDefined,
     /// GetLocal(index) +1 - gets local variable and pushes to stack
     GetLocal,
     /// SetLocal(index) -1 - sets local variable to value at top of stack
@@ -87,6 +90,10 @@ impl Instr {
 
     pub fn set_global(module: u8, name: u8) -> Self {
         Self::new(OpCode::SetGlobal, module, name, 0)
+    }
+
+    pub fn global_is_defined(module: u8, name: u8) -> Self {
+        Self::new(OpCode::GlobalIsDefined, module, name, 0)
     }
 
     pub fn get_local(index: u8) -> Self {

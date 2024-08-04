@@ -4,13 +4,16 @@
 
 - Pattern matching let/var
 
-- Modules
-    - Struct literals
+- `for` loops
+
+- Struct literals
 
 - Debug info in compiled chunks:
     - line numbers per instruction
 
 - Closures
+
+- Bug compiling functions that end in a `let` statement (or similar)
 
 ## Future
 

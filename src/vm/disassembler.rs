@@ -50,6 +50,17 @@ fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             consts(chunk, &[*arg0, *arg1])
         ),
         Instr {
+            op: OpCode::GlobalIsDefined,
+            arg0,
+            arg1,
+            ..
+        } => println!(
+            "GlobalIsDefined  {}, {} \t{}",
+            arg0,
+            arg1,
+            consts(chunk, &[*arg0, *arg1])
+        ),
+        Instr {
             op: OpCode::GetLocal,
             arg0,
             ..

@@ -89,6 +89,17 @@ impl VM {
                 }
 
                 Instr {
+                    op: OpCode::GlobalIsDefined,
+                    arg0,
+                    arg1,
+                    ..
+                } => {
+                    let key = (self.read_symbol(arg0), self.read_symbol(arg1));
+                    let value = self.globals.contains_key(&key);
+                    self.stack.push(Value::Bool(value));
+                }
+
+                Instr {
                     op: OpCode::GetLocal,
                     arg0,
                     ..
