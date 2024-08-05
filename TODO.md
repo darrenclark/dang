@@ -2,18 +2,17 @@
 
 ## VM
 
-- Pattern matching let/var
-
-- `for` loops
-
 - Struct literals
-
-- Debug info in compiled chunks:
-    - line numbers per instruction
-
+- For loop cleanup
+- Pattern matching let/var
 - Closures
 
-- Bug compiling functions that end in a `let` statement (or similar)
+- Mutate in-place instructions (faster arrays)
+- Debug info in compiled chunks
+    - line numbers per instruction
+    - function names
+    - exception stack traces
+    - variable names (?)
 
 ## Future
 
@@ -21,7 +20,6 @@ Higher priority:
 
 - `fn name(...) { ... }` syntax equivalent to `let name = fn(..) { ... }`
 - Module references - i.e. `@Std/Enum.map` should work without import
-- Better inspect output/Values printed as valid source code
 - metamethods for structs:
     - `__new__(...)` for `Point(...)` syntax
     - `__iter__(s)` for iterators
