@@ -1,7 +1,9 @@
 module VmTest
 
 import Std/Builtins.*
-import Std/Range
+import Std/Range.range
+
+import Std/Builtins.some
 
 struct {
   x,
@@ -9,10 +11,27 @@ struct {
   z
 }
 
+
+var iter_state = 0
+let iter = fn (t) {
+  fn () {
+    if iter_state == 0 {
+      iter_state = 1
+      (some, 11)
+    } else if iter_state == 1 {
+      iter_state = 2
+      (some, 22)
+    } else if iter_state == 2 {
+      iter_state = 3
+      (some, 33)
+    } else {
+      nil
+    }
+  }
+}
+
 VmTest{x: 1, y: 2, z: 3}
 |> inspect()
-
-//Range{}
 
 println(str(true))
 println(str(false))
@@ -60,16 +79,27 @@ inspect(di)
 
 {result: (l, l2), add_plus_ten: add_plus_ten}
 
-let it = iter([1, 2, 3, 4])
-inspect(it())
-inspect(it())
-inspect(it())
-inspect(it())
-inspect(it())
+//let it = iter([1, 2, 3, 4])
+//inspect(it())
+//inspect(it())
+//inspect(it())
+//inspect(it())
+//inspect(it())
 
 for v in [1, 2, 3, 4] {
   inspect(v)
 }
+
+//for v in range(1, 5) {
+//  inspect("range", v)
+//}
+println("=====")
+
+for v in VmTest{x: 11, y: 22, z: 33} {
+  inspect(v)
+}
+
+println("=====")
 
 // let list = [1, 2, 3, 4]
 // for x in list {

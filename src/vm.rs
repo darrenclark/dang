@@ -416,8 +416,20 @@ impl VM {
                     ..
                 } => {
                     let obj = self.stack.pop().unwrap();
-                    let iter = native_funcs::iter(&[obj])?;
-                    self.stack.push(iter);
+                    match &obj {
+                        Value::Struct(module_name, _) => {
+                            let key = (module_name.0, Ustr::from("iter"));
+                            if let Some(iter) = self.globals.get(&key) {
+                                self.call(iter.clone(), vec![obj])?;
+                            } else {
+                                exception!("struct `{}` doesn't implement iter", module_name);
+                            }
+                        }
+                        _ => {
+                            let iter = native_funcs::iter(&[obj])?;
+                            self.stack.push(iter);
+                        }
+                    }
                 }
 
                 Instr {

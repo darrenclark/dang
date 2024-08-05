@@ -2,8 +2,6 @@
 
 ## VM
 
-- For loop cleanup
-    - For loops over structs
 - Pattern matching let/var
 - Closures
 
