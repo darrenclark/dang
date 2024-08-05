@@ -9,6 +9,7 @@ use crate::{
     ast::{BinOp, UnaryOp},
     interpreter::{exception, Exception},
     module::ModuleName,
+    native_funcs,
     value::Value,
 };
 
@@ -136,21 +137,7 @@ impl VM {
                 } => {
                     let args = self.stack.split_off(self.stack.len() - arg0 as usize);
                     let callee = self.stack.pop().unwrap();
-                    let res = match callee {
-                        Value::NativeFunc(ptr) => ptr(&args)?,
-                        Value::NativeClosure(closure) => closure.closure.borrow_mut()(&args)?,
-                        Value::Function(function) => {
-                            self.frames.push(Frame::new(function, self.stack.len()));
-                            // TODO: Optimize this, so that we don't split_off args on this code
-                            // path & repush them
-                            for arg in args {
-                                self.stack.push(arg);
-                            }
-                            continue;
-                        }
-                        _ => todo!("unexpected function: {}", callee),
-                    };
-                    self.stack.push(res);
+                    self.call(callee, args)?;
                 }
 
                 Instr {
@@ -425,22 +412,38 @@ impl VM {
                 }
 
                 Instr {
-                    op: OpCode::CheckIterItem,
+                    op: OpCode::GetIter,
+                    ..
+                } => {
+                    let obj = self.stack.pop().unwrap();
+                    let iter = native_funcs::iter(&[obj])?;
+                    self.stack.push(iter);
+                }
+
+                Instr {
+                    op: OpCode::CallIter,
+                    ..
+                } => {
+                    let value = self.stack.last().unwrap().clone();
+                    self.call(value, vec![])?;
+                }
+
+                Instr {
+                    op: OpCode::ForIter,
                     ..
                 } => {
                     let res = self.stack.pop().unwrap();
                     match res {
-                        Value::Tuple(t) if t.len() == 2 => {
-                            self.stack.push(t[1].clone());
-                            self.stack.push(Value::Bool(true));
-                        }
                         Value::Nil => {
                             self.stack.push(Value::Nil);
-                            self.stack.push(Value::Bool(false));
+                            *self.ip_mut() += self.chunk().code[ip].wide_arg();
+                        }
+                        Value::Tuple(t) if t.len() == 2 => {
+                            self.stack.push(t[1].clone());
                         }
                         _ => {
                             exception!(
-                                "Expected tuple with 2 elements or nil from iterator, got {:?}",
+                                "expected tuple with 2 elements or nil from iterator, got {:?}",
                                 res
                             )
                         }
@@ -470,5 +473,28 @@ impl VM {
 
     fn ip_mut(&mut self) -> &mut usize {
         &mut self.frames.last_mut().unwrap().ip
+    }
+
+    fn call(&mut self, callee: Value, args: Vec<Value>) -> Result<(), Exception> {
+        match callee {
+            Value::NativeFunc(ptr) => {
+                let res = ptr(&args)?;
+                self.stack.push(res);
+            }
+            Value::NativeClosure(closure) => {
+                let res = closure.closure.borrow_mut()(&args)?;
+                self.stack.push(res);
+            }
+            Value::Function(function) => {
+                self.frames.push(Frame::new(function, self.stack.len()));
+                // TODO: Optimize this, so that we don't split_off args on this code
+                // path & repush them
+                for arg in args {
+                    self.stack.push(arg);
+                }
+            }
+            _ => todo!("unexpected function: {}", callee),
+        }
+        Ok(())
     }
 }

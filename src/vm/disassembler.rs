@@ -175,9 +175,17 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             ..
         } => println!("Dup {}", arg0),
         Instr {
-            op: OpCode::CheckIterItem,
+            op: OpCode::GetIter,
             ..
-        } => println!("CheckIterItem"),
+        } => println!("GetIter"),
+        Instr {
+            op: OpCode::CallIter,
+            ..
+        } => println!("CallIter"),
+        Instr {
+            op: OpCode::ForIter,
+            ..
+        } => println!("ForIter {}", instr.wide_arg()),
     }
 }
 

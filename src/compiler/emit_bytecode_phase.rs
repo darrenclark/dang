@@ -385,12 +385,8 @@ impl Emitter<'_> {
 
                 // get iterator
                 // TODO: support structs implementing iter
-                let iter_fn = self
-                    .chunk
-                    .write_constant(Value::NativeFunc(native_funcs::iter));
-                self.chunk.write(Instr::constant(iter_fn));
                 self.emit(enumerable);
-                self.chunk.write(Instr::call(1));
+                self.chunk.write(Instr::get_iter());
                 *self.pushed_locals.last_mut().unwrap() += 1;
 
                 // allocate loop variable
@@ -406,6 +402,7 @@ impl Emitter<'_> {
                             // no need to push the nil, since the code later on will leave the
                             // variable in the right stack spot
                             //*self.pushed_locals.last_mut().unwrap() += 1;
+                            *self.pushed_locals.last_mut().unwrap() += 1;
                         }
                     }
                     _ => todo!(),
@@ -414,14 +411,11 @@ impl Emitter<'_> {
                 let loop_start = self.chunk.label("loop_start");
 
                 // call iterator function
-                self.emit_get(node);
-                self.chunk.write(Instr::call(0));
+                self.chunk.write(Instr::call_iter());
 
                 // handle result
-                self.chunk.write(Instr::check_iter_item());
-                let loop_exit_branch = self.chunk.write(Instr::branch_if_false(0));
-                // pop off CheckIterItem boolean, leaving the item in the correct stack spot
-                self.chunk.write(Instr::pop());
+                let loop_exit_branch = self.chunk.write(Instr::for_iter(0));
+                // (value is correct in local var slot)
 
                 // loop body
                 self.emit(body);
@@ -432,9 +426,6 @@ impl Emitter<'_> {
                 self.chunk.write_jump_back(loop_start);
 
                 self.chunk.patch_jump(loop_exit_branch);
-                // pop of CheckIterItem results
-                self.chunk.write(Instr::pop());
-                self.chunk.write(Instr::pop());
 
                 // pop off iterator & pattern vars
                 for _ in 0..self.pushed_locals.pop().unwrap() {

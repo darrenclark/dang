@@ -87,9 +87,13 @@ pub enum OpCode {
     /// Dup(n:24bit) -0 +1 - duplicate element at stack[top - n]
     /// Dup 0 - duplicate top of stack, Dup 1 - duplicate second topmost value in stack, etc.
     Dup,
-    /// CheckIterItem -1 +2 - checks if iter returned (:some, value) or nil
-    /// Pushes value (or nil) to stack, and boolean indicating if value is present
-    CheckIterItem,
+    /// GetIter -1 +1 - gets iterator for value at top of stack
+    GetIter,
+    /// CallIter -0, +1 - calls iterator, pushing result - (:some, value) or nil
+    CallIter,
+    /// ForIter(offset:24bit) -1 +1 - unpacks result of CallIter or jumps to offset when iterator
+    /// is exhausted
+    ForIter,
 }
 
 impl Instr {
@@ -237,8 +241,16 @@ impl Instr {
         Self::new(OpCode::Dup, n, 0, 0)
     }
 
-    pub fn check_iter_item() -> Self {
-        Self::new(OpCode::CheckIterItem, 0, 0, 0)
+    pub fn get_iter() -> Self {
+        Self::new(OpCode::GetIter, 0, 0, 0)
+    }
+
+    pub fn call_iter() -> Self {
+        Self::new(OpCode::CallIter, 0, 0, 0)
+    }
+
+    pub fn for_iter(end_offset: usize) -> Self {
+        Self::new_wide(OpCode::ForIter, end_offset)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {
