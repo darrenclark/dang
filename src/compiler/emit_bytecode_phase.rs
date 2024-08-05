@@ -389,24 +389,12 @@ impl Emitter<'_> {
                 self.chunk.write(Instr::get_iter());
                 *self.pushed_locals.last_mut().unwrap() += 1;
 
-                // allocate loop variable
-                match &pattern.kind {
-                    NodeKind::PatternIdentifier { .. } => {
-                        if let VariableAllocation::Global { .. } =
-                            self.get_variable_allocation(pattern)
-                        {
-                            unreachable!("for loop variables will never be global");
-                        } else {
-                            //let n = self.chunk.write_constant(Value::Nil);
-                            //self.chunk.write(Instr::constant(n));
-                            // no need to push the nil, since the code later on will leave the
-                            // variable in the right stack spot
-                            //*self.pushed_locals.last_mut().unwrap() += 1;
-                            *self.pushed_locals.last_mut().unwrap() += 1;
-                        }
-                    }
-                    _ => todo!(),
-                }
+                // allocate loop variable (+1 for the result from iterator)
+                *self.pushed_locals.last_mut().unwrap() += 1;
+
+                let is_complex_pattern =
+                    !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
+                let pattern_locals = self.count_pattern_locals(pattern);
 
                 let loop_start = self.chunk.label("loop_start");
 
@@ -415,14 +403,28 @@ impl Emitter<'_> {
 
                 // handle result
                 let loop_exit_branch = self.chunk.write(Instr::for_iter(0));
-                // (value is correct in local var slot)
+                if is_complex_pattern {
+                    // preallocate room on stack for pattern
+                    for _ in 0..pattern_locals {
+                        self.chunk.write(Instr::push_nil());
+                        // don't incremented pushed_locals, as we clean these locals up
+                        // before the next iteration (and hence won't be there when we exit)
+                    }
+                    // push & unpack the expression
+                    self.chunk.write(Instr::dup(pattern_locals as u8));
+                    self.emit_assignment_pattern(pattern);
+                }
+                // else: (value is correct in local var slot)
 
                 // loop body
                 self.emit(body);
                 self.chunk.write(Instr::pop()); // to pop result of body
 
-                // loop back to top - pop local var off the stack first
+                // loop back to top - pop local var + any pattern locals off the stack first
                 self.chunk.write(Instr::pop());
+                for _ in 0..pattern_locals {
+                    self.chunk.write(Instr::pop());
+                }
                 self.chunk.write_jump_back(loop_start);
 
                 self.chunk.patch_jump(loop_exit_branch);

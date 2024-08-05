@@ -349,6 +349,17 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.variable_allocations
                     .insert(node.id, VariableAllocation::Local { index: iter_index });
 
+                let is_complex_pattern =
+                    !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
+
+                if is_complex_pattern {
+                    // need to allocate a second anonymous local to hold the iterator value
+                    self.scopes_stack
+                        .last_mut()
+                        .unwrap()
+                        .allocate_anonymous_local();
+                }
+
                 self.define_all_in_pattern(pattern);
             }
             NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {
