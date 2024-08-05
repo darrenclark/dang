@@ -55,8 +55,6 @@ impl VM {
 
             //println!("======= ip: {} ========", ip);
             //disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
-            //println!("stack: {:?}", self.stack);
-            //println!("=====================");
 
             match self.chunk().code[ip] {
                 Instr {
@@ -66,6 +64,13 @@ impl VM {
                 } => {
                     self.stack
                         .push(self.chunk().constants[arg0 as usize].clone());
+                }
+
+                Instr {
+                    op: OpCode::PushNil,
+                    ..
+                } => {
+                    self.stack.push(Value::Nil);
                 }
 
                 Instr {
@@ -287,6 +292,16 @@ impl VM {
                 }
 
                 Instr {
+                    op: OpCode::PopLocals,
+                    ..
+                } => {
+                    let n = self.chunk().code[ip].wide_arg();
+                    let res = self.stack.pop().unwrap();
+                    self.stack.truncate(self.stack.len() - n);
+                    self.stack.push(res);
+                }
+
+                Instr {
                     op: OpCode::Jump, ..
                 } => {
                     *self.ip_mut() += self.chunk().code[ip].wide_arg();
@@ -408,6 +423,9 @@ impl VM {
                     }
                 }
             }
+
+            //println!("stack: {:?}", self.stack);
+            //println!("=====================");
         }
     }
 

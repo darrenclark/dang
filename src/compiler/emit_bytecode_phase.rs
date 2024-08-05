@@ -44,15 +44,18 @@ impl Emitter<'_> {
             NodeKind::SourceFile(statements) => {
                 self.emit_module_load_guard(self.compilation_state.module_name);
 
-                for statement in statements {
+                for (i, statement) in statements.iter().enumerate() {
                     self.emit(statement);
+                    if i < statements.len() - 1 {
+                        self.chunk.write(Instr::pop());
+                    }
                 }
 
-                let constant = self.chunk.write_constant(Value::Bool(true));
-                self.chunk.write(Instr::constant(constant));
                 self.chunk.write(Instr::return_());
             }
-            NodeKind::Module(_) => {}
+            NodeKind::Module(_) => {
+                self.chunk.write(Instr::push_nil());
+            }
             NodeKind::Import(kind) => {
                 let module_name = ModuleName::from(kind.module_name());
                 let module = self.program.get_module(&module_name).unwrap();
@@ -60,17 +63,20 @@ impl Emitter<'_> {
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
                 self.chunk.write(Instr::call(0));
-                self.chunk.write(Instr::pop());
             }
             NodeKind::Body(statements) => {
                 self.pushed_locals.push(0);
 
-                for statement in statements {
+                for (i, statement) in statements.iter().enumerate() {
                     self.emit(statement);
+                    if i < statements.len() - 1 {
+                        self.chunk.write(Instr::pop());
+                    }
                 }
 
-                for _ in 0..self.pushed_locals.pop().unwrap() {
-                    self.chunk.write(Instr::pop());
+                let locals_count = self.pushed_locals.pop().unwrap();
+                if locals_count > 0 {
+                    self.chunk.write(Instr::pop_locals(locals_count));
                 }
             }
             NodeKind::Builtin { identifier } => {
@@ -78,12 +84,15 @@ impl Emitter<'_> {
                 let constant = self.chunk.write_constant(Value::NativeFunc(ptr));
                 self.chunk.write(Instr::constant(constant));
                 self.emit_set(node);
+                self.chunk.write(Instr::push_nil());
             }
             NodeKind::Let { pattern, expr } | NodeKind::Var { pattern, expr } => {
                 self.emit_define(pattern, expr);
+                self.chunk.write(Instr::push_nil());
             }
             NodeKind::Assignment { pattern, expr } => {
                 self.emit_assignment(pattern, expr);
+                self.chunk.write(Instr::push_nil());
             }
             NodeKind::NilLiteral => {
                 let constant = self.chunk.write_constant(Value::Nil);
@@ -197,6 +206,8 @@ impl Emitter<'_> {
                 self.chunk.write(Instr::pop());
                 if let Some(else_branch) = else_branch {
                     self.emit(else_branch);
+                } else {
+                    self.chunk.write(Instr::push_nil());
                 }
 
                 self.chunk.patch_jump(jump);
@@ -388,6 +399,7 @@ impl Emitter<'_> {
                 for _ in 0..self.pushed_locals.pop().unwrap() {
                     self.chunk.write(Instr::pop());
                 }
+                self.chunk.write(Instr::push_nil());
             }
             ast => todo!("not yet implemented for: {:?}", ast),
         }
@@ -448,20 +460,8 @@ impl Emitter<'_> {
     }
 
     fn emit_function(&mut self, _arg_names: &[Node], body: &Node) {
-        // can't use usual handling of Body because we need to avoid
-        // popping locals before the final return
-        if let NodeKind::Body(statements) = &body.kind {
-            self.pushed_locals.push(0);
-            for statement in statements {
-                self.emit(statement);
-            }
-            // ignore number of pushed locals since the return value
-            // is at the top of the stack (and the VM will pop to
-            // the frame base anyways)
-            self.pushed_locals.pop();
-
-            self.chunk.write(Instr::return_());
-        }
+        self.emit(body);
+        self.chunk.write(Instr::return_());
     }
 
     fn get_variable_allocation(&self, node: &Node) -> VariableAllocation {

@@ -41,7 +41,7 @@ impl Scope {
 
     pub fn new_child_scope(parent: &Scope) -> Self {
         let base_offset = if parent.kind != ScopeKind::Global {
-            parent.base_offset + parent.definitions.len()
+            parent.base_offset + parent.indices.len()
         } else {
             0
         };

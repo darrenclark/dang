@@ -7,10 +7,12 @@ pub struct Instr {
     pub arg2: u8,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum OpCode {
     /// Constant(index) +1  - pushes constant at arg0 to stack
     Constant,
+    /// PushNil +1 - pushes a nil to stack
+    PushNil,
     /// GetGlobal(module, name) +1 - gets global value and pushes to stack
     GetGlobal,
     /// SetGlobal(module, name) -1 - sets global value to value at top of stack
@@ -58,6 +60,8 @@ pub enum OpCode {
     BranchIfFalse,
     /// Pop -1 +0 - pops value from stack
     Pop,
+    /// PopLocals(n:24bit) -0 -n - saves top value, then pops n values, then restores top value
+    PopLocals,
     /// Jump(offset:24bit) -0 +0 - jumps forward to the given offset
     Jump,
     /// JumpBack(offset:24bit) -0 +0 - jumps back to the given offset
@@ -87,6 +91,10 @@ pub enum OpCode {
 impl Instr {
     pub fn constant(index: u8) -> Self {
         Self::new(OpCode::Constant, index, 0, 0)
+    }
+
+    pub fn push_nil() -> Self {
+        Self::new(OpCode::PushNil, 0, 0, 0)
     }
 
     pub fn get_global(module: u8, name: u8) -> Self {
@@ -175,6 +183,10 @@ impl Instr {
 
     pub fn pop() -> Self {
         Self::new(OpCode::Pop, 0, 0, 0)
+    }
+
+    pub fn pop_locals(n: usize) -> Self {
+        Self::new_wide(OpCode::PopLocals, n)
     }
 
     pub fn jump(offset: usize) -> Self {

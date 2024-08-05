@@ -53,6 +53,8 @@ inspect(it())
 inspect(it())
 inspect(it())
 
+20
+
 // let list = [1, 2, 3, 4]
 // for x in list {
 //    println(x)

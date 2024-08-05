@@ -28,6 +28,10 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             ..
         } => println!("Constant   {} \t\t{}", arg0, consts(chunk, &[*arg0])),
         Instr {
+            op: OpCode::PushNil,
+            ..
+        } => println!("PushNil"),
+        Instr {
             op: OpCode::GetGlobal,
             arg0,
             arg1,
@@ -120,6 +124,10 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Pop, ..
         } => println!("Pop"),
+        Instr {
+            op: OpCode::PopLocals,
+            ..
+        } => println!("PopLocals {}", instr.wide_arg()),
         Instr {
             op: OpCode::Jump, ..
         } => println!("Jump {}", instr.wide_arg()),
