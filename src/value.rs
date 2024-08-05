@@ -458,6 +458,14 @@ impl Value {
         self.to_doc().render(80, &mut w).unwrap();
         String::from_utf8(w).unwrap()
     }
+
+    pub fn unwrap_symbol(&self) -> Ustr {
+        if let Self::Symbol(ustr) = self {
+            *ustr
+        } else {
+            panic!("not a symbol")
+        }
+    }
 }
 
 lazy_static! {

@@ -35,6 +35,10 @@ impl Exception {
             message: message.to_owned(),
         }
     }
+
+    pub fn set_source_from_node(&mut self, node: &Node) {
+        self.source = Some(node.source.clone());
+    }
 }
 
 impl fmt::Display for Exception {

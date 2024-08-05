@@ -8,6 +8,7 @@ use ustr::Ustr;
 use crate::{
     ast::{BinOp, UnaryOp},
     interpreter::{exception, Exception},
+    module::ModuleName,
     value::Value,
 };
 
@@ -348,6 +349,29 @@ impl VM {
                         .collect();
 
                     self.stack.push(Value::Dict(dict));
+                }
+
+                Instr {
+                    op: OpCode::MakeStruct,
+                    arg0: kind,
+                    arg1: size,
+                    ..
+                } => {
+                    #[allow(clippy::mutable_key_type)]
+                    let dict = self
+                        .stack
+                        .split_off(self.stack.len() - 2 * size as usize)
+                        .chunks(2)
+                        .map(|chunk| {
+                            let key = chunk[0].unwrap_symbol();
+                            let value = chunk[1].clone();
+                            (key, value)
+                        })
+                        .collect();
+
+                    let module = ModuleName(self.chunk().constants[kind as usize].unwrap_symbol());
+
+                    self.stack.push(Value::Struct(module, dict));
                 }
 
                 Instr {

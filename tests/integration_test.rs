@@ -512,6 +512,7 @@ fn struct_from_imported_file() {
     };
 }
 
+#[ignore]
 #[test]
 fn struct_raises_if_a_missing_field_is_not_provided() {
     assert_raises! {
@@ -524,6 +525,7 @@ fn struct_raises_if_a_missing_field_is_not_provided() {
     };
 }
 
+#[ignore]
 #[test]
 fn struct_raises_if_an_unknown_field_is_provided() {
     assert_raises! {

@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use ustr::Ustr;
+
 use crate::{
     ast::{BinOp, Node, NodeKind, UnaryOp},
     interpreter::Exception,
@@ -63,6 +67,9 @@ impl Emitter<'_> {
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
                 self.chunk.write(Instr::call(0));
+            }
+            NodeKind::StructDef { .. } => {
+                self.chunk.write(Instr::push_nil());
             }
             NodeKind::Body(statements) => {
                 self.pushed_locals.push(0);
@@ -260,6 +267,40 @@ impl Emitter<'_> {
                     }
                     self.chunk.write(Instr::make_dict(pairs.len()));
                 }
+            }
+            NodeKind::StructLiteral { module: _, fields } => {
+                // TODO: optimize to emit a compile time value when possible?
+                // TODO: optimize to only emit values
+                let struct_info = self
+                    .compilation_state
+                    .referenced_structs
+                    .get(&node.id)
+                    .unwrap();
+
+                let module_name = self
+                    .chunk
+                    .write_constant(Value::Symbol(struct_info.module_name.0));
+
+                let fields_map = fields
+                    .iter()
+                    .map(|(k, v)| (Ustr::from(k.unwrap_identifier()), v))
+                    .collect::<HashMap<_, _>>();
+
+                for field in &struct_info.fields {
+                    let key = self.chunk.write_constant(Value::Symbol(*field));
+                    self.chunk.write(Instr::constant(key));
+
+                    if let Some(value) = fields_map.get(field) {
+                        self.emit(value);
+                    } else {
+                        let default_value = struct_info.default_values.get(field).unwrap();
+                        let constant = self.chunk.write_constant(default_value.clone());
+                        self.chunk.write(Instr::constant(constant));
+                    }
+                }
+
+                self.chunk
+                    .write(Instr::make_struct(module_name, struct_info.fields.len()));
             }
             NodeKind::FieldAccess { object, key } => {
                 self.emit(object);

@@ -7,8 +7,10 @@ pub mod node_ids_phase;
 pub mod parse_ast_phase;
 pub mod read_file_phase;
 mod resolve_imports_phase;
+mod resolve_structs_phase;
 mod resolve_variables_phase;
 pub mod struct_info_phase;
+mod validate_struct_fields_phase;
 
 use std::{collections::HashMap, path::PathBuf};
 
@@ -22,8 +24,10 @@ use node_ids_phase::node_ids_phase;
 use parse_ast_phase::parse_ast_phase;
 use read_file_phase::read_file_phase;
 use resolve_imports_phase::resolve_imports_phase;
+use resolve_structs_phase::resolve_structs_phase;
 use resolve_variables_phase::resolve_variables_phase;
 use struct_info_phase::struct_info_phase;
+use validate_struct_fields_phase::validate_struct_fields_phase;
 
 use crate::{
     ast::{ImportKind, Node, NodeId},
@@ -64,6 +68,7 @@ pub struct CompilationState {
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
     pub struct_info: Option<StructInfo>,
+    pub referenced_structs: HashMap<NodeId, StructInfo>,
     pub chunk: Chunk,
 }
 
@@ -86,6 +91,7 @@ impl CompilationState {
             variable_locations: HashMap::new(),
             variable_allocations: HashMap::new(),
             struct_info: None,
+            referenced_structs: HashMap::new(),
             chunk: Chunk::new(),
         }
     }
@@ -153,6 +159,8 @@ pub enum Phase {
     StructInfo,
     ResolveImports,
     ResolveVariables,
+    ResolveStructs,
+    ValidateStructFields,
     EmitBytecode,
     Finish,
 }
@@ -168,6 +176,8 @@ lazy_static! {
         (Phase::StructInfo, struct_info_phase),
         (Phase::ResolveImports, resolve_imports_phase),
         (Phase::ResolveVariables, resolve_variables_phase),
+        (Phase::ResolveStructs, resolve_structs_phase),
+        (Phase::ValidateStructFields, validate_struct_fields_phase),
         (Phase::EmitBytecode, emit_bytecode_phase),
         (Phase::Finish, finish_phase),
     ];

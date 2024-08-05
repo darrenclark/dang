@@ -1,4 +1,18 @@
+module VmTest
+
 import Std/Builtins.*
+import Std/Range
+
+struct {
+  x,
+  y,
+  z
+}
+
+VmTest{x: 1, y: 2, z: 3}
+|> inspect()
+
+//Range{}
 
 println(str(true))
 println(str(false))

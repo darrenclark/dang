@@ -2,8 +2,8 @@
 
 ## VM
 
-- Struct literals
 - For loop cleanup
+    - For loops over structs
 - Pattern matching let/var
 - Closures
 
@@ -13,6 +13,7 @@
     - function names
     - exception stack traces
     - variable names (?)
+- Improve error handling in compiler, phases shouldn't need to error with an Exception
 
 ## Future
 

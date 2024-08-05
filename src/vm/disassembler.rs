@@ -148,6 +148,12 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             ..
         } => println!("MakeDict {}", instr.wide_arg()),
         Instr {
+            op: OpCode::MakeStruct,
+            arg0,
+            arg1,
+            ..
+        } => println!("MakeStruct {} {} \t{}", arg0, arg1, consts(chunk, &[*arg0])),
+        Instr {
             op: OpCode::GetField,
             ..
         } => println!("GetField"),

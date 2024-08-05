@@ -72,6 +72,10 @@ pub enum OpCode {
     MakeTuple,
     /// MakeDict(size:24bit) -n*2 +1 - makes a dictionary with n key value pairs
     MakeDict,
+    /// MakeStruct(kind, size) -n*2 +1 - makes a struct with n key value pairs
+    /// First argument is index into constants to get struct kind (Symbol)
+    /// Second argument is number of key/value pairs on stack
+    MakeStruct,
     /// GetField -2 +1 - accesses a field (object.key)
     GetField,
     /// GetSubscript -2 +1 - accesses a field via subscript (object[key])
@@ -207,6 +211,10 @@ impl Instr {
 
     pub fn make_dict(size: usize) -> Self {
         Self::new_wide(OpCode::MakeDict, size)
+    }
+
+    pub fn make_struct(kind: u8, size: usize) -> Self {
+        Self::new(OpCode::MakeStruct, kind, size as u8, 0)
     }
 
     pub fn get_field() -> Self {
