@@ -2,7 +2,6 @@
 
 ## VM
 
-- Pattern matching let/var
 - Closures
 
 - Mutate in-place instructions (faster arrays)
