@@ -438,28 +438,62 @@ impl Emitter<'_> {
     }
 
     fn emit_define(&mut self, pattern: &Node, expr: &Node) {
-        // push value of expr on to stack
-        self.emit(expr);
-
         match &pattern.kind {
             NodeKind::PatternIdentifier { .. } => {
+                // simplest case: let x = 123
                 if let VariableAllocation::Global { .. } = self.get_variable_allocation(pattern) {
+                    self.emit(expr);
                     self.emit_set(pattern);
                 } else {
+                    self.emit(expr);
                     *self.pushed_locals.last_mut().unwrap() += 1;
                 }
             }
-            _ => todo!(),
+            _ => {
+                // preallocate room on stack for pattern
+                for _ in 0..self.count_pattern_locals(pattern) {
+                    self.chunk.write(Instr::push_nil());
+                    *self.pushed_locals.last_mut().unwrap() += 1;
+                }
+                // push & unpack the expression
+                self.emit(expr);
+                self.emit_assignment_pattern(pattern);
+            }
+        }
+    }
+
+    fn count_pattern_locals(&self, pattern: &Node) -> usize {
+        match &pattern.kind {
+            NodeKind::PatternIdentifier { .. } => {
+                if let VariableAllocation::Local { .. } = self.get_variable_allocation(pattern) {
+                    1
+                } else {
+                    0
+                }
+            }
+            NodeKind::PatternTuple { elements } => {
+                elements.iter().map(|e| self.count_pattern_locals(e)).sum()
+            }
+            _ => unreachable!(),
         }
     }
 
     fn emit_assignment(&mut self, pattern: &Node, expr: &Node) {
         // push value of expr on to stack
         self.emit(expr);
+        self.emit_assignment_pattern(pattern);
+    }
 
+    fn emit_assignment_pattern(&mut self, pattern: &Node) {
         match &pattern.kind {
             NodeKind::PatternIdentifier { .. } => {
                 self.emit_set(pattern);
+            }
+            NodeKind::PatternTuple { elements } => {
+                self.chunk.write(Instr::unpack_tuple(elements.len()));
+                elements.iter().rev().for_each(|element| {
+                    self.emit_assignment_pattern(element);
+                });
             }
             _ => todo!(),
         }

@@ -94,6 +94,8 @@ pub enum OpCode {
     /// ForIter(offset:24bit) -1 +1 - unpacks result of CallIter or jumps to offset when iterator
     /// is exhausted
     ForIter,
+    /// UnpackTuple(arity) -1 +arity - unpacks a tuple, popping it & pushing each element
+    UnpackTuple,
 }
 
 impl Instr {
@@ -251,6 +253,10 @@ impl Instr {
 
     pub fn for_iter(end_offset: usize) -> Self {
         Self::new_wide(OpCode::ForIter, end_offset)
+    }
+
+    pub fn unpack_tuple(arity: usize) -> Self {
+        Self::new(OpCode::UnpackTuple, arity as u8, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

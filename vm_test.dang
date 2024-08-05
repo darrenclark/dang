@@ -116,3 +116,72 @@ println("=====")
 //   println(x)                 // get_global, get_local, call 1
 //   goto @loop                 // jump_back @loop
 // @end:                        // pop unwrap_iter_elem
+
+
+
+// let ((a, b), (c, (d, e), f)) = result
+//
+// if each instruction unpacks previous tuple
+//
+// Constant       // result
+// PatBegin       // result
+// PatTuple 2  0  // result, _0.0, _0.1
+// PatTuple 2  1  // result, _0.0, _0.1, a, b
+// PatTuple 3  2  // result, _0.0, _0.1, a, b, c, _1.1, f
+// PatTuple 2  1  // result, _0.0, _0.1, a, b, c, _1.1, f, d, e
+// PatEnd         // result, _0.0, _0.1, a, b, c, _1.1, f, d, e
+
+// let ((a, b), (c, (d, e), f)) = result
+//
+// if each instruction unpacks previous tuple & deletes from the stack
+//
+// Constant       // result
+// PatBegin       // result
+// PatTuple 2  0  // _0.0, _0.1
+// PatTuple 2  1  // _0.1, a, b
+// PatTuple 3  2  // a, b, c, _1.1, f
+// PatTuple 2  1  // a, b, c, f, d, e
+// PatEnd         // a, b, c, f, d, e
+
+// let ((a, b), (c, (d, e), f)) = result
+//      \____/  \   \_t3_/  /
+//       t1      \____t2___/
+//
+// if we describe the structure of the match:
+//
+// Constant         // result
+//  PatBegin        // 
+//  PatTuple 2      //
+//    PatTuple 2    //
+//      PatValue    // a
+//      PatValue    // a, b
+//    PatTuple 3    // a, b
+//      PatValue    // a, b, c
+//      PatTuple 2  // a, b, c
+//        PatValue  // a, b, c, d
+//        PatValue  // a, b, c, d, e
+//      PatValue    // a, b, c, d, e, f
+//  PatEnd          // a, b, c, d, e, f
+
+
+// let ((a, b), (c, (d, e), f)) = result
+//
+// if don't try to do anything fancy for pattern matching:
+//
+// PushNil
+// PushNil
+// PushNil
+// PushNil
+// PushNil
+// PushNil          // a, b, c, d, e, f
+// Constant         // a, b, c, d, e, f, result
+// PatTuple  2      // a, b, c, d, e, f, t1, t2
+// PatTuple  3      // a, b, c, d, e, f, t1, c1, t3, f1
+// SetLocal  5      // a, b, c, d, e, f, t1, c1, t3
+// PatTuple  2      // a, b, c, d, e, f, t1, c1, d1, e1
+// SetLocal  4      // a, b, c, d, e, f, t1, c1, d1
+// SetLocal  3      // a, b, c, d, e, f, t1, c1
+// SetLocal  2      // a, b, c, d, e, f, t1
+// PatTuple  2      // a, b, c, d, e, f, a1, b1
+// SetLocal  1      // a, b, c, d, e, f, a1
+// SetLocal  0      // a, b, c, d, e, f

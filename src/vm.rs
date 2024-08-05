@@ -461,6 +461,22 @@ impl VM {
                         }
                     }
                 }
+
+                Instr {
+                    op: OpCode::UnpackTuple,
+                    arg0,
+                    ..
+                } => {
+                    let tuple = self.stack.pop().unwrap();
+                    match tuple {
+                        Value::Tuple(t) if t.len() == arg0 as usize => {
+                            self.stack.extend(t);
+                        }
+                        _ => {
+                            exception!("expected {} arity tuple, got {:?}", arg0, tuple);
+                        }
+                    }
+                }
             }
 
             //println!("stack: {:?}", self.stack);

@@ -186,6 +186,11 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             op: OpCode::ForIter,
             ..
         } => println!("ForIter {}", instr.wide_arg()),
+        Instr {
+            op: OpCode::UnpackTuple,
+            arg0,
+            ..
+        } => println!("UnpackTuple {}", arg0),
     }
 }
 
