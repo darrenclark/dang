@@ -6,7 +6,7 @@ use crate::{
     ast::{AstWalker, ImportKind, Node, NodeId, NodeKind},
     interpreter::{exception, Exception},
     program::Program,
-    scope::{Scope, VariableAllocation, VariableLocation},
+    scope::{Scope, UpvalueSource, VariableAllocation, VariableLocation},
     value::Value,
 };
 
@@ -53,10 +53,8 @@ pub struct ResolveVariablesPhase<'a> {
     compilation_state: &'a CompilationState,
     pub exports: HashMap<String, VariableLocation>,
     pub constants: HashMap<String, Value>,
-    pub scopes: HashMap<NodeId, Scope>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
-    pub global_scope: Scope,
     scopes_stack: Vec<Scope>,
     pub errors: Vec<Exception>,
 }
@@ -71,10 +69,8 @@ impl<'a> ResolveVariablesPhase<'a> {
             compilation_state,
             exports: HashMap::new(),
             constants: HashMap::new(),
-            scopes: HashMap::new(),
             variable_locations: HashMap::new(),
             variable_allocations: HashMap::new(),
-            global_scope: Scope::new_global_scope(),
             scopes_stack: Vec::new(),
             errors: Vec::new(),
         }
@@ -89,12 +85,12 @@ impl<'a> ResolveVariablesPhase<'a> {
         self.scopes_stack.push(Scope::new_child_scope(parent));
     }
 
-    fn push_global_scope(&mut self) {
-        self.scopes_stack.push(Scope::new_global_scope());
+    fn push_global_scope(&mut self, node: &Node) {
+        self.scopes_stack.push(Scope::new_global_scope(node.id));
     }
 
-    fn push_function_scope(&mut self) {
-        self.scopes_stack.push(Scope::new_function_scope());
+    fn push_function_scope(&mut self, node: &Node) {
+        self.scopes_stack.push(Scope::new_function_scope(node.id));
     }
 
     fn pop_scope(&mut self) -> Option<Scope> {
@@ -153,13 +149,14 @@ impl<'a> ResolveVariablesPhase<'a> {
         }
     }
 
-    fn lookup(&self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
+    fn lookup(&mut self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
         self.scopes_stack
+            .clone()
             .iter()
             .rev()
             .enumerate()
             .find_map(|(i, s)| {
-                if s.get_node_id(name).is_some() {
+                if let Some(node_id) = s.get_node_id(name) {
                     if i >= self.scopes_stack.len() - 1 {
                         let location = VariableLocation::Global {
                             module: self.compilation_state.module_name,
@@ -181,10 +178,35 @@ impl<'a> ResolveVariablesPhase<'a> {
                             name: name.into(),
                             nth_parent: i,
                         };
-                        // TODO: Handle closed over variables
-                        let allocation = VariableAllocation::Local {
-                            index: s.get_index(name).unwrap(),
+
+                        let mut function_depth = 0;
+                        let mut current_func = self.scopes_stack.last().unwrap().get_function();
+                        for s in self.scopes_stack.iter().rev().take(i) {
+                            if s.get_function() != current_func {
+                                function_depth += 1;
+                                current_func = s.get_function();
+                            }
+                        }
+
+                        let allocation = if function_depth == 0 {
+                            VariableAllocation::Local {
+                                index: s.get_index(name).unwrap(),
+                            }
+                        } else if function_depth > 1 {
+                            todo!()
+                        } else {
+                            // TODO: Handle variables multiple levels deep
+
+                            VariableAllocation::Upvalue {
+                                source: UpvalueSource::Local(s.get_index(name).unwrap()),
+                                upvalue_index: self.get_upvalue(node_id),
+                            }
                         };
+
+                        if function_depth > 0 {
+                            println!("{} {:?}", name, allocation);
+                        }
+
                         Some((location, allocation))
                     }
                 } else {
@@ -192,6 +214,17 @@ impl<'a> ResolveVariablesPhase<'a> {
                 }
             })
             .or_else(|| self.lookup_imported(name))
+    }
+
+    fn get_upvalue(&mut self, node_id: NodeId) -> usize {
+        // TODO: Handle variables multiple levels deep
+
+        let function = self.scopes_stack.last().unwrap().get_function();
+        self.scopes_stack
+            .iter_mut()
+            .find(|s| s.is_function_or_global() && s.get_function() == function)
+            .unwrap()
+            .get_or_allocate_upvalue(node_id)
     }
 
     fn lookup_imported(&self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
@@ -309,7 +342,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn enter_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(children) => {
-                self.push_global_scope();
+                self.push_global_scope(node);
                 self.hoist_variables(children);
             }
             NodeKind::Module(name) => {
@@ -329,7 +362,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.push_child_scope();
             }
             NodeKind::FunctionLiteral { arg_names, .. } => {
-                self.push_function_scope();
+                self.push_function_scope(node);
                 for arg_name in arg_names {
                     let _ = self.define(arg_name.unwrap_identifier(), arg_name);
                 }
@@ -382,11 +415,10 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn exit_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(_) => {
-                self.global_scope = self.pop_scope().unwrap();
+                self.pop_scope().unwrap();
             }
             NodeKind::Body(_) | NodeKind::FunctionLiteral { .. } | NodeKind::For { .. } => {
-                let scope = self.pop_scope().unwrap();
-                self.scopes.insert(node.id, scope);
+                self.pop_scope().unwrap();
             }
             _ => {}
         }

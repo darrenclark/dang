@@ -5,12 +5,14 @@ use ustr::Ustr;
 
 use crate::{ast::NodeId, module::ModuleName};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Scope {
     kind: ScopeKind,
+    function: NodeId,
     definitions: HashMap<String, NodeId>,
     base_offset: usize,
     indices: Vec<String>,
+    upvalues: Vec<NodeId>,
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -21,21 +23,25 @@ enum ScopeKind {
 }
 
 impl Scope {
-    pub fn new_global_scope() -> Self {
+    pub fn new_global_scope(node_id: NodeId) -> Self {
         Self {
             kind: ScopeKind::Global,
+            function: node_id,
             definitions: HashMap::new(),
             base_offset: 0,
             indices: Vec::new(),
+            upvalues: Vec::new(),
         }
     }
 
-    pub fn new_function_scope() -> Self {
+    pub fn new_function_scope(node_id: NodeId) -> Self {
         Self {
             kind: ScopeKind::Function,
+            function: node_id,
             definitions: HashMap::new(),
             base_offset: 0,
             indices: Vec::new(),
+            upvalues: Vec::new(),
         }
     }
 
@@ -48,9 +54,11 @@ impl Scope {
 
         Self {
             kind: ScopeKind::Child,
+            function: parent.function,
             definitions: HashMap::new(),
             base_offset,
             indices: Vec::new(),
+            upvalues: Vec::new(),
         }
     }
 
@@ -68,6 +76,10 @@ impl Scope {
 
     pub fn is_defined(&self, name: &str) -> bool {
         self.definitions.contains_key(name)
+    }
+
+    pub fn get_function(&self) -> NodeId {
+        self.function
     }
 
     pub fn get_index(&self, name: &str) -> Option<usize> {
@@ -97,6 +109,20 @@ impl Scope {
             );
         }
         res
+    }
+
+    pub fn is_function_or_global(&self) -> bool {
+        self.kind != ScopeKind::Child
+    }
+
+    pub fn get_or_allocate_upvalue(&mut self, definition_node_id: NodeId) -> usize {
+        self.upvalues
+            .iter()
+            .position(|id| *id == definition_node_id)
+            .unwrap_or_else(|| {
+                self.upvalues.push(definition_node_id);
+                self.upvalues.len() - 1
+            })
     }
 }
 
@@ -142,8 +168,19 @@ pub enum VariableAllocation {
         module: ModuleName,
         name: Ustr,
     },
+    Upvalue {
+        source: UpvalueSource,
+        upvalue_index: usize,
+    },
     /// index relative to the frame base
     Local {
         index: usize,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum UpvalueSource {
+    /// Upvalue is a local captured from the parent source
+    Local(usize),
+    Upvalue(usize),
 }

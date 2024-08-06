@@ -508,6 +508,10 @@ impl Emitter<'_> {
                 let name = self.chunk.write_constant(Value::Symbol(name));
                 self.chunk.write(Instr::set_global(module, name));
             }
+            VariableAllocation::Upvalue {
+                source: _,
+                upvalue_index: _,
+            } => todo!(),
             VariableAllocation::Local { index } => {
                 self.chunk.write(Instr::set_local(index as u8));
             }
@@ -521,6 +525,10 @@ impl Emitter<'_> {
                 let name = self.chunk.write_constant(Value::Symbol(name));
                 self.chunk.write(Instr::get_global(module, name));
             }
+            VariableAllocation::Upvalue {
+                source: _,
+                upvalue_index: _,
+            } => todo!(),
             VariableAllocation::Local { index } => {
                 self.chunk.write(Instr::get_local(index as u8));
             }
