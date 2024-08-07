@@ -12,7 +12,7 @@ pub struct Scope {
     definitions: HashMap<String, NodeId>,
     base_offset: usize,
     indices: Vec<String>,
-    upvalues: Vec<NodeId>,
+    upvalues: Vec<(NodeId, UpvalueSource)>,
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -97,6 +97,13 @@ impl Scope {
         &self.definitions
     }
 
+    pub fn get_upvalue_sources(&self) -> Vec<UpvalueSource> {
+        self.upvalues
+            .iter()
+            .map(|(_, source)| source.clone())
+            .collect()
+    }
+
     pub fn into_exports(&self, module: ModuleName) -> HashMap<String, VariableLocation> {
         let mut res = HashMap::new();
         for (name, _) in &self.definitions {
@@ -115,12 +122,16 @@ impl Scope {
         self.kind != ScopeKind::Child
     }
 
-    pub fn get_or_allocate_upvalue(&mut self, definition_node_id: NodeId) -> usize {
+    pub fn get_or_allocate_upvalue(
+        &mut self,
+        definition_node_id: NodeId,
+        source: &UpvalueSource,
+    ) -> usize {
         self.upvalues
             .iter()
-            .position(|id| *id == definition_node_id)
+            .position(|(id, _)| *id == definition_node_id)
             .unwrap_or_else(|| {
-                self.upvalues.push(definition_node_id);
+                self.upvalues.push((definition_node_id, source.clone()));
                 self.upvalues.len() - 1
             })
     }
@@ -180,7 +191,10 @@ pub enum VariableAllocation {
 
 #[derive(Debug, Clone)]
 pub enum UpvalueSource {
-    /// Upvalue is a local captured from the parent source
-    Local(usize),
-    Upvalue(usize),
+    /// Upvalue is a local captured from the parent function.  Index is relative to base of the
+    /// caller's stack frame.
+    Local { stack_index_relative_to_base: usize },
+    /// Upvalue is an upvalue already captured by the parent function.  Index is the upvalue index
+    /// of
+    Upvalue { upvalue_index: usize },
 }

@@ -22,7 +22,7 @@ fn example() {
     chunk.write(Instr::get_global(module, test_var));
     chunk.write(Instr::return_());
 
-    let mut vm = VM::new(Function::new(chunk));
+    let mut vm = VM::new(Function::new(chunk, vec![]));
 
     assert_eq!(vm.run().unwrap(), Value::Integer(5));
 }

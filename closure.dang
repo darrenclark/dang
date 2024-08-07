@@ -1,0 +1,17 @@
+import Std/Builtins.inspect
+
+let pick = fn(which_one, a, b) {
+  if which_one {
+    let x = 1
+    let f = fn () { a }
+    f()
+  } else {
+    let x = 1
+    let y = 1
+    let f = fn () { a + b }
+    f()
+  }
+}
+
+pick(true, 1, 2)
+|> inspect()

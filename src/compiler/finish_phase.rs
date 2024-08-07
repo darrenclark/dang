@@ -1,4 +1,4 @@
-use crate::{interpreter::Exception, module::Module, program::Program, vm::function::Function};
+use crate::{interpreter::Exception, module::Module, program::Program};
 
 use super::{CompilationState, Compiler};
 
@@ -14,7 +14,7 @@ pub fn finish_phase(
         constants: compilation_state.constants.clone(),
         variable_locations: compilation_state.variable_locations.clone(),
         struct_info: compilation_state.struct_info.clone(),
-        function: Function::new(compilation_state.chunk.clone()),
+        function: compilation_state.function.clone(),
     };
     program.insert_module(compilation_state.module_name, module);
     Ok(())

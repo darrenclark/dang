@@ -1,8 +1,10 @@
 use std::{collections::HashMap, rc::Rc};
 
 use chunk::Chunk;
+use closure::Closure;
 use function::Function;
 use inst::{Instr, OpCode};
+use upvalue::Upvalue;
 use ustr::Ustr;
 
 use crate::{
@@ -10,13 +12,16 @@ use crate::{
     interpreter::{exception, Exception},
     module::ModuleName,
     native_funcs,
+    scope::UpvalueSource,
     value::Value,
 };
 
 pub mod chunk;
+pub mod closure;
 pub mod disassembler;
 pub mod function;
 pub mod inst;
+pub mod upvalue;
 
 pub struct VM {
     stack: Vec<Value>,
@@ -28,6 +33,7 @@ struct Frame {
     ip: usize,
     base: usize,
     function: Function,
+    upvalues: Vec<Upvalue>,
 }
 
 impl Frame {
@@ -36,6 +42,16 @@ impl Frame {
             ip: 0,
             base,
             function,
+            upvalues: Vec::new(),
+        }
+    }
+
+    fn new_closure(closure: Closure, base: usize) -> Self {
+        Frame {
+            ip: 0,
+            base,
+            function: closure.function().clone(),
+            upvalues: closure.upvalues().to_vec(),
         }
     }
 }
@@ -112,6 +128,29 @@ impl VM {
                 }
 
                 Instr {
+                    op: OpCode::GetUpvalue,
+                    arg0,
+                    ..
+                } => {
+                    let index = arg0 as usize;
+                    let value = self.frames.last().unwrap().upvalues[index]
+                        .get(&self.stack)
+                        .clone();
+                    self.stack.push(value);
+                }
+
+                Instr {
+                    op: OpCode::SetUpvalue,
+                    arg0,
+                    ..
+                } => {
+                    let index = arg0 as usize;
+                    let value = self.stack.last().unwrap().clone();
+                    *self.frames.last_mut().unwrap().upvalues[index].get_mut(&mut self.stack) =
+                        value;
+                }
+
+                Instr {
                     op: OpCode::GetLocal,
                     arg0,
                     ..
@@ -152,6 +191,42 @@ impl VM {
                         self.stack.push(res);
                     }
                 }
+
+                Instr {
+                    op: OpCode::Closure,
+                    ..
+                } => {
+                    // TODO: Fix me
+                    let function = match self.stack.pop().unwrap() {
+                        Value::Function(function) => function,
+                        v => panic!("Expected closure, got {:?}", v),
+                    };
+
+                    let upvalues = function
+                        .upvalue_sources()
+                        .iter()
+                        .map(|source| {
+                            let upvalue = match source {
+                                UpvalueSource::Local {
+                                    stack_index_relative_to_base,
+                                } => {
+                                    let index = self.frames.last().unwrap().base
+                                        + *stack_index_relative_to_base;
+                                    Upvalue::new(index)
+                                }
+                                _ => {
+                                    todo!()
+                                }
+                            };
+                            upvalue
+                        })
+                        .collect();
+
+                    let closure = Closure::new(function, upvalues);
+
+                    self.stack.push(Value::Closure(closure));
+                }
+
                 Instr {
                     op: OpCode::Add, ..
                 } => {
@@ -515,6 +590,15 @@ impl VM {
             }
             Value::Function(function) => {
                 self.frames.push(Frame::new(function, self.stack.len()));
+                // TODO: Optimize this, so that we don't split_off args on this code
+                // path & repush them
+                for arg in args {
+                    self.stack.push(arg);
+                }
+            }
+            Value::Closure(closure) => {
+                self.frames
+                    .push(Frame::new_closure(closure, self.stack.len()));
                 // TODO: Optimize this, so that we don't split_off args on this code
                 // path & repush them
                 for arg in args {

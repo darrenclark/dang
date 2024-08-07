@@ -20,6 +20,10 @@ pub enum OpCode {
     /// GlobalIsDefined(module, name) +1 - checks if global is defined (used to guard against
     /// loading a module twice)
     GlobalIsDefined,
+    /// GetUpvalue(index) +1 - gets upvalue and pushes to stack
+    GetUpvalue,
+    /// SetUpvalue(index) -1 - sets upvalue to value at top of stack
+    SetUpvalue,
     /// GetLocal(index) +1 - gets local variable and pushes to stack
     GetLocal,
     /// SetLocal(index) -1 - sets local variable to value at top of stack
@@ -28,6 +32,8 @@ pub enum OpCode {
     Call,
     /// Return -1 - returns from function
     Return,
+    /// Closure -1 +1 - creates a closure from the function at the top of the stack
+    Closure,
     /// Add -2 +1 - adds two values
     Add,
     /// Sub -2 +1 - subtracts two values
@@ -61,6 +67,7 @@ pub enum OpCode {
     /// Pop -1 +0 - pops value from stack
     Pop,
     /// PopLocals(n:24bit) -0 -n - saves top value, then pops n values, then restores top value
+    /// Additionally will CloseUpvalue any upvalues in the locals
     PopLocals,
     /// Jump(offset:24bit) -0 +0 - jumps forward to the given offset
     Jump,
@@ -119,6 +126,14 @@ impl Instr {
         Self::new(OpCode::GlobalIsDefined, module, name, 0)
     }
 
+    pub fn get_upvalue(index: u8) -> Self {
+        Self::new(OpCode::GetUpvalue, index, 0, 0)
+    }
+
+    pub fn set_upvalue(index: u8) -> Self {
+        Self::new(OpCode::SetUpvalue, index, 0, 0)
+    }
+
     pub fn get_local(index: u8) -> Self {
         Self::new(OpCode::GetLocal, index, 0, 0)
     }
@@ -133,6 +148,10 @@ impl Instr {
 
     pub fn return_() -> Self {
         Self::new(OpCode::Return, 0, 0, 0)
+    }
+
+    pub fn closure() -> Self {
+        Self::new(OpCode::Closure, 0, 0, 0)
     }
 
     pub fn add() -> Self {

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use ustr::Ustr;
 
@@ -21,6 +21,8 @@ pub fn resolve_variables_phase(
     let variable_allocations: HashMap<NodeId, VariableAllocation>;
     let exports: HashMap<String, VariableLocation>;
     let constants: HashMap<String, Value>;
+    let closed_over_variables: HashSet<NodeId>;
+    let function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>;
 
     {
         let mut phase = ResolveVariablesPhase::new(program, compilation_state);
@@ -34,6 +36,8 @@ pub fn resolve_variables_phase(
         variable_allocations = phase.variable_allocations;
         exports = phase.exports;
         constants = phase.constants;
+        closed_over_variables = phase.closed_over_variables;
+        function_upvalues = phase.function_upvalues;
     }
 
     compilation_state
@@ -44,6 +48,12 @@ pub fn resolve_variables_phase(
         .clone_from(&variable_allocations);
     compilation_state.exports.clone_from(&exports);
     compilation_state.constants.clone_from(&constants);
+    compilation_state
+        .closed_over_variables
+        .clone_from(&closed_over_variables);
+    compilation_state
+        .function_upvalues
+        .clone_from(&function_upvalues);
     Ok(())
 }
 
@@ -55,6 +65,8 @@ pub struct ResolveVariablesPhase<'a> {
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
+    pub closed_over_variables: HashSet<NodeId>,
+    pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
     scopes_stack: Vec<Scope>,
     pub errors: Vec<Exception>,
 }
@@ -71,6 +83,8 @@ impl<'a> ResolveVariablesPhase<'a> {
             constants: HashMap::new(),
             variable_locations: HashMap::new(),
             variable_allocations: HashMap::new(),
+            closed_over_variables: HashSet::new(),
+            function_upvalues: HashMap::new(),
             scopes_stack: Vec::new(),
             errors: Vec::new(),
         }
@@ -197,14 +211,20 @@ impl<'a> ResolveVariablesPhase<'a> {
                         } else {
                             // TODO: Handle variables multiple levels deep
 
+                            let source = UpvalueSource::Local {
+                                stack_index_relative_to_base: s.get_index(name).unwrap(),
+                            };
+
+                            let upvalue_index = self.get_upvalue(node_id, &source);
+
                             VariableAllocation::Upvalue {
-                                source: UpvalueSource::Local(s.get_index(name).unwrap()),
-                                upvalue_index: self.get_upvalue(node_id),
+                                source,
+                                upvalue_index,
                             }
                         };
 
                         if function_depth > 0 {
-                            println!("{} {:?}", name, allocation);
+                            self.closed_over_variables.insert(node_id);
                         }
 
                         Some((location, allocation))
@@ -216,7 +236,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             .or_else(|| self.lookup_imported(name))
     }
 
-    fn get_upvalue(&mut self, node_id: NodeId) -> usize {
+    fn get_upvalue(&mut self, node_id: NodeId, source: &UpvalueSource) -> usize {
         // TODO: Handle variables multiple levels deep
 
         let function = self.scopes_stack.last().unwrap().get_function();
@@ -224,7 +244,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             .iter_mut()
             .find(|s| s.is_function_or_global() && s.get_function() == function)
             .unwrap()
-            .get_or_allocate_upvalue(node_id)
+            .get_or_allocate_upvalue(node_id, source)
     }
 
     fn lookup_imported(&self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
@@ -414,10 +434,12 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
 
     fn exit_node(&mut self, node: &Node) {
         match &node.kind {
-            NodeKind::SourceFile(_) => {
-                self.pop_scope().unwrap();
+            NodeKind::SourceFile(_) | NodeKind::FunctionLiteral { .. } => {
+                let scope = self.pop_scope().unwrap();
+                self.function_upvalues
+                    .insert(node.id, scope.get_upvalue_sources());
             }
-            NodeKind::Body(_) | NodeKind::FunctionLiteral { .. } | NodeKind::For { .. } => {
+            NodeKind::Body(_) | NodeKind::For { .. } => {
                 self.pop_scope().unwrap();
             }
             _ => {}

@@ -3,6 +3,9 @@
 ## VM
 
 - Closures
+    - multiple levels deep
+    - closing upvalues when leaving scope
+    - upvalues in loops (need to implement something like OP_CLOSE_UPVALUE)
 
 - Mutate in-place instructions (faster arrays)
 - Debug info in compiled chunks

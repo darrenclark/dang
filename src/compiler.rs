@@ -12,7 +12,10 @@ mod resolve_variables_phase;
 pub mod struct_info_phase;
 mod validate_struct_fields_phase;
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 use compile_dependencies_phase::compile_dependencies_phase;
 use desugar_pipe_phase::desugar_pipe_phase;
@@ -34,10 +37,10 @@ use crate::{
     interpreter::Exception,
     module::ModuleName,
     program::Program,
-    scope::{VariableAllocation, VariableLocation},
+    scope::{UpvalueSource, VariableAllocation, VariableLocation},
     struct_info::StructInfo,
     value::Value,
-    vm::chunk::Chunk,
+    vm::{chunk::Chunk, function::Function},
 };
 
 #[derive(Clone, Debug)]
@@ -67,9 +70,11 @@ pub struct CompilationState {
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
+    pub closed_over_variables: HashSet<NodeId>,
+    pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
     pub struct_info: Option<StructInfo>,
     pub referenced_structs: HashMap<NodeId, StructInfo>,
-    pub chunk: Chunk,
+    pub function: Function,
 }
 
 impl CompilationState {
@@ -90,9 +95,11 @@ impl CompilationState {
             constants: HashMap::new(),
             variable_locations: HashMap::new(),
             variable_allocations: HashMap::new(),
+            closed_over_variables: HashSet::new(),
+            function_upvalues: HashMap::new(),
             struct_info: None,
             referenced_structs: HashMap::new(),
-            chunk: Chunk::new(),
+            function: Function::new(Chunk::new(), vec![]),
         }
     }
 

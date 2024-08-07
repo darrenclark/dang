@@ -2,6 +2,8 @@ use std::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
 
+use crate::scope::UpvalueSource;
+
 use super::chunk::Chunk;
 
 #[derive(Clone)]
@@ -10,14 +12,21 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(chunk: Chunk) -> Self {
+    pub fn new(chunk: Chunk, upvalue_sources: Vec<UpvalueSource>) -> Self {
         Self {
-            inner: Rc::new(FunctionInner { chunk }),
+            inner: Rc::new(FunctionInner {
+                chunk,
+                upvalue_sources,
+            }),
         }
     }
 
     pub fn chunk(&self) -> &Chunk {
         &self.inner.chunk
+    }
+
+    pub fn upvalue_sources(&self) -> &[UpvalueSource] {
+        &self.inner.upvalue_sources
     }
 }
 
@@ -58,4 +67,5 @@ impl PartialOrd for Function {
 #[derive(Debug, Clone)]
 struct FunctionInner {
     chunk: Chunk,
+    upvalue_sources: Vec<UpvalueSource>,
 }

@@ -8,7 +8,7 @@ use crate::{
     module::ModuleName,
     native_funcs,
     program::Program,
-    scope::VariableAllocation,
+    scope::{UpvalueSource, VariableAllocation},
     value::Value,
     vm::{chunk::Chunk, function::Function, inst::Instr},
 };
@@ -21,16 +21,18 @@ pub fn emit_bytecode_phase(
     program: &mut Program,
 ) -> Result<(), Exception> {
     let mut chunk = Chunk::new();
+    let mut upvalue_sources = Vec::new();
 
     let mut emitter = Emitter {
         compilation_state,
         program,
         chunk: &mut chunk,
+        upvalue_sources: &mut upvalue_sources,
         pushed_locals: Vec::new(),
     };
     emitter.emit(compilation_state.ast.as_ref().unwrap());
 
-    compilation_state.chunk = chunk;
+    compilation_state.function = Function::new(chunk, upvalue_sources);
 
     Ok(())
 }
@@ -39,6 +41,7 @@ struct Emitter<'a> {
     compilation_state: &'a CompilationState,
     program: &'a Program,
     chunk: &'a mut Chunk,
+    upvalue_sources: &'a mut Vec<UpvalueSource>,
     pushed_locals: Vec<usize>,
 }
 
@@ -46,6 +49,13 @@ impl Emitter<'_> {
     fn emit(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(statements) => {
+                self.upvalue_sources.clone_from(
+                    self.compilation_state
+                        .function_upvalues
+                        .get(&node.id)
+                        .unwrap(),
+                );
+
                 self.emit_module_load_guard(self.compilation_state.module_name);
 
                 for (i, statement) in statements.iter().enumerate() {
@@ -221,18 +231,34 @@ impl Emitter<'_> {
             }
             NodeKind::FunctionLiteral { arg_names, body } => {
                 let mut chunk = Chunk::new();
+                let mut upvalue_sources = Vec::new();
 
                 let mut emitter = Emitter {
                     compilation_state: self.compilation_state,
                     program: self.program,
                     chunk: &mut chunk,
+                    upvalue_sources: &mut upvalue_sources,
                     pushed_locals: Vec::new(),
                 };
                 emitter.emit_function(arg_names, body);
 
-                let function = Value::Function(Function::new(chunk));
+                // TODO: refactor this
+                upvalue_sources.clone_from(
+                    self.compilation_state
+                        .function_upvalues
+                        .get(&node.id)
+                        .unwrap(),
+                );
+
+                let has_upvalues = !upvalue_sources.is_empty();
+
+                let function = Value::Function(Function::new(chunk, upvalue_sources));
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
+
+                if has_upvalues {
+                    self.chunk.write(Instr::closure());
+                }
             }
             NodeKind::ListLiteral(items) => {
                 if let Some(v) = node.compile_time_value() {
@@ -510,8 +536,10 @@ impl Emitter<'_> {
             }
             VariableAllocation::Upvalue {
                 source: _,
-                upvalue_index: _,
-            } => todo!(),
+                upvalue_index,
+            } => {
+                self.chunk.write(Instr::set_upvalue(upvalue_index as u8));
+            }
             VariableAllocation::Local { index } => {
                 self.chunk.write(Instr::set_local(index as u8));
             }
@@ -527,8 +555,10 @@ impl Emitter<'_> {
             }
             VariableAllocation::Upvalue {
                 source: _,
-                upvalue_index: _,
-            } => todo!(),
+                upvalue_index,
+            } => {
+                self.chunk.write(Instr::get_upvalue(upvalue_index as u8));
+            }
             VariableAllocation::Local { index } => {
                 self.chunk.write(Instr::get_local(index as u8));
             }

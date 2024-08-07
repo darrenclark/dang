@@ -65,6 +65,16 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
             consts(chunk, &[*arg0, *arg1])
         ),
         Instr {
+            op: OpCode::GetUpvalue,
+            arg0,
+            ..
+        } => println!("GetUpvalue   \t{}", arg0),
+        Instr {
+            op: OpCode::SetUpvalue,
+            arg0,
+            ..
+        } => println!("SetUpvalue   \t{}", arg0),
+        Instr {
             op: OpCode::GetLocal,
             arg0,
             ..
@@ -82,6 +92,10 @@ pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
         Instr {
             op: OpCode::Return, ..
         } => println!("Return"),
+        Instr {
+            op: OpCode::Closure,
+            ..
+        } => println!("Closure"),
         Instr {
             op: OpCode::Add, ..
         } => println!("Add"),
