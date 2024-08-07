@@ -3,15 +3,14 @@ import Std/Builtins.inspect
 let pick = fn(which_one, a, b) {
   if which_one {
     let x = 1
-    let f = fn () { a }
-    f()
+    fn () { a }
   } else {
     let x = 1
     let y = 1
-    let f = fn () { a + b }
-    f()
+    fn () { a + b }
   }
 }
 
-pick(true, 1, 2)
-|> inspect()
+let f = pick(false, 1, 2)
+
+inspect(f())

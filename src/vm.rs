@@ -27,6 +27,7 @@ pub struct VM {
     stack: Vec<Value>,
     frames: Vec<Frame>,
     globals: HashMap<(Ustr, Ustr), Value>,
+    open_upvalues: Vec<(usize, Upvalue)>,
 }
 
 struct Frame {
@@ -63,6 +64,7 @@ impl VM {
             stack: Vec::new(),
             frames: vec![frame],
             globals: HashMap::new(),
+            open_upvalues: Vec::new(),
         }
     }
 
@@ -187,6 +189,7 @@ impl VM {
                     } else {
                         let res = self.stack.pop().unwrap();
                         let frame = self.frames.pop().unwrap();
+                        self.close_upvalues(frame.base);
                         self.stack.truncate(frame.base);
                         self.stack.push(res);
                     }
@@ -196,7 +199,6 @@ impl VM {
                     op: OpCode::Closure,
                     ..
                 } => {
-                    // TODO: Fix me
                     let function = match self.stack.pop().unwrap() {
                         Value::Function(function) => function,
                         v => panic!("Expected closure, got {:?}", v),
@@ -205,21 +207,7 @@ impl VM {
                     let upvalues = function
                         .upvalue_sources()
                         .iter()
-                        .map(|source| {
-                            let upvalue = match source {
-                                UpvalueSource::Local {
-                                    stack_index_relative_to_base,
-                                } => {
-                                    let index = self.frames.last().unwrap().base
-                                        + *stack_index_relative_to_base;
-                                    Upvalue::new(index)
-                                }
-                                _ => {
-                                    todo!()
-                                }
-                            };
-                            upvalue
-                        })
+                        .map(|source| self.create_upvalue(source))
                         .collect();
 
                     let closure = Closure::new(function, upvalues);
@@ -360,6 +348,7 @@ impl VM {
                 } => {
                     let n = self.chunk().code[ip].wide_arg();
                     let res = self.stack.pop().unwrap();
+                    self.close_upvalues(self.stack.len() - n);
                     self.stack.truncate(self.stack.len() - n);
                     self.stack.push(res);
                 }
@@ -605,8 +594,48 @@ impl VM {
                     self.stack.push(arg);
                 }
             }
-            _ => todo!("unexpected function: {}", callee),
+            _ => exception!("cannot call a non-function: {}", callee),
         }
         Ok(())
+    }
+
+    fn create_upvalue(&mut self, source: &UpvalueSource) -> Upvalue {
+        match source {
+            UpvalueSource::Local {
+                stack_index_relative_to_base,
+            } => {
+                let stack_index = self.frames.last().unwrap().base + *stack_index_relative_to_base;
+
+                self.open_upvalues
+                    .iter()
+                    .find_map(|(index, upvalue)| {
+                        if *index == stack_index {
+                            Some(upvalue.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| {
+                        let upvalue = Upvalue::new(stack_index);
+                        self.open_upvalues.push((stack_index, upvalue.clone()));
+
+                        upvalue
+                    })
+            }
+            UpvalueSource::Upvalue { upvalue_index } => {
+                self.frames.last().unwrap().upvalues[*upvalue_index].clone()
+            }
+        }
+    }
+
+    fn close_upvalues(&mut self, new_stack_len: usize) {
+        for (stack_index, upvalue) in &self.open_upvalues {
+            if *stack_index >= new_stack_len {
+                upvalue.close(self.stack[*stack_index].clone());
+            }
+        }
+
+        self.open_upvalues
+            .retain(|(stack_index, _)| *stack_index < new_stack_len);
     }
 }

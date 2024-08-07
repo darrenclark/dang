@@ -45,6 +45,10 @@ impl Upvalue {
             }
         }
     }
+
+    pub fn close(&self, value: Value) {
+        *self.inner.borrow_mut() = UpvalueInner::Closed(value);
+    }
 }
 
 pub enum UpvalueRef<'a, 's> {
