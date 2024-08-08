@@ -6,8 +6,6 @@
     - multiple levels deep
     - closing upvalues in loops (need to implement something like OP_CLOSE_UPVALUE)
 
-- Immediately called functions, i.e.: `make_function()()`
-
 - Mutate in-place instructions (faster arrays)
 - Debug info in compiled chunks
     - line numbers per instruction
@@ -48,6 +46,7 @@ Lower priority:
     - `match` statement
     - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`
 - UFCS? Is it even possible?
+- Map merge syntax ala python: `{a: 1} | {a: 2, b: 3} == {a: 2, b: 3}`
 
 ## Bugs / Limitations
 

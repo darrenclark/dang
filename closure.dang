@@ -11,6 +11,4 @@ let pick = fn(which_one, a, b) {
   }
 }
 
-let f = pick(false, 1, 2)
-
-inspect(f())
+inspect(pick(false, 1, 2)())

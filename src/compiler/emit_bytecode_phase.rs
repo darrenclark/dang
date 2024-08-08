@@ -199,9 +199,7 @@ impl Emitter<'_> {
                 }
             }
             NodeKind::FunctionCall { function, args } => {
-                // TODO: support calling a funtion that was returned from another function,
-                // i.e.:  make_function()()
-                self.emit_get(function);
+                self.emit(function);
                 for arg in args {
                     self.emit(arg);
                 }
