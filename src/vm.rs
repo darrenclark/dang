@@ -577,6 +577,14 @@ impl VM {
         }
     }
 
+    pub fn print_stacktrace(&self, exception: Exception) {
+        println!("{} at:", exception);
+        self.frames.iter().rev().for_each(|frame| {
+            let function = &frame.function;
+            println!("  {}", function.get_debug_name());
+        });
+    }
+
     fn chunk(&self) -> &Chunk {
         self.frames.last().unwrap().function.chunk()
     }

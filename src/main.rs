@@ -116,7 +116,7 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
                         println!()
                     }
                     Err(e) => {
-                        println!("{}", e);
+                        vm.print_stacktrace(e);
                     }
                 }
             }

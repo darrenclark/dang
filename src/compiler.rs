@@ -2,6 +2,7 @@ pub mod compile_dependencies_phase;
 mod desugar_pipe_phase;
 mod emit_bytecode_phase;
 pub mod finish_phase;
+mod function_names_phase;
 mod insert_prelude_phase;
 pub mod node_ids_phase;
 pub mod parse_ast_phase;
@@ -22,6 +23,7 @@ use compile_dependencies_phase::compile_dependencies_phase;
 use desugar_pipe_phase::desugar_pipe_phase;
 use emit_bytecode_phase::emit_bytecode_phase;
 use finish_phase::finish_phase;
+use function_names_phase::function_names_phase;
 use insert_prelude_phase::insert_prelude_phase;
 use lazy_static::lazy_static;
 use node_ids_phase::node_ids_phase;
@@ -101,7 +103,7 @@ impl CompilationState {
             closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),
             struct_info: None,
-            function: Function::new(Chunk::new(), vec![]),
+            function: Function::new(Chunk::new(), vec![], "".to_owned()),
         }
     }
 
@@ -170,6 +172,7 @@ pub enum Phase {
     ResolveVariables,
     ResolveStructs,
     ValidateStructFields,
+    FunctionNames,
     EmitBytecode,
     Finish,
 }
@@ -187,6 +190,7 @@ lazy_static! {
         (Phase::ResolveVariables, resolve_variables_phase),
         (Phase::ResolveStructs, resolve_structs_phase),
         (Phase::ValidateStructFields, validate_struct_fields_phase),
+        (Phase::FunctionNames, function_names_phase),
         (Phase::EmitBytecode, emit_bytecode_phase),
         (Phase::Finish, finish_phase),
     ];

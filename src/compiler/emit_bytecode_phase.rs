@@ -13,7 +13,10 @@ use crate::{
     vm::{chunk::Chunk, function::Function, inst::Instr},
 };
 
-use super::{resolve_structs_phase::ReferencedStruct, CompilationState, Compiler};
+use super::{
+    function_names_phase::FunctionName, resolve_structs_phase::ReferencedStruct, CompilationState,
+    Compiler,
+};
 
 pub fn emit_bytecode_phase(
     _compiler: &Compiler,
@@ -32,7 +35,12 @@ pub fn emit_bytecode_phase(
     };
     emitter.emit(compilation_state.ast.as_ref().unwrap());
 
-    compilation_state.function = Function::new(chunk, upvalue_sources);
+    let name = &compilation_state
+        .tags
+        .get::<FunctionName>(compilation_state.ast.as_ref().unwrap().id)
+        .unwrap()
+        .name;
+    compilation_state.function = Function::new(chunk, upvalue_sources, name.clone());
 
     Ok(())
 }
@@ -97,7 +105,7 @@ impl Emitter<'_> {
                 }
             }
             NodeKind::Builtin { identifier } if identifier.unwrap_identifier() == "argv" => {
-                self.emit_vm_arg_func(1);
+                self.emit_vm_arg_func(1, "argv");
                 self.emit_set(node);
                 self.chunk.write(Instr::push_nil());
             }
@@ -257,7 +265,11 @@ impl Emitter<'_> {
 
                 let has_upvalues = !upvalue_sources.is_empty();
 
-                let function = Value::Function(Function::new(chunk, upvalue_sources));
+                let function = Value::Function(Function::new(
+                    chunk,
+                    upvalue_sources,
+                    self.function_name(node),
+                ));
                 let constant = self.chunk.write_constant(function);
                 self.chunk.write(Instr::constant(constant));
 
@@ -597,13 +609,22 @@ impl Emitter<'_> {
         self.chunk.write(Instr::set_global(module, name));
     }
 
-    fn emit_vm_arg_func(&mut self, arg: u8) {
+    fn emit_vm_arg_func(&mut self, arg: u8, name: &str) {
         let mut chunk = Chunk::new();
         chunk.write(Instr::vm_arg(arg));
         chunk.write(Instr::return_());
 
-        let function = Value::Function(Function::new(chunk, Vec::new()));
+        let function = Value::Function(Function::new(chunk, Vec::new(), name.to_owned()));
         let constant = self.chunk.write_constant(function);
         self.chunk.write(Instr::constant(constant));
+    }
+
+    fn function_name(&self, node: &Node) -> String {
+        self.compilation_state
+            .tags
+            .get::<FunctionName>(node.id)
+            .unwrap()
+            .name
+            .to_string()
     }
 }
