@@ -9,7 +9,7 @@ use crate::{
     struct_info::StructInfo,
 };
 
-use super::{CompilationState, Compiler};
+use super::{resolve_structs_phase::ReferencedStruct, CompilationState, Compiler};
 
 pub fn validate_struct_fields_phase(
     _compiler: &Compiler,
@@ -62,15 +62,15 @@ impl ValidateStructFieldsPhase<'_> {
 impl<'a> AstWalker for ValidateStructFieldsPhase<'a> {
     fn enter_node(&mut self, node: &Node) {
         if let NodeKind::StructLiteral { module: _, fields } = &node.kind {
-            let struct_info = self
+            let referenced_struct = self
                 .compilation_state
-                .referenced_structs
-                .get(&node.id)
+                .tags
+                .get::<ReferencedStruct>(node.id)
                 .unwrap();
 
             let fields = fields.iter().map(|(n, _)| n.unwrap_identifier()).collect();
 
-            match self.validate(struct_info, &fields) {
+            match self.validate(&referenced_struct.struct_info, &fields) {
                 Ok(_) => {}
                 Err(mut e) => {
                     e.set_source_from_node(node);

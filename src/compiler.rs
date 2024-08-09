@@ -10,6 +10,7 @@ mod resolve_imports_phase;
 mod resolve_structs_phase;
 mod resolve_variables_phase;
 pub mod struct_info_phase;
+pub mod tags;
 mod validate_struct_fields_phase;
 
 use std::{
@@ -30,6 +31,7 @@ use resolve_imports_phase::resolve_imports_phase;
 use resolve_structs_phase::resolve_structs_phase;
 use resolve_variables_phase::resolve_variables_phase;
 use struct_info_phase::struct_info_phase;
+use tags::Tags;
 use validate_struct_fields_phase::validate_struct_fields_phase;
 
 use crate::{
@@ -65,6 +67,7 @@ pub struct CompilationState {
     pub errors: Vec<Exception>,
     pub source_code: String,
     pub ast: Option<Node>,
+    pub tags: Tags,
     pub imports: Vec<ResolvedImport>,
     pub exports: HashMap<String, VariableLocation>,
     pub constants: HashMap<String, Value>,
@@ -73,7 +76,6 @@ pub struct CompilationState {
     pub closed_over_variables: HashSet<NodeId>,
     pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
     pub struct_info: Option<StructInfo>,
-    pub referenced_structs: HashMap<NodeId, StructInfo>,
     pub function: Function,
 }
 
@@ -90,6 +92,7 @@ impl CompilationState {
             errors: Vec::new(),
             source_code: String::new(),
             ast: None,
+            tags: Tags::new(),
             imports: Vec::new(),
             exports: HashMap::new(),
             constants: HashMap::new(),
@@ -98,7 +101,6 @@ impl CompilationState {
             closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),
             struct_info: None,
-            referenced_structs: HashMap::new(),
             function: Function::new(Chunk::new(), vec![]),
         }
     }

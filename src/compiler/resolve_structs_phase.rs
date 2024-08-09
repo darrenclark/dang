@@ -10,6 +10,11 @@ use crate::{
 
 use super::{CompilationState, Compiler};
 
+#[derive(Debug)]
+pub struct ReferencedStruct {
+    pub struct_info: StructInfo,
+}
+
 pub fn resolve_structs_phase(
     _compiler: &Compiler,
     compilation_state: &mut CompilationState,
@@ -90,8 +95,8 @@ impl<'a> AstWalker for ResolveStructsPhase<'a> {
             match struct_info {
                 Some(struct_info) => {
                     self.compilation_state
-                        .referenced_structs
-                        .insert(node.id, struct_info);
+                        .tags
+                        .insert(node.id, ReferencedStruct { struct_info });
                 }
                 None => {
                     self.errored = true;

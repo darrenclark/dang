@@ -13,7 +13,7 @@ use crate::{
     vm::{chunk::Chunk, function::Function, inst::Instr},
 };
 
-use super::{CompilationState, Compiler};
+use super::{resolve_structs_phase::ReferencedStruct, CompilationState, Compiler};
 
 pub fn emit_bytecode_phase(
     _compiler: &Compiler,
@@ -297,11 +297,12 @@ impl Emitter<'_> {
             NodeKind::StructLiteral { module: _, fields } => {
                 // TODO: optimize to emit a compile time value when possible?
                 // TODO: optimize to only emit values
-                let struct_info = self
+                let struct_info = &self
                     .compilation_state
-                    .referenced_structs
-                    .get(&node.id)
-                    .unwrap();
+                    .tags
+                    .get::<ReferencedStruct>(node.id)
+                    .unwrap()
+                    .struct_info;
 
                 let module_name = self
                     .chunk
