@@ -9,6 +9,11 @@ pub struct Instr {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum OpCode {
+    /// VmArg(arg) -0 +1 - fetches an arg provided to the VM.  `arg` corresponds to a number in
+    /// this table:
+    ///
+    ///   1: argv
+    VmArg,
     /// Constant(index) +1  - pushes constant at arg0 to stack
     Constant,
     /// PushNil +1 - pushes a nil to stack
@@ -106,6 +111,10 @@ pub enum OpCode {
 }
 
 impl Instr {
+    pub fn vm_arg(index: u8) -> Self {
+        Self::new(OpCode::VmArg, index, 0, 0)
+    }
+
     pub fn constant(index: u8) -> Self {
         Self::new(OpCode::Constant, index, 0, 0)
     }

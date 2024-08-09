@@ -69,6 +69,7 @@ pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
     pub compiler: Compiler,
     loaded_modules: HashSet<ModuleName>,
+    argv: Rc<RefCell<Value>>,
 }
 
 impl Default for Interpreter {
@@ -86,6 +87,7 @@ impl Interpreter {
             environment: globals,
             compiler: Compiler::default(),
             loaded_modules: HashSet::default(),
+            argv: Rc::new(RefCell::new(Value::Nil)),
         }
     }
 
@@ -97,24 +99,18 @@ impl Interpreter {
             environment: globals,
             compiler: Compiler::default(),
             loaded_modules: HashSet::default(),
+            argv: Rc::new(RefCell::new(Value::Nil)),
         }
     }
 
     pub fn set_argv(&mut self, argv: Vec<String>) {
-        self.run(Input::ModuleName("Std/Builtins".to_owned()))
-            .expect("Std/Builtins failed to load");
+        let argv = argv
+            .clone()
+            .into_iter()
+            .map(Value::String)
+            .collect::<Vec<Value>>();
 
-        let converted: Vec<Value> = argv.iter().map(|s| Value::String(s.clone())).collect();
-
-        Environment::assign(
-            self.globals.clone(),
-            &VariableLocation::Global {
-                module: "Std/Builtins".into(),
-                name: "argv".into(),
-            },
-            Value::List(Rc::new(converted)),
-        )
-        .unwrap();
+        self.argv.replace(argv.into());
     }
 
     fn switch_to_new_env(&mut self) -> Rc<RefCell<Environment>> {
@@ -205,6 +201,14 @@ impl Interpreter {
                 Ok(result)
             }
             NodeKind::Builtin { identifier } => match &identifier.kind {
+                NodeKind::Identifier(name) if name == "argv" => {
+                    let argv_ref = Rc::clone(&self.argv);
+                    let value = Value::closure(move |_| Ok(argv_ref.borrow().clone()));
+
+                    let location = self.variable_location(node);
+                    self.define(&location, false, value.clone())?;
+                    Ok(value)
+                }
                 NodeKind::Identifier(name) => {
                     let value = Value::NativeFunc(native_funcs::func(name).unwrap());
                     let location = self.variable_location(node);

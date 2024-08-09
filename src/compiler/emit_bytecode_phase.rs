@@ -96,6 +96,11 @@ impl Emitter<'_> {
                     self.chunk.write(Instr::pop_locals(locals_count));
                 }
             }
+            NodeKind::Builtin { identifier } if identifier.unwrap_identifier() == "argv" => {
+                self.emit_vm_arg_func(1);
+                self.emit_set(node);
+                self.chunk.write(Instr::push_nil());
+            }
             NodeKind::Builtin { identifier } => {
                 let ptr = native_funcs::func(identifier.unwrap_identifier()).unwrap();
                 let constant = self.chunk.write_constant(Value::NativeFunc(ptr));
@@ -590,5 +595,15 @@ impl Emitter<'_> {
         self.chunk.patch_jump(branch);
         self.chunk.write(Instr::logical_neg());
         self.chunk.write(Instr::set_global(module, name));
+    }
+
+    fn emit_vm_arg_func(&mut self, arg: u8) {
+        let mut chunk = Chunk::new();
+        chunk.write(Instr::vm_arg(arg));
+        chunk.write(Instr::return_());
+
+        let function = Value::Function(Function::new(chunk, Vec::new()));
+        let constant = self.chunk.write_constant(function);
+        self.chunk.write(Instr::constant(constant));
     }
 }

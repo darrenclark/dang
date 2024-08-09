@@ -28,6 +28,7 @@ pub struct VM {
     frames: Vec<Frame>,
     globals: HashMap<(Ustr, Ustr), Value>,
     open_upvalues: Vec<(usize, Upvalue)>,
+    argv: Value,
 }
 
 struct Frame {
@@ -65,7 +66,12 @@ impl VM {
             frames: vec![frame],
             globals: HashMap::new(),
             open_upvalues: Vec::new(),
+            argv: Value::Nil,
         }
+    }
+
+    pub fn set_argv(&mut self, argv: Vec<String>) {
+        self.argv = argv.into();
     }
 
     pub fn run(&mut self) -> Result<Value, Exception> {
@@ -77,6 +83,22 @@ impl VM {
             //disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
 
             match self.chunk().code[ip] {
+                Instr {
+                    op: OpCode::VmArg,
+                    arg0: 1,
+                    ..
+                } => {
+                    self.stack.push(self.argv.clone());
+                }
+
+                Instr {
+                    op: OpCode::VmArg,
+                    arg0,
+                    ..
+                } => {
+                    exception!("Unknown VmArg: {}", arg0);
+                }
+
                 Instr {
                     op: OpCode::Constant,
                     arg0,

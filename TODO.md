@@ -7,11 +7,13 @@
     - closing upvalues in loops (need to implement something like OP_CLOSE_UPVALUE)
 
 - Mutate in-place instructions (faster arrays)
+
 - Debug info in compiled chunks
     - line numbers per instruction
     - function names
     - exception stack traces
     - variable names (?)
+
 - Improve error handling in compiler, phases shouldn't need to error with an Exception
 
 ## Future

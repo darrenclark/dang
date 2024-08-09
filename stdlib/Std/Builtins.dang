@@ -1,5 +1,6 @@
 module Std/Builtins
 
+// native_funcs
 __builtin print
 __builtin println
 __builtin inspect
@@ -24,9 +25,11 @@ __builtin str
 __builtin symbol
 __builtin raise
 
+// Host (VM or Interpreter) provided functions
+__builtin argv
+
+// Constants
 let INT32_MAX = 2147483647
 let INT64_MAX = 9223372036854775807
 
 let some = symbol("some")
-
-var argv = nil

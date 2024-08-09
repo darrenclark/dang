@@ -15,7 +15,7 @@ let part2 = fn(parsed) {
 
 // --------------
 
-let input_path = first(argv)
+let input_path = first(argv())
 if input_path == nil { raise("Expected path to input as first arg") }
 let input = readfile(input_path)
 

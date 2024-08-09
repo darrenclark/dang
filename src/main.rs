@@ -89,8 +89,7 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     let file = fs::read_to_string(path)?;
 
-    let mut compiler = Compiler::for_vm();
-    compiler.implicit_imports.clear();
+    let compiler = Compiler::for_vm();
 
     let mut program = Program::default();
 
@@ -107,6 +106,7 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
                 disassemble(&module.function);
             } else {
                 let mut vm = VM::new(module.function.clone());
+                vm.set_argv(args.args.clone());
                 match vm.run() {
                     Ok(value) => {
                         value
@@ -133,11 +133,11 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 
 fn repl(args: &Cli) -> Result<()> {
     let mut interpreter = Interpreter::new_repl();
+    interpreter.set_argv(args.args.clone());
     // preload Std to ensure there aren't any build issues with it
     if let Err(e) = interpreter.run(Input::ModuleName("Std".to_owned())) {
         panic!("Failed to load Std: {:?}", e);
     }
-    interpreter.set_argv(args.args.clone());
 
     let history_file = home_dir().map(|p| {
         let mut path = p.clone();

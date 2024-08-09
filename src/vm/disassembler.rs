@@ -23,6 +23,11 @@ pub fn disassemble(function: &Function) {
 pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
     match instr {
         Instr {
+            op: OpCode::VmArg,
+            arg0,
+            ..
+        } => println!("VmArg   {}", arg0),
+        Instr {
             op: OpCode::Constant,
             arg0,
             ..
