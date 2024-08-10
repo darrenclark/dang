@@ -1,8 +1,4 @@
-use std::{
-    cmp::{max, min},
-    collections::HashMap,
-    rc::Rc,
-};
+use std::{cmp::min, collections::HashMap, rc::Rc};
 
 use chunk::Chunk;
 use closure::Closure;
