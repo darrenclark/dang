@@ -5,12 +5,18 @@ use ustr::Ustr;
 use crate::{
     ast::{AstWalker, ImportKind, Node, NodeId, NodeKind},
     interpreter::{exception, Exception},
+    module::ModuleName,
     program::Program,
     scope::{Scope, UpvalueSource, VariableAllocation, VariableLocation},
     value::Value,
 };
 
 use super::{CompilationState, Compiler};
+
+#[derive(Debug)]
+pub struct ModuleReference {
+    pub module_name: ModuleName,
+}
 
 pub fn resolve_variables_phase(
     _compiler: &Compiler,
@@ -28,7 +34,6 @@ pub fn resolve_variables_phase(
         let mut phase = ResolveVariablesPhase::new(program, compilation_state);
         phase.run();
         if !phase.errors.is_empty() {
-            compilation_state.errors.append(&mut phase.errors.clone());
             exception!("unable to resolve all variables")
         }
 
@@ -60,7 +65,7 @@ pub fn resolve_variables_phase(
 #[derive(Debug)]
 pub struct ResolveVariablesPhase<'a> {
     program: &'a mut Program,
-    compilation_state: &'a CompilationState,
+    compilation_state: &'a mut CompilationState,
     pub exports: HashMap<String, VariableLocation>,
     pub constants: HashMap<String, Value>,
     pub variable_locations: HashMap<NodeId, VariableLocation>,
@@ -74,7 +79,7 @@ pub struct ResolveVariablesPhase<'a> {
 impl<'a> ResolveVariablesPhase<'a> {
     pub fn new(
         program: &'a mut Program,
-        compilation_state: &'a CompilationState,
+        compilation_state: &'a mut CompilationState,
     ) -> ResolveVariablesPhase<'a> {
         ResolveVariablesPhase {
             program,
@@ -91,7 +96,11 @@ impl<'a> ResolveVariablesPhase<'a> {
     }
 
     pub fn run(&mut self) {
-        self.compilation_state.ast().walk(self)
+        self.compilation_state.ast().clone().walk(self);
+
+        self.compilation_state
+            .errors
+            .append(&mut self.errors.clone());
     }
 
     fn push_child_scope(&mut self) {
@@ -307,6 +316,14 @@ impl<'a> ResolveVariablesPhase<'a> {
             Some((location, allocaction)) => {
                 self.variable_locations.insert(node.id, location);
                 self.variable_allocations.insert(node.id, allocaction);
+
+                if self.constants.contains_key(name) {
+                    let symbol = self.constants.get(name).unwrap().unwrap_symbol();
+                    let module_name = ModuleName(symbol);
+                    self.compilation_state
+                        .tags
+                        .insert(node.id, ModuleReference { module_name });
+                }
             }
             None => self.errors.push(Exception {
                 source: Some(node.source.clone()),
