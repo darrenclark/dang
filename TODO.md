@@ -2,6 +2,11 @@
 
 ## VM
 
+- Field access for modules:
+    - set
+    - subscript get
+    - subscript set
+
 - Closures
     - multiple levels deep
     - closing upvalues in loops (need to implement something like OP_CLOSE_UPVALUE)
