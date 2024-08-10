@@ -30,12 +30,7 @@ let iter = fn (t) {
   }
 }
 
-let make_vmtest = fn(x, y, z) {
-  VmTest{x: x, y: y, z: z}
-}
-
-//VmTest{x: 1, y: 2, z: 3}
-make_vmtest(1, 2, 3)
+VmTest{x: 1, y: 2, z: 3}
 |> inspect()
 
 println(str(true))

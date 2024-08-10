@@ -132,9 +132,12 @@ impl VM {
                     arg1,
                     ..
                 } => {
-                    let module = self.read_symbol(arg0);
-                    let name = self.read_symbol(arg1);
-                    self.stack.push(self.get_global(module, name)?.clone());
+                    let key = (self.read_symbol(arg0), self.read_symbol(arg1));
+                    if let Some(value) = self.globals.get(&key) {
+                        self.stack.push(value.clone());
+                    } else {
+                        exception!("Global not found: {:?}", key);
+                    }
                 }
 
                 Instr {
@@ -461,16 +464,7 @@ impl VM {
                 } => {
                     let key = self.stack.pop().unwrap();
                     let obj = self.stack.pop().unwrap();
-
-                    let value = match obj {
-                        Value::Symbol(module) => {
-                            // TODO: Field names should be symbols
-                            let name = key.unwrap_string();
-                            self.get_global(module, Ustr::from(name))?.clone()
-                        }
-                        obj => obj.at_field(key.unwrap_string())?,
-                    };
-
+                    let value = obj.at_field(key.unwrap_string())?;
                     self.stack.push(value);
                 }
 
@@ -646,15 +640,6 @@ impl VM {
 
     fn ip_mut(&mut self) -> &mut usize {
         &mut self.frames.last_mut().unwrap().ip
-    }
-
-    fn get_global(&self, module: Ustr, name: Ustr) -> Result<&Value, Exception> {
-        let key = (module, name);
-        if let Some(value) = self.globals.get(&key) {
-            Ok(value)
-        } else {
-            exception!("Global not found: {:?}", key);
-        }
     }
 
     fn call(&mut self, callee: Value, args: Vec<Value>) -> Result<(), Exception> {
