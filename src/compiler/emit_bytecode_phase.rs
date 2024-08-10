@@ -458,15 +458,10 @@ impl Emitter<'_> {
                 enumerable,
                 body,
             } => {
-                self.pushed_locals.push(0);
-
                 // get iterator
                 // TODO: support structs implementing iter
                 self.emit(enumerable);
                 self.chunk.write(Instr::get_iter());
-
-                // allocate loop variable (+1 for the result from iterator)
-                *self.pushed_locals.last_mut().unwrap() += 1;
 
                 let is_complex_pattern =
                     !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
@@ -483,8 +478,6 @@ impl Emitter<'_> {
                     // preallocate room on stack for pattern
                     for _ in 0..pattern_locals {
                         self.chunk.write(Instr::push_nil());
-                        // don't incremented pushed_locals, as we clean these locals up
-                        // before the next iteration (and hence won't be there when we exit)
                     }
                     // push & unpack the expression
                     self.chunk.write(Instr::dup(pattern_locals as u8));
@@ -497,20 +490,20 @@ impl Emitter<'_> {
                 self.chunk.write(Instr::pop()); // to pop result of body
 
                 // loop back to top - pop local var + any pattern locals off the stack first
-                self.chunk.write(Instr::pop());
                 if is_complex_pattern {
                     for _ in 0..pattern_locals {
                         self.chunk.write(Instr::pop());
                     }
                 }
+                self.chunk.write(Instr::pop());
                 self.chunk.write_jump_back(loop_start);
 
                 self.chunk.patch_jump(loop_exit_branch);
 
-                // pop off iterator & pattern vars
-                for _ in 0..self.pushed_locals.pop().unwrap() {
-                    self.chunk.write(Instr::pop());
-                }
+                // pop local var & iterator
+                self.chunk.write(Instr::pop());
+                self.chunk.write(Instr::pop());
+                // all for loops evaluate to nil
                 self.chunk.write(Instr::push_nil());
             }
             ast => todo!("not yet implemented for: {:?}", ast),
