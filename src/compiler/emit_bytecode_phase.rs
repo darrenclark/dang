@@ -102,6 +102,9 @@ impl Emitter<'_> {
             NodeKind::StructDef { .. } => {
                 self.chunk.write(Instr::push_nil());
             }
+            NodeKind::Body(statements) if statements.is_empty() => {
+                self.chunk.write(Instr::push_nil());
+            }
             NodeKind::Body(statements) => {
                 self.pushed_locals.push(0);
 

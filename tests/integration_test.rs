@@ -642,3 +642,13 @@ fn assigning_to_fields() {
         "#
     }
 }
+
+#[test]
+fn empty_functions_return_nil() {
+    assert_runs_both! {
+        r#"
+        let f = fn() {}
+        assert(f() == nil)
+        "#
+    }
+}
