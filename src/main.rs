@@ -33,6 +33,10 @@ struct Cli {
     #[arg(long)]
     print_disasm: bool,
 
+    /// dump debug info on crashes
+    #[arg(long)]
+    debug: bool,
+
     /// path to .dang file to execute
     path: Option<std::path::PathBuf>,
 
@@ -116,6 +120,11 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
                         println!()
                     }
                     Err(e) => {
+                        if args.debug {
+                            vm.print_disasm();
+                            vm.print_stack();
+                        }
+
                         vm.print_stacktrace(e);
                     }
                 }

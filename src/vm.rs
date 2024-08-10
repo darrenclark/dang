@@ -1,4 +1,8 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    cmp::{max, min},
+    collections::HashMap,
+    rc::Rc,
+};
 
 use chunk::Chunk;
 use closure::Closure;
@@ -583,6 +587,40 @@ impl VM {
             let function = &frame.function;
             println!("  {}", function.get_debug_name());
         });
+    }
+
+    pub fn print_stack(&self) {
+        println!("stack:");
+
+        for v in self.stack.iter().rev() {
+            println!("  {:?}", v);
+        }
+    }
+
+    pub fn print_disasm(&self) {
+        println!("disasm:");
+        let context = 10;
+
+        let ip = self.ip();
+        let chunk = self.chunk();
+
+        let from = ip.saturating_sub(context);
+        let to = min(ip + context, chunk.code.len() - 1);
+
+        for (i, instr) in chunk.code.iter().enumerate() {
+            if i < from {
+                continue;
+            }
+            if i == ip {
+                print!("> ");
+            } else {
+                print!("  ");
+            }
+            disassembler::disassemble_instruction(chunk, instr);
+            if i >= to {
+                break;
+            }
+        }
     }
 
     fn chunk(&self) -> &Chunk {
