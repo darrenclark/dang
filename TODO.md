@@ -13,6 +13,9 @@
 
 - Mutate in-place instructions (faster arrays)
 
+- disassembly shouldn't print duplicate functions
+    - and should support filtering to a module (by default the main script)
+
 - Debug info in compiled chunks
     - line numbers per instruction
     - function names
