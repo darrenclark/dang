@@ -439,7 +439,7 @@ impl Emitter<'_> {
                     _ => unreachable!(),
                 }
 
-                for key in path[0..path.len() - 1].iter() {
+                for key in path[0..path.len() - 1].iter().rev() {
                     match &key.kind {
                         NodeKind::FieldAssignmentPathField { .. } => {
                             self.chunk.write(Instr::set_field());
@@ -452,6 +452,7 @@ impl Emitter<'_> {
                 }
 
                 self.emit_set(variable_ref);
+                self.chunk.write(Instr::push_nil());
             }
             NodeKind::For {
                 pattern,
