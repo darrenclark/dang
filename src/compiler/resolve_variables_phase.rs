@@ -204,7 +204,7 @@ impl<'a> ResolveVariablesPhase<'a> {
 
                         let mut function_depth = 0;
                         let mut current_func = self.scopes_stack.last().unwrap().get_function();
-                        for s in self.scopes_stack.iter().rev().take(i) {
+                        for s in self.scopes_stack.iter().rev().take(i + 1) {
                             if s.get_function() != current_func {
                                 function_depth += 1;
                                 current_func = s.get_function();

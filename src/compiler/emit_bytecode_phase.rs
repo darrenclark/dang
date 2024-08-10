@@ -459,7 +459,6 @@ impl Emitter<'_> {
                 body,
             } => {
                 // get iterator
-                // TODO: support structs implementing iter
                 self.emit(enumerable);
                 self.chunk.write(Instr::get_iter());
 
