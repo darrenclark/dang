@@ -64,7 +64,20 @@ impl Emitter<'_> {
                         .unwrap(),
                 );
 
+                let module_name = self.compilation_state.module_name;
+
                 self.emit_module_load_guard(self.compilation_state.module_name);
+
+                // TODO: Should these be set as globals? Or can they be inlined where
+                // they're used at compile time?
+                for (name, value) in &self.compilation_state.constants {
+                    let value = self.chunk.write_constant(value.clone());
+                    self.chunk.write(Instr::constant(value));
+
+                    let module = self.chunk.write_constant(Value::Symbol(module_name.0));
+                    let name = self.chunk.write_constant(Value::Symbol(Ustr::from(name)));
+                    self.chunk.write(Instr::set_global(module, name));
+                }
 
                 for (i, statement) in statements.iter().enumerate() {
                     self.emit(statement);
