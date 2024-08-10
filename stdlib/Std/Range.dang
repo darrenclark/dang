@@ -10,6 +10,8 @@ struct {
   step: 1
 }
 
+__builtin _range_iter
+
 let new = fn(begin, end, step) {
   Range{begin: begin, end: end, step: step}
 }
@@ -19,15 +21,5 @@ let range = fn(begin, end) {
 }
 
 let iter = fn(range) {
-  var i = range.begin
-  let end = range.end
-  let step = range.step
-
-  fn () {
-    if i < end {
-      let res = (some, i)
-      i = i + step
-      res
-    }
-  }
+  _range_iter(range.begin, range.end, range.step)
 }

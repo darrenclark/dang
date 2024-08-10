@@ -42,6 +42,8 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("symbol", symbol),
         // misc
         ("raise", raise),
+        // functions implemented in Rust for performance reasons
+        ("_range_iter", _range_iter),
     ]
 }
 
@@ -362,4 +364,31 @@ fn raise(args: &[Value]) -> Result<Value, Exception> {
         exception!("{}", s)
     }
     exception!("expected one string arg to raise")
+}
+
+fn _range_iter(args: &[Value]) -> Result<Value, Exception> {
+    let (start, stop, step) = match args {
+        [Value::Integer(start), Value::Integer(stop), Value::Integer(step)] => {
+            (*start, *stop, *step)
+        }
+        _ => exception!("_range_iter(start, stop, step) expected 3 integers"),
+    };
+
+    let mut i = start;
+
+    let iter = Value::closure(move |args| {
+        if !args.is_empty() {
+            exception!("expected zero args to iterator function")
+        }
+
+        if i < stop {
+            let res = i;
+            i += step;
+            Ok(Value::Tuple(vec![Value::Symbol(ustr("some")), res.into()]))
+        } else {
+            Ok(Value::Nil)
+        }
+    });
+
+    Ok(iter)
 }
