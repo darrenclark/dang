@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{
-    function_names_phase::FunctionName, resolve_structs_phase::ReferencedStruct, CompilationState,
-    Compiler,
+    function_names_phase::FunctionName, resolve_structs_phase::ReferencedStruct,
+    resolve_variables_phase::ModuleReference, CompilationState, Compiler,
 };
 
 pub fn emit_bytecode_phase(
@@ -352,6 +352,20 @@ impl Emitter<'_> {
                 self.chunk
                     .write(Instr::make_struct(module_name, struct_info.fields.len()));
             }
+            NodeKind::FieldAccess { object, key } if self.is_module_ref(object) => {
+                let module_name = self
+                    .compilation_state
+                    .tags
+                    .get::<ModuleReference>(object.id)
+                    .unwrap()
+                    .module_name;
+
+                let name = key.unwrap_identifier();
+
+                let m = self.chunk.write_constant(Value::Symbol(module_name.0));
+                let n = self.chunk.write_constant(Value::Symbol(Ustr::from(name)));
+                self.chunk.write(Instr::get_global(m, n));
+            }
             NodeKind::FieldAccess { object, key } => {
                 self.emit(object);
 
@@ -633,5 +647,12 @@ impl Emitter<'_> {
             .unwrap()
             .name
             .to_string()
+    }
+
+    fn is_module_ref(&self, node: &Node) -> bool {
+        self.compilation_state
+            .tags
+            .get::<ModuleReference>(node.id)
+            .is_some()
     }
 }

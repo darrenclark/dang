@@ -439,12 +439,12 @@ fn test_trailing_commas_in_literals() {
 }
 
 #[test]
-fn test_module_field_access_and_subscripting() {
+fn test_module_field_access() {
     assert_runs_both! {
         r#"
-        let e = symbol("Std/Enum")
-        assert(map == e.map)
-        assert(map == e["map"])
+        import Std/Enum
+
+        assert(map == Enum.map)
         "#
     };
 }

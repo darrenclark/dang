@@ -363,16 +363,7 @@ impl Interpreter {
             NodeKind::Subscript { object, key } => {
                 let object = self.eval(object)?;
                 let key = self.eval(key)?;
-                match object {
-                    Value::Symbol(module_name) => {
-                        let key = match key {
-                            Value::String(k) => k,
-                            _ => exception!("string required when subscripting a module"),
-                        };
-                        self.module_field_access(&module_name, &key)
-                    }
-                    value => value.at(&key),
-                }
+                object.at(&key)
             }
             NodeKind::FieldAccess { object, key } => {
                 let object = self.eval(object)?;
