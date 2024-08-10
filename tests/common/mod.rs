@@ -44,6 +44,16 @@ macro_rules! assert_runs_vm {
 }
 pub(crate) use assert_runs_vm;
 
+macro_rules! assert_runs_both {
+    ($c:expr) => {
+        assert_runs_vm!($c);
+    };
+    ($module_name: literal, $c:expr) => {
+        assert_runs_vm!($module_name, $c);
+    };
+}
+pub(crate) use assert_runs_both;
+
 macro_rules! assert_raises {
     (($line: literal, $msg: literal), $c:expr) => {
         match common::run($c, "(run)") {
@@ -76,7 +86,9 @@ pub fn run(code: &str, module_name: &str) -> Result<Value, Exception> {
 
 pub fn run_vm(code: &str, module_name: &str) -> Result<Value, Exception> {
     let mut compiler = Compiler::for_vm();
-    compiler.implicit_imports.clear();
+    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push("tests/");
+    compiler.module_search_paths.push(d);
 
     let mut program = Program::default();
 
@@ -87,7 +99,7 @@ pub fn run_vm(code: &str, module_name: &str) -> Result<Value, Exception> {
 
     match compiler.compile(input, &mut program) {
         Ok(_) => {
-            let module_name = program.module_names().first().cloned().unwrap();
+            let module_name = program.module_names().last().cloned().unwrap();
             let module = program.get_module(&module_name).unwrap();
             let mut vm = VM::new(module.function.clone());
             vm.run()
