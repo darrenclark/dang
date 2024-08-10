@@ -32,7 +32,7 @@ let parse = fn(input) {
       if res[0][0] != 0 {
         res = [(0, 0)] + res
       }
-      res = res |> append((last(res)[0] + 1, last(res)[0] + 1)) |> append((INT64_MAX, INT64_MAX))
+      res |> append((last(res)[0] + 1, last(res)[0] + 1)) |> append((INT64_MAX, INT64_MAX))
     })
 
   var flat = maps[0]

@@ -222,21 +222,21 @@ impl Interpreter {
                 for (location, value) in self.match_pattern(pattern, rhs.clone())? {
                     self.define(&location, false, value.clone())?;
                 }
-                Ok(rhs)
+                Ok(Value::Nil)
             }
             NodeKind::Var { pattern, expr } => {
                 let rhs = self.eval(expr)?;
                 for (location, value) in self.match_pattern(pattern, rhs.clone())? {
                     self.define(&location, true, value.clone())?;
                 }
-                Ok(rhs)
+                Ok(Value::Nil)
             }
             NodeKind::Assignment { pattern, expr } => {
                 let rhs = self.eval(expr)?;
                 for (location, value) in self.match_pattern(pattern, rhs.clone())? {
                     Environment::assign(self.environment.clone(), &location, value.clone())?;
                 }
-                Ok(rhs)
+                Ok(Value::Nil)
             }
             NodeKind::FieldAssignment {
                 variable_ref,
@@ -266,7 +266,7 @@ impl Interpreter {
                     &self.variable_location(variable_ref),
                     object.clone(),
                 )?;
-                Ok(value)
+                Ok(Value::Nil)
             }
             NodeKind::FieldAssignmentPathField { .. }
             | NodeKind::FieldAssignmentPathSubscript { .. } => unreachable!(),
