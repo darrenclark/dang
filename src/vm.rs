@@ -81,6 +81,13 @@ impl VM {
     pub fn run(&mut self) -> Result<Value, Exception> {
         loop {
             let ip = self.ip();
+            /*print!("> ");
+            disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
+            print!("  ");
+            for v in self.stack.iter() {
+                print!("{} ", v);
+            }
+            println!();*/
             *self.ip_mut() += 1;
 
             //println!("======= ip: {} ========", ip);

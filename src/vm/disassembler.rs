@@ -7,7 +7,7 @@ use super::{
 };
 
 pub fn disassemble(function: &Function) {
-    println!("==== {:?} ====", function);
+    println!("==== {} ====", function.get_debug_name());
     for instr in function.chunk().code.iter() {
         disassemble_instruction(function.chunk(), instr);
     }

@@ -37,6 +37,10 @@ struct Cli {
     #[arg(long)]
     debug: bool,
 
+    /// disable default std library imports
+    #[arg(long)]
+    no_std: bool,
+
     /// path to .dang file to execute
     path: Option<std::path::PathBuf>,
 
@@ -93,7 +97,14 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
 fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
     let file = fs::read_to_string(path)?;
 
-    let compiler = Compiler::for_vm();
+    let mut compiler = Compiler::for_vm();
+    if args.no_std {
+        compiler.implicit_imports.clear();
+    }
+
+    compiler
+        .module_search_paths
+        .push(path.parent().unwrap().to_owned());
 
     let mut program = Program::default();
 
