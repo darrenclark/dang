@@ -19,6 +19,8 @@
 
 - Improve error handling in compiler, phases shouldn't need to error with an Exception
 
+- `Module.field = "xyz"` assignment
+
 ## Future
 
 Higher priority:
