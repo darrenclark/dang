@@ -150,7 +150,10 @@ impl Emitter<'_> {
             } => {
                 self.emit(lhs);
                 let branch = self.chunk.write(Instr::branch_if_true(0));
+                // if lhs is not truthy, pop it off & try rhs
+                self.chunk.write(Instr::pop());
                 self.emit(rhs);
+                // else skip over rhs and leave lhs at top of stack
                 self.chunk.patch_jump(branch);
             }
             NodeKind::BinaryOp {
@@ -160,7 +163,10 @@ impl Emitter<'_> {
             } => {
                 self.emit(lhs);
                 let branch = self.chunk.write(Instr::branch_if_false(0));
+                // if lhs truthy, pop it off & try rhs
+                self.chunk.write(Instr::pop());
                 self.emit(rhs);
+                // else skip over rhs and leave lhs at top of stack
                 self.chunk.patch_jump(branch);
             }
             NodeKind::BinaryOp { op, lhs, rhs } => {
@@ -431,7 +437,6 @@ impl Emitter<'_> {
                 // TODO: support structs implementing iter
                 self.emit(enumerable);
                 self.chunk.write(Instr::get_iter());
-                *self.pushed_locals.last_mut().unwrap() += 1;
 
                 // allocate loop variable (+1 for the result from iterator)
                 *self.pushed_locals.last_mut().unwrap() += 1;
@@ -466,8 +471,10 @@ impl Emitter<'_> {
 
                 // loop back to top - pop local var + any pattern locals off the stack first
                 self.chunk.write(Instr::pop());
-                for _ in 0..pattern_locals {
-                    self.chunk.write(Instr::pop());
+                if is_complex_pattern {
+                    for _ in 0..pattern_locals {
+                        self.chunk.write(Instr::pop());
+                    }
                 }
                 self.chunk.write_jump_back(loop_start);
 
