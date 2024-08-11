@@ -128,7 +128,10 @@ fn run_file_vm(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
                             .to_doc()
                             .render_colored(80, StandardStream::stdout(ColorChoice::Auto))
                             .unwrap();
-                        println!()
+                        println!();
+
+                        #[cfg(feature = "stats")]
+                        vm.print_stats();
                     }
                     Err(e) => {
                         if args.debug {

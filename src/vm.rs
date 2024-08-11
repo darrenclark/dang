@@ -4,6 +4,7 @@ use chunk::Chunk;
 use closure::Closure;
 use function::Function;
 use inst::{Instr, OpCode};
+use stats::StatsCollector;
 use upvalue::Upvalue;
 use ustr::Ustr;
 
@@ -21,6 +22,7 @@ pub mod closure;
 pub mod disassembler;
 pub mod function;
 pub mod inst;
+mod stats;
 pub mod upvalue;
 
 pub struct VM {
@@ -29,6 +31,7 @@ pub struct VM {
     globals: HashMap<(Ustr, Ustr), Value>,
     open_upvalues: Vec<(usize, Upvalue)>,
     argv: Value,
+    stats: StatsCollector,
 }
 
 struct Frame {
@@ -67,6 +70,7 @@ impl VM {
             globals: HashMap::new(),
             open_upvalues: Vec::new(),
             argv: Value::Nil,
+            stats: StatsCollector::new(),
         }
     }
 
@@ -77,6 +81,11 @@ impl VM {
     pub fn run(&mut self) -> Result<Value, Exception> {
         loop {
             let ip = self.ip();
+            let instr = self.chunk().code[ip];
+
+            #[cfg(feature = "stats")]
+            let _ = stats::InstructionTimer::new(&mut self.stats, instr.op);
+
             /*print!("> ");
             disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
             print!("  ");
@@ -89,7 +98,7 @@ impl VM {
             //println!("======= ip: {} ========", ip);
             //disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
 
-            match self.chunk().code[ip] {
+            match instr {
                 Instr {
                     op: OpCode::VmArg,
                     arg0: 1,
@@ -624,6 +633,10 @@ impl VM {
                 break;
             }
         }
+    }
+
+    pub fn print_stats(&self) {
+        self.stats.print();
     }
 
     fn chunk(&self) -> &Chunk {

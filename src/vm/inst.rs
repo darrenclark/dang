@@ -1,3 +1,5 @@
+use strum::EnumCount;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub struct Instr {
@@ -7,7 +9,8 @@ pub struct Instr {
     pub arg2: u8,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, EnumCount, strum::Display, strum::FromRepr)]
 pub enum OpCode {
     /// VmArg(arg) -0 +1 - fetches an arg provided to the VM.  `arg` corresponds to a number in
     /// this table:
