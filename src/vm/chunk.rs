@@ -22,6 +22,12 @@ impl Chunk {
     }
 
     pub fn write_constant(&mut self, value: Value) -> u8 {
+        for (i, c) in self.constants.iter().enumerate() {
+            if c == &value {
+                return i as u8;
+            }
+        }
+
         self.constants.push(value);
         (self.constants.len() - 1) as u8
     }
