@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, rc::Rc};
 
 use ustr::Ustr;
 
-use crate::{module::ModuleName, value::Value};
+use crate::{line_col::LineCol, module::ModuleName, value::Value};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId {
@@ -56,8 +56,8 @@ pub struct Node {
 #[derive(Clone, Debug)]
 pub struct Source {
     pub file: Rc<String>,
-    pub line: usize,
-    pub col: usize,
+    pub start: LineCol,
+    pub end: LineCol,
 }
 
 impl fmt::Display for Source {
@@ -69,10 +69,10 @@ impl fmt::Display for Source {
                 ".../{}/{}:{}",
                 components[components.len() - 2],
                 components[components.len() - 1],
-                self.line
+                self.start.line
             )
         } else {
-            write!(f, "{}:{}", self.file, self.line)
+            write!(f, "{}:{}", self.file, self.start.line)
         }
     }
 }

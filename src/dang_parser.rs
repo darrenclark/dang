@@ -9,7 +9,10 @@ use pest::{
 use pest_derive::Parser;
 use unescape::unescape;
 
-use crate::ast::{BinOp, ImportKind, Node, NodeId, NodeKind, Source, UnaryOp};
+use crate::{
+    ast::{BinOp, ImportKind, Node, NodeId, NodeKind, Source, UnaryOp},
+    line_col::LineCol,
+};
 
 #[derive(Parser)]
 #[grammar = "dang.pest"]
@@ -54,7 +57,8 @@ struct ToAst {
 
 impl ToAst {
     fn to_source_file_node(&self, pairs: Pairs<Rule>) -> Node {
-        self.new_node((0, 0), NodeKind::SourceFile(self.to_asts(pairs)))
+        let loc = (LineCol::unknown(), LineCol::unknown());
+        self.new_node(loc, NodeKind::SourceFile(self.to_asts(pairs)))
             .unwrap()
     }
 
@@ -63,14 +67,14 @@ impl ToAst {
     }
 
     fn to_ast(&self, pair: Pair<Rule>) -> Option<Node> {
-        let line_col = pair.line_col();
+        let loc = self.location(&pair);
         match pair.as_rule() {
             Rule::EOI => None,
             Rule::WHITESPACE => panic!(),
             Rule::source_file => panic!(),
             Rule::module => {
                 let module_name = pair.into_inner().next().unwrap().as_str().to_owned();
-                self.new_node(line_col, NodeKind::Module(module_name))
+                self.new_node(loc, NodeKind::Module(module_name))
             }
             Rule::import => {
                 let mut iter = pair.into_inner().next().unwrap().into_inner();
@@ -90,7 +94,7 @@ impl ToAst {
                     ImportKind::Module { module_name }
                 };
 
-                self.new_node(line_col, NodeKind::Import(import_kind))
+                self.new_node(loc, NodeKind::Import(import_kind))
             }
             Rule::struct_def => {
                 let fields: Vec<(Node, Option<Node>)> = pair
@@ -102,14 +106,14 @@ impl ToAst {
                         (name, default_value)
                     })
                     .collect();
-                self.new_node(line_col, NodeKind::StructDef { fields })
+                self.new_node(loc, NodeKind::StructDef { fields })
             }
             Rule::body => {
                 let body: Vec<Node> = pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
-                self.new_node(line_col, NodeKind::Body(body))
+                self.new_node(loc, NodeKind::Body(body))
             }
             Rule::identifier => {
-                self.new_node(line_col, NodeKind::Identifier(String::from(pair.as_str())))
+                self.new_node(loc, NodeKind::Identifier(String::from(pair.as_str())))
             }
             Rule::stmt => panic!(),
             Rule::builtin_stmt => {
@@ -117,7 +121,7 @@ impl ToAst {
                 let identifier = self.to_ast(iter.next().unwrap()).unwrap();
 
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::Builtin {
                         identifier: Box::new(identifier),
                     },
@@ -128,7 +132,7 @@ impl ToAst {
                 let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::Let {
                         pattern: Box::new(pattern),
                         expr: Box::new(expr),
@@ -140,7 +144,7 @@ impl ToAst {
                 let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::Var {
                         pattern: Box::new(pattern),
                         expr: Box::new(expr),
@@ -152,7 +156,7 @@ impl ToAst {
                 let pattern = self.to_ast(iter.next().unwrap()).unwrap();
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::Assignment {
                         pattern: Box::new(pattern),
                         expr: Box::new(expr),
@@ -166,13 +170,13 @@ impl ToAst {
                 let object = self.to_ast(path_iter.next().unwrap()).unwrap();
                 let path = path_iter
                     .map(|p| {
-                        let line_col = p.line_col();
+                        let loc = self.location(&p);
                         let rule = p.as_rule();
                         let expr = self.to_ast(p.into_inner().next().unwrap()).unwrap();
                         match rule {
                             Rule::subscript => self
                                 .new_node(
-                                    line_col,
+                                    loc,
                                     NodeKind::FieldAssignmentPathSubscript {
                                         key: Box::new(expr),
                                     },
@@ -180,7 +184,7 @@ impl ToAst {
                                 .unwrap(),
                             Rule::field_access => self
                                 .new_node(
-                                    line_col,
+                                    loc,
                                     NodeKind::FieldAssignmentPathField {
                                         key: Box::new(expr),
                                     },
@@ -194,7 +198,7 @@ impl ToAst {
                 let expr = self.to_ast(iter.next().unwrap()).unwrap();
 
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::FieldAssignment {
                         variable_ref: Box::new(object),
                         path,
@@ -208,7 +212,7 @@ impl ToAst {
                 let body = self.to_ast(iter.next().unwrap()).unwrap();
                 let else_branch = iter.next().map(|p| self.to_ast(p).unwrap());
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::If {
                         condition: Box::new(condition),
                         body: Box::new(body),
@@ -222,7 +226,7 @@ impl ToAst {
                 let enumerable = self.to_ast(iter.next().unwrap()).unwrap();
                 let body = self.to_ast(iter.next().unwrap()).unwrap();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::For {
                         pattern: Box::new(pattern),
                         enumerable: Box::new(enumerable),
@@ -237,7 +241,7 @@ impl ToAst {
             Rule::pattern_identifier => {
                 let identifier = self.to_ast(pair.into_inner().next().unwrap()).unwrap();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::PatternIdentifier {
                         identifier: Box::new(identifier),
                     },
@@ -246,21 +250,21 @@ impl ToAst {
             Rule::pattern_tuple => {
                 let elements: Vec<Node> =
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
-                self.new_node(line_col, NodeKind::PatternTuple { elements })
+                self.new_node(loc, NodeKind::PatternTuple { elements })
             }
             Rule::expr => {
                 self.pratt
                     .map_primary(|primary| self.to_ast(primary))
                     .map_prefix(|op, rhs| match op.as_rule() {
                         Rule::logical_neg => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::UnaryOp {
                                 op: UnaryOp::LogicalNeg,
                                 rhs: Box::new(rhs.unwrap()),
                             },
                         ),
                         Rule::neg => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::UnaryOp {
                                 op: UnaryOp::Neg,
                                 rhs: Box::new(rhs.unwrap()),
@@ -270,7 +274,7 @@ impl ToAst {
                     })
                     .map_infix(|lhs, op, rhs| match op.as_rule() {
                         Rule::logical_or => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::LogicalOr,
                                 lhs: Box::new(lhs.unwrap()),
@@ -278,7 +282,7 @@ impl ToAst {
                             },
                         ),
                         Rule::logical_and => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::LogicalAnd,
                                 lhs: Box::new(lhs.unwrap()),
@@ -286,7 +290,7 @@ impl ToAst {
                             },
                         ),
                         Rule::eq => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Eq,
                                 lhs: Box::new(lhs.unwrap()),
@@ -294,7 +298,7 @@ impl ToAst {
                             },
                         ),
                         Rule::neq => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Neq,
                                 lhs: Box::new(lhs.unwrap()),
@@ -302,7 +306,7 @@ impl ToAst {
                             },
                         ),
                         Rule::gt => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Gt,
                                 lhs: Box::new(lhs.unwrap()),
@@ -310,7 +314,7 @@ impl ToAst {
                             },
                         ),
                         Rule::gte => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Gte,
                                 lhs: Box::new(lhs.unwrap()),
@@ -318,7 +322,7 @@ impl ToAst {
                             },
                         ),
                         Rule::lt => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Lt,
                                 lhs: Box::new(lhs.unwrap()),
@@ -326,7 +330,7 @@ impl ToAst {
                             },
                         ),
                         Rule::lte => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Lte,
                                 lhs: Box::new(lhs.unwrap()),
@@ -334,7 +338,7 @@ impl ToAst {
                             },
                         ),
                         Rule::add => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Add,
                                 lhs: Box::new(lhs.unwrap()),
@@ -342,7 +346,7 @@ impl ToAst {
                             },
                         ),
                         Rule::sub => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Sub,
                                 lhs: Box::new(lhs.unwrap()),
@@ -350,7 +354,7 @@ impl ToAst {
                             },
                         ),
                         Rule::mul => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Mul,
                                 lhs: Box::new(lhs.unwrap()),
@@ -358,7 +362,7 @@ impl ToAst {
                             },
                         ),
                         Rule::div => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::BinaryOp {
                                 op: BinOp::Div,
                                 lhs: Box::new(lhs.unwrap()),
@@ -366,7 +370,7 @@ impl ToAst {
                             },
                         ),
                         Rule::pipe => self.new_node(
-                            op.line_col(),
+                            self.location(&op),
                             NodeKind::Pipe {
                                 lhs: Box::new(lhs.unwrap()),
                                 rhs: Box::new(rhs.unwrap()),
@@ -382,10 +386,10 @@ impl ToAst {
                 let result = self.to_ast(iter.next().unwrap()).unwrap();
 
                 Some(iter.fold(result, |acc, p| {
-                    let line_col = p.line_col();
+                    let loc = self.location(&p);
                     let rule = p.as_rule();
                     self.new_node(
-                        line_col,
+                        loc,
                         match rule {
                             Rule::subscript => {
                                 let key = self.to_ast(p.into_inner().next().unwrap()).unwrap();
@@ -432,7 +436,7 @@ impl ToAst {
                 let body = self.to_ast(iter.next().unwrap())?;
 
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::FunctionLiteral {
                         arg_names,
                         body: Box::new(body),
@@ -451,7 +455,7 @@ impl ToAst {
                     .collect();
 
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::FunctionCall {
                         function: Box::new(func),
                         args,
@@ -462,7 +466,7 @@ impl ToAst {
             Rule::variable_ref => {
                 let identifier = self.to_ast(pair.into_inner().next().unwrap()).unwrap();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::VariableRef {
                         identifier: Box::new(identifier),
                     },
@@ -471,12 +475,12 @@ impl ToAst {
             Rule::tuple_literal => {
                 let elements: Vec<Node> =
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
-                self.new_node(line_col, NodeKind::TupleLiteral(elements))
+                self.new_node(loc, NodeKind::TupleLiteral(elements))
             }
             Rule::list_literal => {
                 let elements: Vec<Node> =
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
-                self.new_node(line_col, NodeKind::ListLiteral(elements))
+                self.new_node(loc, NodeKind::ListLiteral(elements))
             }
             Rule::dict_literal => {
                 let elements: Vec<(Node, Node)> = pair
@@ -488,7 +492,7 @@ impl ToAst {
                         (key, value)
                     })
                     .collect();
-                self.new_node(line_col, NodeKind::DictLiteral(elements))
+                self.new_node(loc, NodeKind::DictLiteral(elements))
             }
             Rule::struct_literal => {
                 let mut iter = pair.into_inner();
@@ -505,7 +509,7 @@ impl ToAst {
                     })
                     .collect();
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::StructLiteral {
                         module: Box::new(module),
                         fields,
@@ -514,38 +518,45 @@ impl ToAst {
             }
             Rule::unquoted_dict_key_string => {
                 let string = pair.into_inner().next().unwrap().as_str().to_owned();
-                self.new_node(line_col, NodeKind::StringLiteral(string))
+                self.new_node(loc, NodeKind::StringLiteral(string))
             }
             Rule::string_literal => {
                 let string = unescape(pair.into_inner().next().unwrap().as_str()).unwrap();
-                self.new_node(line_col, NodeKind::StringLiteral(string))
+                self.new_node(loc, NodeKind::StringLiteral(string))
             }
             Rule::string_contents => panic!(),
             Rule::char => todo!(),
             Rule::number_literal => {
                 // TODO: Floats
                 self.new_node(
-                    line_col,
+                    loc,
                     NodeKind::IntegerLiteral(pair.as_str().parse::<i64>().unwrap()),
                 )
             }
             Rule::bool_literal => self.new_node(
-                line_col,
+                loc,
                 NodeKind::BoolLiteral(pair.as_str().parse::<bool>().unwrap()),
             ),
-            Rule::nil_literal => self.new_node(line_col, NodeKind::NilLiteral),
+            Rule::nil_literal => self.new_node(loc, NodeKind::NilLiteral),
             rule => todo!("implement {:?}", rule),
         }
     }
 
-    fn new_node(&self, line_col: (usize, usize), kind: NodeKind) -> Option<Node> {
+    fn location(&self, pair: &Pair<Rule>) -> (LineCol, LineCol) {
+        (
+            pair.line_col().into(),
+            pair.as_span().end_pos().line_col().into(),
+        )
+    }
+
+    fn new_node(&self, location: (LineCol, LineCol), kind: NodeKind) -> Option<Node> {
         let node = Node {
             id: NodeId::default(),
             kind,
             source: Source {
                 file: self.source_file_name.clone(),
-                line: line_col.0,
-                col: line_col.1,
+                start: location.0,
+                end: location.1,
             },
         };
         Some(node)

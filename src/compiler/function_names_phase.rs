@@ -79,7 +79,7 @@ impl<'a> AstWalker for FunctionNamesPhase<'a> {
                     .get::<FunctionName>(node.id)
                     .is_none()
                 {
-                    let name = format!("(anonymous at line {})", node.source.line);
+                    let name = format!("(anonymous at line {})", node.source.start.line);
                     self.compilation_state.tags.insert(
                         node.id,
                         FunctionName {

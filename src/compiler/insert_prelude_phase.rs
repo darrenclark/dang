@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use crate::{
     ast::{Node, NodeId, NodeKind, Source},
     interpreter::Exception,
+    line_col::LineCol,
     program::Program,
 };
 
@@ -36,8 +37,8 @@ pub fn insert_prelude_phase(
                             kind: NodeKind::Import(import.clone()),
                             source: Source {
                                 file: source_file.clone(),
-                                line: i,
-                                col: 0,
+                                start: LineCol::unknown(),
+                                end: LineCol::unknown(),
                             },
                         },
                     );

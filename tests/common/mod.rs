@@ -59,7 +59,7 @@ macro_rules! assert_raises {
         match common::run($c, "(run)") {
             Ok(_) => panic!("code didn't raise"),
             Err(reason) => {
-                if reason.source.as_ref().map(|s| s.line).unwrap_or(0) != $line
+                if reason.source.as_ref().map(|s| s.start.line).unwrap_or(0) != $line
                     || reason.message != $msg
                 {
                     panic!("EXCEPTION: {}\nEXPECTED: line {}: {}", reason, $line, $msg);

@@ -47,7 +47,7 @@ impl fmt::Display for Exception {
             Some(source) => write!(
                 f,
                 "exception at {}:{}:{}: {}",
-                source.file, source.line, source.col, self.message
+                source.file, source.start.line, source.start.col, self.message
             ),
             None => write!(f, "exception: {}", self.message),
         }
