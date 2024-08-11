@@ -64,7 +64,7 @@ fn compile_time_values() {
     ]));
     assert_eq!(parse("[1, 2, 3]").compile_time_value(), Some(expected_list));
 
-    let expected_dict = Value::Dict(BTreeMap::from([
+    let expected_dict = Value::dict(BTreeMap::from([
         (Value::String("x".to_owned()), Value::Integer(1)),
         (Value::String("y".to_owned()), Value::Integer(2)),
     ]));

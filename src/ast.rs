@@ -735,7 +735,7 @@ impl Node {
                         _ => return None,
                     }
                 }
-                Some(Value::Dict(map))
+                Some(Value::dict(map))
             }
             NodeKind::NilLiteral => Some(Value::Nil),
             NodeKind::BoolLiteral(v) => Some(Value::Bool(*v)),

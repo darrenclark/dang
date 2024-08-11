@@ -428,7 +428,7 @@ impl VM {
                         })
                         .collect();
 
-                    self.stack.push(Value::Dict(dict));
+                    self.stack.push(Value::dict(dict));
                 }
 
                 Instr {
@@ -451,7 +451,7 @@ impl VM {
 
                     let module = ModuleName(self.chunk().constants[kind as usize].unwrap_symbol());
 
-                    self.stack.push(Value::Struct(module, dict));
+                    self.stack.push(Value::struct_(module, dict));
                 }
 
                 Instr {

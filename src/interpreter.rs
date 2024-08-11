@@ -424,7 +424,7 @@ impl Interpreter {
                 for (k, v) in key_values {
                     map.insert(self.eval(k)?, self.eval(v)?);
                 }
-                Ok(Value::Dict(map))
+                Ok(Value::dict(map))
             }
             NodeKind::StructLiteral { module, fields } => {
                 let module_name = match self.eval(module)? {
@@ -470,7 +470,7 @@ impl Interpreter {
                     }
                 }
 
-                Ok(Value::Struct(module_name, map))
+                Ok(Value::struct_(module_name, map))
             }
             NodeKind::NilLiteral => Ok(Value::Nil),
             NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),

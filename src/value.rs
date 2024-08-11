@@ -34,8 +34,8 @@ pub enum Value {
     Closure(Closure),
     Tuple(Vec<Value>),
     List(Rc<Vec<Value>>),
-    Dict(BTreeMap<Value, Value>),
-    Struct(ModuleName, BTreeMap<Ustr, Value>),
+    Dict(Rc<BTreeMap<Value, Value>>),
+    Struct(ModuleName, Rc<BTreeMap<Ustr, Value>>),
 }
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -108,6 +108,14 @@ impl Value {
             Self::String(s) => s,
             _ => panic!("expected string, got {:?}", self),
         }
+    }
+
+    pub fn dict(map: BTreeMap<Value, Value>) -> Self {
+        Value::Dict(Rc::new(map))
+    }
+
+    pub fn struct_(module: ModuleName, map: BTreeMap<Ustr, Value>) -> Self {
+        Value::Struct(module, Rc::new(map))
     }
 
     pub fn closure<F>(func: F) -> Self
@@ -209,7 +217,7 @@ impl Value {
             }
             Ok(&mut v[i])
         } else if let Self::Dict(v) = self {
-            Ok(v.entry(index.clone()).or_insert(Value::Nil))
+            Ok(Rc::make_mut(v).entry(index.clone()).or_insert(Value::Nil))
         } else {
             exception!("cannot index in to {:?}", self)
         }
@@ -233,12 +241,12 @@ impl Value {
 
     pub fn at_field_mut(&mut self, key: &str) -> Result<&mut Value, Exception> {
         if let Self::Dict(v) = self {
-            match v.get_mut(&Value::from(key)) {
+            match Rc::make_mut(v).get_mut(&Value::from(key)) {
                 None => exception!("field {:?} not found in dict", key),
                 Some(v) => Ok(v),
             }
         } else if let Self::Struct(m, v) = self {
-            match v.get_mut(&Ustr::from(key)) {
+            match Rc::make_mut(v).get_mut(&Ustr::from(key)) {
                 None => exception!("field `{}` not found in struct `{}`", key, m),
                 Some(v) => Ok(v),
             }
@@ -313,7 +321,7 @@ impl Value {
         match self {
             Self::List(values) => Some(Box::new((*values).clone().into_iter())),
             Self::Dict(pairs) => Some(Box::new(
-                pairs
+                Rc::unwrap_or_clone(pairs)
                     .into_iter()
                     .map(|(k, v)| Self::Tuple(vec![k.clone(), v.clone()])),
             )),
