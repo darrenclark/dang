@@ -89,8 +89,8 @@ fn readfile(args: &[Value]) -> Result<Value, Exception> {
         _ => exception!("expected path as a string"),
     };
 
-    match std::fs::read_to_string(path) {
-        Ok(contents) => Ok(Value::String(contents)),
+    match std::fs::read_to_string(path.as_str()) {
+        Ok(contents) => Ok(Value::string(contents)),
         Err(reason) => {
             exception!("failed to read {}: {}", path, reason)
         }
@@ -215,10 +215,7 @@ fn split(args: &[Value]) -> Result<Value, Exception> {
         _ => exception!("expected string at arg 1"),
     };
 
-    let res: Vec<Value> = string
-        .split(splitter)
-        .map(|s| Value::String(s.to_owned()))
-        .collect();
+    let res: Vec<Value> = string.split(splitter.as_str()).map(Value::string).collect();
 
     Ok(Value::List(Rc::new(res)))
 }
@@ -237,20 +234,20 @@ fn str_replace(args: &[Value]) -> Result<Value, Exception> {
         exception!("str_replace(string, pattern, replacement) expected three args")
     }
     let string = match &args[0] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 0"),
     };
     let pattern = match &args[1] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 1"),
     };
     let replacement = match &args[2] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 2"),
     };
 
     let res = string.replace(pattern, replacement);
-    Ok(Value::String(res))
+    Ok(Value::string(res))
 }
 
 fn str_reverse(args: &[Value]) -> Result<Value, Exception> {
@@ -268,11 +265,11 @@ fn str_find(args: &[Value]) -> Result<Value, Exception> {
         exception!("str_find(string, pattern) expected two args")
     }
     let string = match &args[0] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 0"),
     };
     let pattern = match &args[1] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 1"),
     };
 
@@ -289,11 +286,11 @@ fn str_rfind(args: &[Value]) -> Result<Value, Exception> {
         exception!("str_find(string, pattern) expected two args")
     }
     let string = match &args[0] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 0"),
     };
     let pattern = match &args[1] {
-        Value::String(s) => s,
+        Value::String(s) => s.as_str(),
         _ => exception!("expected string at arg 1"),
     };
 

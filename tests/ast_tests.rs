@@ -50,7 +50,7 @@ fn compile_time_values() {
 
     assert_eq!(
         parse("\"hi\"").compile_time_value(),
-        Some(Value::String("hi".to_owned()))
+        Some(Value::string("hi"))
     );
 
     assert_eq!(parse("true").compile_time_value(), Some(Value::Bool(true)));
@@ -65,8 +65,8 @@ fn compile_time_values() {
     assert_eq!(parse("[1, 2, 3]").compile_time_value(), Some(expected_list));
 
     let expected_dict = Value::dict(BTreeMap::from([
-        (Value::String("x".to_owned()), Value::Integer(1)),
-        (Value::String("y".to_owned()), Value::Integer(2)),
+        (Value::string("x"), Value::Integer(1)),
+        (Value::string("y"), Value::Integer(2)),
     ]));
     assert_eq!(
         parse("{x: 1, y: 2}").compile_time_value(),

@@ -149,7 +149,7 @@ impl Emitter<'_> {
                 self.chunk.write(Instr::constant(constant));
             }
             NodeKind::StringLiteral(string) => {
-                let constant = self.chunk.write_constant(Value::String(string.clone()));
+                let constant = self.chunk.write_constant(Value::string(string));
                 self.chunk.write(Instr::constant(constant));
             }
             NodeKind::IntegerLiteral(int) => {
@@ -387,7 +387,7 @@ impl Emitter<'_> {
 
                 let constant = self
                     .chunk
-                    .write_constant(Value::String(key.unwrap_identifier().to_owned()));
+                    .write_constant(Value::string(key.unwrap_identifier()));
                 self.chunk.write(Instr::constant(constant));
 
                 self.chunk.write(Instr::get_field());
@@ -409,7 +409,7 @@ impl Emitter<'_> {
                         NodeKind::FieldAssignmentPathField { key } => {
                             let constant = self
                                 .chunk
-                                .write_constant(Value::String(key.unwrap_identifier().to_owned()));
+                                .write_constant(Value::string(key.unwrap_identifier()));
                             self.chunk.write(Instr::constant(constant));
                             self.chunk.write(Instr::dup(1));
                             self.chunk.write(Instr::dup(1));
@@ -429,7 +429,7 @@ impl Emitter<'_> {
                     NodeKind::FieldAssignmentPathField { key } => {
                         let constant = self
                             .chunk
-                            .write_constant(Value::String(key.unwrap_identifier().to_owned()));
+                            .write_constant(Value::string(key.unwrap_identifier()));
                         self.chunk.write(Instr::constant(constant));
                         self.emit(expr);
                         self.chunk.write(Instr::set_field());

@@ -25,7 +25,7 @@ pub enum Value {
     Nil,
     Symbol(Ustr),
     Bool(bool),
-    String(String),
+    String(Rc<String>),
     Integer(i64),
     NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
     NativeClosure(NativeClosure),
@@ -58,13 +58,13 @@ impl From<bool> for Value {
 
 impl From<String> for Value {
     fn from(value: String) -> Self {
-        Self::String(value)
+        Self::string(value)
     }
 }
 
 impl<'a> From<&'a str> for Value {
     fn from(value: &'a str) -> Self {
-        Self::String(value.to_owned())
+        Self::string(value)
     }
 }
 
@@ -108,6 +108,10 @@ impl Value {
             Self::String(s) => s,
             _ => panic!("expected string, got {:?}", self),
         }
+    }
+
+    pub fn string<S: Into<String>>(s: S) -> Self {
+        Value::String(Rc::new(s.into()))
     }
 
     pub fn dict(map: BTreeMap<Value, Value>) -> Self {
@@ -159,7 +163,7 @@ impl Value {
     pub fn enum_at(&self, index: usize) -> Result<Value, Exception> {
         match self {
             Self::String(v) => {
-                let result = v.chars().nth(index).map(|c| Value::String(String::from(c)));
+                let result = v.chars().nth(index).map(|c| Value::string(String::from(c)));
                 if let Some(result) = result {
                     Ok(result)
                 } else {
@@ -289,8 +293,8 @@ impl Value {
     pub fn cast_to_string(&self) -> Result<Value, Exception> {
         match self {
             Self::String(_) => Ok(self.clone()),
-            Self::Integer(i) => Ok(Value::String(i.to_string())),
-            Self::Bool(b) => Ok(Value::String(b.to_string())),
+            Self::Integer(i) => Ok(Value::string(i.to_string())),
+            Self::Bool(b) => Ok(Value::string(b.to_string())),
             _ => exception!("cannot cast {:?} to string", self),
         }
     }
@@ -311,7 +315,7 @@ impl Value {
                     .map(|(k, v)| Self::Tuple(vec![k.clone(), v.clone()])),
             )),
             Self::String(contents) => Some(Box::new(
-                contents.chars().map(|c| Value::String(String::from(c))),
+                contents.chars().map(|c| Value::string(String::from(c))),
             )),
             _ => None,
         }
@@ -330,7 +334,7 @@ impl Value {
                     .chars()
                     .collect::<Vec<_>>()
                     .into_iter()
-                    .map(|c| Value::String(String::from(c))),
+                    .map(|c| Value::string(String::from(c))),
             )),
             _ => None,
         }
@@ -339,7 +343,9 @@ impl Value {
     pub fn bin_op(op: BinOp, lhs: &Value, rhs: &Value) -> Result<Value, Exception> {
         match (op, &lhs, &rhs) {
             // Addition
-            (BinOp::Add, Value::String(l), Value::String(r)) => Ok(Value::String(l.to_owned() + r)),
+            (BinOp::Add, Value::String(l), Value::String(r)) => {
+                Ok(Value::string(l.as_str().to_owned() + r.as_str()))
+            }
             (BinOp::Add, Value::Integer(l), Value::Integer(r)) => Ok(Value::Integer(l + r)),
             (BinOp::Add, Value::List(l), Value::List(r)) => {
                 let mut res = (**l).clone();
@@ -383,9 +389,8 @@ impl Value {
             Value::Symbol(s) => RcDoc::text(format!(":{}", s)).annotate((*PRETTY_SYMBOL).clone()),
             Value::Bool(true) => RcDoc::text("true").annotate((*PRETTY_KEYWORD).clone()),
             Value::Bool(false) => RcDoc::text("false").annotate((*PRETTY_KEYWORD).clone()),
-            Value::String(s) => {
-                RcDoc::text(format!("\"{}\"", escape(s))).annotate((*PRETTY_STRING).clone())
-            }
+            Value::String(s) => RcDoc::text(format!("\"{}\"", escape(s.as_ref())))
+                .annotate((*PRETTY_STRING).clone()),
             Value::Integer(i) => RcDoc::as_string(i).annotate((*PRETTY_NUMBER).clone()),
             Value::NativeFunc(ptr) => RcDoc::text(format!("<NativeFunc({:?})>", ptr)),
             Value::NativeClosure(c) => RcDoc::text(format!("<NativeFunc({:?})>", c)),

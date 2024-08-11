@@ -107,7 +107,7 @@ impl Interpreter {
         let argv = argv
             .clone()
             .into_iter()
-            .map(Value::String)
+            .map(Value::string)
             .collect::<Vec<Value>>();
 
         self.argv.replace(argv.into());
@@ -474,7 +474,7 @@ impl Interpreter {
             }
             NodeKind::NilLiteral => Ok(Value::Nil),
             NodeKind::BoolLiteral(v) => Ok(Value::Bool(*v)),
-            NodeKind::StringLiteral(contents) => Ok(Value::String(contents.to_owned())),
+            NodeKind::StringLiteral(contents) => Ok(Value::string(contents)),
             NodeKind::IntegerLiteral(i) => Ok(Value::Integer(*i)),
             NodeKind::BinaryOp {
                 op: BinOp::LogicalOr,

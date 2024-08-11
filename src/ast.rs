@@ -739,7 +739,7 @@ impl Node {
             }
             NodeKind::NilLiteral => Some(Value::Nil),
             NodeKind::BoolLiteral(v) => Some(Value::Bool(*v)),
-            NodeKind::StringLiteral(contents) => Some(Value::String(contents.to_owned())),
+            NodeKind::StringLiteral(contents) => Some(Value::string(contents)),
             NodeKind::IntegerLiteral(i) => Some(Value::Integer(*i)),
             _ => None,
         }
