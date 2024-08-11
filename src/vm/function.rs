@@ -13,10 +13,16 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(chunk: Chunk, upvalue_sources: Vec<UpvalueSource>, debug_name: String) -> Self {
+    pub fn new(
+        chunk: Chunk,
+        arity: usize,
+        upvalue_sources: Vec<UpvalueSource>,
+        debug_name: String,
+    ) -> Self {
         Self {
             inner: Rc::new(FunctionInner {
                 chunk,
+                arity,
                 upvalue_sources,
                 debug_name,
             }),
@@ -25,6 +31,10 @@ impl Function {
 
     pub fn chunk(&self) -> &Chunk {
         &self.inner.chunk
+    }
+
+    pub fn arity(&self) -> usize {
+        self.inner.arity
     }
 
     pub fn upvalue_sources(&self) -> &[UpvalueSource] {
@@ -81,6 +91,7 @@ impl PartialOrd for Function {
 #[derive(Debug, Clone)]
 struct FunctionInner {
     chunk: Chunk,
+    arity: usize,
     upvalue_sources: Vec<UpvalueSource>,
     debug_name: String,
 }

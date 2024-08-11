@@ -652,3 +652,14 @@ fn empty_functions_return_nil() {
         "#
     }
 }
+
+#[test]
+fn exception_raised_when_function_given_wrong_number_of_args() {
+    assert_raises! {
+        (3, "expected 2 arguments, got 1"),
+        r#"
+        let f = fn(x, y) { x + y }
+        f(1)
+        "#
+    }
+}

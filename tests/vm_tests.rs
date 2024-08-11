@@ -25,7 +25,7 @@ fn example() {
     chunk.write(Instr::get_global(module, test_var), line_col.clone());
     chunk.write(Instr::return_(), line_col);
 
-    let mut vm = VM::new(Function::new(chunk, vec![], "example".to_owned()));
+    let mut vm = VM::new(Function::new(chunk, 0, vec![], "example".to_owned()));
 
     assert_eq!(vm.run().unwrap(), Value::Integer(5));
 }

@@ -667,6 +667,14 @@ impl VM {
                 self.stack.push(res);
             }
             Value::Function(function) => {
+                if args.len() != function.arity() {
+                    exception!(
+                        "expected {} arguments, got {}",
+                        function.arity(),
+                        args.len()
+                    );
+                }
+
                 self.frames.push(Frame::new(function, self.stack.len()));
                 // TODO: Optimize this, so that we don't split_off args on this code
                 // path & repush them

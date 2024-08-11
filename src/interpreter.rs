@@ -536,7 +536,7 @@ impl Interpreter {
         };
 
         if arg_names.len() != args.len() {
-            exception!("expected {} args, got {}", arg_names.len(), args.len())
+            exception!("expected {} arguments, got {}", arg_names.len(), args.len())
         }
 
         for (arg_name, value) in arg_names.iter().zip(args.iter()) {

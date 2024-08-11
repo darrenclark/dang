@@ -103,7 +103,7 @@ impl CompilationState {
             closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),
             struct_info: None,
-            function: Function::new(Chunk::new(), vec![], "".to_owned()),
+            function: Function::new(Chunk::new(), 0, vec![], "".to_owned()),
         }
     }
 

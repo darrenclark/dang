@@ -44,7 +44,7 @@ pub fn emit_bytecode_phase(
         .get::<FunctionName>(compilation_state.ast.as_ref().unwrap().id)
         .unwrap()
         .name;
-    compilation_state.function = Function::new(chunk, upvalue_sources, name.clone());
+    compilation_state.function = Function::new(chunk, 0, upvalue_sources, name.clone());
 
     Ok(())
 }
@@ -297,6 +297,7 @@ impl Emitter<'_> {
 
                 let function = Value::Function(Function::new(
                     chunk,
+                    arg_names.len(),
                     upvalue_sources,
                     self.function_name(node),
                 ));
@@ -659,7 +660,7 @@ impl Emitter<'_> {
         chunk.write(Instr::vm_arg(arg), LineCol::unknown());
         chunk.write(Instr::return_(), LineCol::unknown());
 
-        let function = Value::Function(Function::new(chunk, Vec::new(), name.to_owned()));
+        let function = Value::Function(Function::new(chunk, 0, Vec::new(), name.to_owned()));
         self.chunk.write_constant(function)
     }
 
