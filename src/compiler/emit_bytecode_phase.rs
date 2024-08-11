@@ -26,6 +26,9 @@ pub fn emit_bytecode_phase(
     let mut chunk = Chunk::new();
     let mut upvalue_sources = Vec::new();
 
+    // TODO: use actual source file name eventually
+    chunk.source_file = compilation_state.module_name.0.clone().to_owned();
+
     let mut emitter = Emitter {
         compilation_state,
         program,
@@ -267,6 +270,9 @@ impl Emitter<'_> {
             NodeKind::FunctionLiteral { arg_names, body } => {
                 let mut chunk = Chunk::new();
                 let mut upvalue_sources = Vec::new();
+
+                // TODO: use actual source file name eventually
+                chunk.source_file = self.compilation_state.module_name.0.clone().to_owned();
 
                 let mut emitter = Emitter {
                     compilation_state: self.compilation_state,

@@ -10,9 +10,6 @@
 
 - Mutate in-place instructions (faster arrays)
 
-- disassembly shouldn't print duplicate functions
-    - and should support filtering to a module (by default the main script)
-
 - Debug info in compiled chunks
     - line numbers per instruction
     - function names
@@ -22,6 +19,8 @@
 - Improve error handling in compiler, phases shouldn't need to error with an Exception
 
 - `Module.field = "xyz"` assignment
+
+- Less PushNil, Pop instructions
 
 ## Future
 

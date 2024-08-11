@@ -6,6 +6,7 @@ use super::inst::Instr;
 pub struct Chunk {
     pub code: Vec<Instr>,
     pub constants: Vec<Value>,
+    pub source_file: String,
 }
 
 impl Chunk {

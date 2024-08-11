@@ -15,7 +15,9 @@ pub fn disassemble(function: &Function) {
 
     for c in function.chunk().constants.iter() {
         if let Value::Function(f) = c {
-            disassemble(f);
+            if f.chunk().source_file == function.chunk().source_file {
+                disassemble(f);
+            }
         }
     }
 }
