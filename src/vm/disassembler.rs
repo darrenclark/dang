@@ -8,8 +8,8 @@ use super::{
 
 pub fn disassemble(function: &Function) {
     println!("==== {} ====", function.get_debug_name());
-    for instr in function.chunk().code.iter() {
-        disassemble_instruction(function.chunk(), instr);
+    for i in 0..function.chunk().code.len() {
+        disassemble_instruction(function.chunk(), i);
     }
     println!();
 
@@ -22,7 +22,12 @@ pub fn disassemble(function: &Function) {
     }
 }
 
-pub fn disassemble_instruction(chunk: &Chunk, instr: &Instr) {
+pub fn disassemble_instruction(chunk: &Chunk, i: usize) {
+    let instr = &chunk.code[i];
+
+    let line = &chunk.source_locs[i].line;
+    print!("[line {:>2}] ", line);
+
     match instr {
         Instr {
             op: OpCode::VmArg,
@@ -220,6 +225,8 @@ fn consts(chunk: &Chunk, constants: &[u8]) -> String {
         .iter()
         .map(|c| match chunk.constants.get(*c as usize) {
             None => "{INVALID_CONSTANT}".to_owned(),
+            Some(v @ Value::Symbol(_)) => format!("{}", v),
+            Some(Value::Function(f)) => f.get_debug_name().to_owned(),
             Some(v) => format!("{:?}", v),
         })
         .collect::<Vec<_>>()

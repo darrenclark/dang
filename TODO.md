@@ -10,12 +10,6 @@
 
 - Mutate in-place instructions (faster arrays)
 
-- Debug info in compiled chunks
-    - line numbers per instruction
-    - function names
-    - exception stack traces
-    - variable names (?)
-
 - Improve error handling in compiler, phases shouldn't need to error with an Exception
 
 - `Module.field = "xyz"` assignment

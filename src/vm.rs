@@ -597,7 +597,12 @@ impl VM {
         println!("{} at:", exception);
         self.frames.iter().rev().for_each(|frame| {
             let function = &frame.function;
-            println!("  {}", function.get_debug_name());
+            println!(
+                "  {}:{}:  `{}`",
+                function.get_source_file(),
+                function.get_source_loc(frame.ip - 1).line,
+                function.get_debug_name(),
+            );
         });
     }
 
@@ -619,7 +624,7 @@ impl VM {
         let from = ip.saturating_sub(context);
         let to = min(ip + context, chunk.code.len() - 1);
 
-        for (i, instr) in chunk.code.iter().enumerate() {
+        for (i, _) in chunk.code.iter().enumerate() {
             if i < from {
                 continue;
             }
@@ -628,7 +633,7 @@ impl VM {
             } else {
                 print!("  ");
             }
-            disassembler::disassemble_instruction(chunk, instr);
+            disassembler::disassemble_instruction(chunk, i);
             if i >= to {
                 break;
             }

@@ -1,4 +1,4 @@
-use crate::value::Value;
+use crate::{line_col::LineCol, value::Value};
 
 use super::inst::Instr;
 
@@ -7,6 +7,7 @@ pub struct Chunk {
     pub code: Vec<Instr>,
     pub constants: Vec<Value>,
     pub source_file: String,
+    pub source_locs: Vec<LineCol>,
 }
 
 impl Chunk {
@@ -14,8 +15,9 @@ impl Chunk {
         Self::default()
     }
 
-    pub fn write(&mut self, instr: Instr) -> usize {
+    pub fn write(&mut self, instr: Instr, source_loc: LineCol) -> usize {
         self.code.push(instr);
+        self.source_locs.push(source_loc);
         self.code.len() - 1
     }
 
@@ -30,9 +32,9 @@ impl Chunk {
         jump_instr.set_wide_arg(offset);
     }
 
-    pub fn write_jump_back(&mut self, label: usize) -> usize {
+    pub fn write_jump_back(&mut self, label: usize, source_loc: LineCol) -> usize {
         let offset = self.code.len() - label;
-        self.write(Instr::jump_back(offset))
+        self.write(Instr::jump_back(offset), source_loc)
     }
 
     pub fn label(&self, _name: &'static str) -> usize {

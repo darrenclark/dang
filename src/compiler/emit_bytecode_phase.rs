@@ -5,6 +5,7 @@ use ustr::Ustr;
 use crate::{
     ast::{BinOp, Node, NodeKind, UnaryOp},
     interpreter::Exception,
+    line_col::LineCol,
     module::ModuleName,
     native_funcs,
     program::Program,
@@ -69,44 +70,44 @@ impl Emitter<'_> {
 
                 let module_name = self.compilation_state.module_name;
 
-                self.emit_module_load_guard(self.compilation_state.module_name);
+                self.emit_module_load_guard(self.compilation_state.module_name, node);
 
                 // TODO: Should these be set as globals? Or can they be inlined where
                 // they're used at compile time?
                 for (name, value) in &self.compilation_state.constants {
                     let value = self.chunk.write_constant(value.clone());
-                    self.chunk.write(Instr::constant(value));
+                    self.write(Instr::constant(value), node);
 
                     let module = self.chunk.write_constant(Value::Symbol(module_name.0));
                     let name = self.chunk.write_constant(Value::Symbol(Ustr::from(name)));
-                    self.chunk.write(Instr::set_global(module, name));
+                    self.write(Instr::set_global(module, name), node);
                 }
 
                 for (i, statement) in statements.iter().enumerate() {
                     self.emit(statement);
                     if i < statements.len() - 1 {
-                        self.chunk.write(Instr::pop());
+                        self.write(Instr::pop(), node);
                     }
                 }
 
-                self.chunk.write(Instr::return_());
+                self.write(Instr::return_(), node);
             }
             NodeKind::Module(_) => {
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::Import(kind) => {
                 let module_name = ModuleName::from(kind.module_name());
                 let module = self.program.get_module(&module_name).unwrap();
                 let function = Value::Function(module.function.clone());
                 let constant = self.chunk.write_constant(function);
-                self.chunk.write(Instr::constant(constant));
-                self.chunk.write(Instr::call(0));
+                self.write(Instr::constant(constant), node);
+                self.write(Instr::call(0), node);
             }
             NodeKind::StructDef { .. } => {
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::Body(statements) if statements.is_empty() => {
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::Body(statements) => {
                 self.pushed_locals.push(0);
@@ -114,50 +115,51 @@ impl Emitter<'_> {
                 for (i, statement) in statements.iter().enumerate() {
                     self.emit(statement);
                     if i < statements.len() - 1 {
-                        self.chunk.write(Instr::pop());
+                        self.write(Instr::pop(), node);
                     }
                 }
 
                 let locals_count = self.pushed_locals.pop().unwrap();
                 if locals_count > 0 {
-                    self.chunk.write(Instr::pop_locals(locals_count));
+                    self.write(Instr::pop_locals(locals_count), node);
                 }
             }
             NodeKind::Builtin { identifier } if identifier.unwrap_identifier() == "argv" => {
-                self.emit_vm_arg_func(1, "argv");
+                let constant = self.vm_arg_func_constant(1, "argv");
+                self.write(Instr::constant(constant), node);
                 self.emit_set(node);
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::Builtin { identifier } => {
                 let ptr = native_funcs::func(identifier.unwrap_identifier()).unwrap();
                 let constant = self.chunk.write_constant(Value::NativeFunc(ptr));
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
                 self.emit_set(node);
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::Let { pattern, expr } | NodeKind::Var { pattern, expr } => {
                 self.emit_define(pattern, expr);
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::Assignment { pattern, expr } => {
                 self.emit_assignment(pattern, expr);
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::NilLiteral => {
                 let constant = self.chunk.write_constant(Value::Nil);
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
             }
             NodeKind::BoolLiteral(bool) => {
                 let constant = self.chunk.write_constant(Value::Bool(*bool));
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
             }
             NodeKind::StringLiteral(string) => {
                 let constant = self.chunk.write_constant(Value::string(string));
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
             }
             NodeKind::IntegerLiteral(int) => {
                 let constant = self.chunk.write_constant(Value::Integer(*int));
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
             }
             NodeKind::VariableRef { .. } => {
                 self.emit_get(node);
@@ -168,9 +170,9 @@ impl Emitter<'_> {
                 rhs,
             } => {
                 self.emit(lhs);
-                let branch = self.chunk.write(Instr::branch_if_true(0));
+                let branch = self.write(Instr::branch_if_true(0), node);
                 // if lhs is not truthy, pop it off & try rhs
-                self.chunk.write(Instr::pop());
+                self.write(Instr::pop(), node);
                 self.emit(rhs);
                 // else skip over rhs and leave lhs at top of stack
                 self.chunk.patch_jump(branch);
@@ -181,9 +183,9 @@ impl Emitter<'_> {
                 rhs,
             } => {
                 self.emit(lhs);
-                let branch = self.chunk.write(Instr::branch_if_false(0));
+                let branch = self.write(Instr::branch_if_false(0), node);
                 // if lhs truthy, pop it off & try rhs
-                self.chunk.write(Instr::pop());
+                self.write(Instr::pop(), node);
                 self.emit(rhs);
                 // else skip over rhs and leave lhs at top of stack
                 self.chunk.patch_jump(branch);
@@ -193,34 +195,34 @@ impl Emitter<'_> {
                 self.emit(rhs);
                 match op {
                     BinOp::Add => {
-                        self.chunk.write(Instr::add());
+                        self.write(Instr::add(), node);
                     }
                     BinOp::Sub => {
-                        self.chunk.write(Instr::sub());
+                        self.write(Instr::sub(), node);
                     }
                     BinOp::Mul => {
-                        self.chunk.write(Instr::mul());
+                        self.write(Instr::mul(), node);
                     }
                     BinOp::Div => {
-                        self.chunk.write(Instr::div());
+                        self.write(Instr::div(), node);
                     }
                     BinOp::Gt => {
-                        self.chunk.write(Instr::gt());
+                        self.write(Instr::gt(), node);
                     }
                     BinOp::Gte => {
-                        self.chunk.write(Instr::gte());
+                        self.write(Instr::gte(), node);
                     }
                     BinOp::Lt => {
-                        self.chunk.write(Instr::lt());
+                        self.write(Instr::lt(), node);
                     }
                     BinOp::Lte => {
-                        self.chunk.write(Instr::lte());
+                        self.write(Instr::lte(), node);
                     }
                     BinOp::Eq => {
-                        self.chunk.write(Instr::eq());
+                        self.write(Instr::eq(), node);
                     }
                     BinOp::Neq => {
-                        self.chunk.write(Instr::neq());
+                        self.write(Instr::neq(), node);
                     }
                     BinOp::LogicalOr | BinOp::LogicalAnd => unreachable!("handled above"),
                 }
@@ -229,10 +231,10 @@ impl Emitter<'_> {
                 self.emit(rhs);
                 match op {
                     UnaryOp::Neg => {
-                        self.chunk.write(Instr::neg());
+                        self.write(Instr::neg(), node);
                     }
                     UnaryOp::LogicalNeg => {
-                        self.chunk.write(Instr::logical_neg());
+                        self.write(Instr::logical_neg(), node);
                     }
                 }
             }
@@ -241,7 +243,7 @@ impl Emitter<'_> {
                 for arg in args {
                     self.emit(arg);
                 }
-                self.chunk.write(Instr::call(args.len() as u8));
+                self.write(Instr::call(args.len() as u8), node);
             }
             NodeKind::If {
                 condition,
@@ -249,20 +251,20 @@ impl Emitter<'_> {
                 else_branch,
             } => {
                 self.emit(condition);
-                let branch = self.chunk.write(Instr::branch_if_false(0));
+                let branch = self.write(Instr::branch_if_false(0), node);
 
                 // body - first pop off condition
-                self.chunk.write(Instr::pop());
+                self.write(Instr::pop(), node);
                 self.emit(body);
-                let jump = self.chunk.write(Instr::jump(0));
+                let jump = self.write(Instr::jump(0), node);
 
                 // else branch - always needs to pop off the condition
                 self.chunk.patch_jump(branch);
-                self.chunk.write(Instr::pop());
+                self.write(Instr::pop(), node);
                 if let Some(else_branch) = else_branch {
                     self.emit(else_branch);
                 } else {
-                    self.chunk.write(Instr::push_nil());
+                    self.write(Instr::push_nil(), node);
                 }
 
                 self.chunk.patch_jump(jump);
@@ -299,44 +301,44 @@ impl Emitter<'_> {
                     self.function_name(node),
                 ));
                 let constant = self.chunk.write_constant(function);
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
 
                 if has_upvalues {
-                    self.chunk.write(Instr::closure());
+                    self.write(Instr::closure(), node);
                 }
             }
             NodeKind::ListLiteral(items) => {
                 if let Some(v) = node.compile_time_value() {
                     let constant = self.chunk.write_constant(v);
-                    self.chunk.write(Instr::constant(constant));
+                    self.write(Instr::constant(constant), node);
                 } else {
                     for item in items {
                         self.emit(item);
                     }
-                    self.chunk.write(Instr::make_list(items.len()));
+                    self.write(Instr::make_list(items.len()), node);
                 }
             }
             NodeKind::TupleLiteral(items) => {
                 if let Some(v) = node.compile_time_value() {
                     let constant = self.chunk.write_constant(v);
-                    self.chunk.write(Instr::constant(constant));
+                    self.write(Instr::constant(constant), node);
                 } else {
                     for item in items {
                         self.emit(item);
                     }
-                    self.chunk.write(Instr::make_tuple(items.len()));
+                    self.write(Instr::make_tuple(items.len()), node);
                 }
             }
             NodeKind::DictLiteral(pairs) => {
                 if let Some(v) = node.compile_time_value() {
                     let constant = self.chunk.write_constant(v);
-                    self.chunk.write(Instr::constant(constant));
+                    self.write(Instr::constant(constant), node);
                 } else {
                     for (key, value) in pairs {
                         self.emit(key);
                         self.emit(value);
                     }
-                    self.chunk.write(Instr::make_dict(pairs.len()));
+                    self.write(Instr::make_dict(pairs.len()), node);
                 }
             }
             NodeKind::StructLiteral { module: _, fields } => {
@@ -360,19 +362,21 @@ impl Emitter<'_> {
 
                 for field in &struct_info.fields {
                     let key = self.chunk.write_constant(Value::Symbol(*field));
-                    self.chunk.write(Instr::constant(key));
+                    self.write(Instr::constant(key), node);
 
                     if let Some(value) = fields_map.get(field) {
                         self.emit(value);
                     } else {
                         let default_value = struct_info.default_values.get(field).unwrap();
                         let constant = self.chunk.write_constant(default_value.clone());
-                        self.chunk.write(Instr::constant(constant));
+                        self.write(Instr::constant(constant), node);
                     }
                 }
 
-                self.chunk
-                    .write(Instr::make_struct(module_name, struct_info.fields.len()));
+                self.write(
+                    Instr::make_struct(module_name, struct_info.fields.len()),
+                    node,
+                );
             }
             NodeKind::FieldAccess { object, key } if self.is_module_ref(object) => {
                 let module_name = self
@@ -386,7 +390,7 @@ impl Emitter<'_> {
 
                 let m = self.chunk.write_constant(Value::Symbol(module_name.0));
                 let n = self.chunk.write_constant(Value::Symbol(Ustr::from(name)));
-                self.chunk.write(Instr::get_global(m, n));
+                self.write(Instr::get_global(m, n), node);
             }
             NodeKind::FieldAccess { object, key } => {
                 self.emit(object);
@@ -394,14 +398,14 @@ impl Emitter<'_> {
                 let constant = self
                     .chunk
                     .write_constant(Value::string(key.unwrap_identifier()));
-                self.chunk.write(Instr::constant(constant));
+                self.write(Instr::constant(constant), node);
 
-                self.chunk.write(Instr::get_field());
+                self.write(Instr::get_field(), node);
             }
             NodeKind::Subscript { object, key } => {
                 self.emit(object);
                 self.emit(key);
-                self.chunk.write(Instr::get_subscript());
+                self.write(Instr::get_subscript(), node);
             }
             NodeKind::FieldAssignment {
                 variable_ref,
@@ -416,16 +420,16 @@ impl Emitter<'_> {
                             let constant = self
                                 .chunk
                                 .write_constant(Value::string(key.unwrap_identifier()));
-                            self.chunk.write(Instr::constant(constant));
-                            self.chunk.write(Instr::dup(1));
-                            self.chunk.write(Instr::dup(1));
-                            self.chunk.write(Instr::get_field());
+                            self.write(Instr::constant(constant), node);
+                            self.write(Instr::dup(1), node);
+                            self.write(Instr::dup(1), node);
+                            self.write(Instr::get_field(), node);
                         }
                         NodeKind::FieldAssignmentPathSubscript { key } => {
                             self.emit(key);
-                            self.chunk.write(Instr::dup(1));
-                            self.chunk.write(Instr::dup(1));
-                            self.chunk.write(Instr::get_subscript());
+                            self.write(Instr::dup(1), node);
+                            self.write(Instr::dup(1), node);
+                            self.write(Instr::get_subscript(), node);
                         }
                         _ => unreachable!(),
                     }
@@ -436,14 +440,14 @@ impl Emitter<'_> {
                         let constant = self
                             .chunk
                             .write_constant(Value::string(key.unwrap_identifier()));
-                        self.chunk.write(Instr::constant(constant));
+                        self.write(Instr::constant(constant), node);
                         self.emit(expr);
-                        self.chunk.write(Instr::set_field());
+                        self.write(Instr::set_field(), node);
                     }
                     NodeKind::FieldAssignmentPathSubscript { key } => {
                         self.emit(key);
                         self.emit(expr);
-                        self.chunk.write(Instr::set_subscript());
+                        self.write(Instr::set_subscript(), node);
                     }
                     _ => unreachable!(),
                 }
@@ -451,17 +455,17 @@ impl Emitter<'_> {
                 for key in path[0..path.len() - 1].iter().rev() {
                     match &key.kind {
                         NodeKind::FieldAssignmentPathField { .. } => {
-                            self.chunk.write(Instr::set_field());
+                            self.write(Instr::set_field(), node);
                         }
                         NodeKind::FieldAssignmentPathSubscript { .. } => {
-                            self.chunk.write(Instr::set_subscript());
+                            self.write(Instr::set_subscript(), node);
                         }
                         _ => unreachable!(),
                     }
                 }
 
                 self.emit_set(variable_ref);
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             NodeKind::For {
                 pattern,
@@ -470,7 +474,7 @@ impl Emitter<'_> {
             } => {
                 // get iterator
                 self.emit(enumerable);
-                self.chunk.write(Instr::get_iter());
+                self.write(Instr::get_iter(), node);
 
                 let is_complex_pattern =
                     !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
@@ -479,44 +483,49 @@ impl Emitter<'_> {
                 let loop_start = self.chunk.label("loop_start");
 
                 // call iterator function
-                self.chunk.write(Instr::call_iter());
+                self.write(Instr::call_iter(), node);
 
                 // handle result
-                let loop_exit_branch = self.chunk.write(Instr::for_iter(0));
+                let loop_exit_branch = self.write(Instr::for_iter(0), node);
                 if is_complex_pattern {
                     // preallocate room on stack for pattern
                     for _ in 0..pattern_locals {
-                        self.chunk.write(Instr::push_nil());
+                        self.write(Instr::push_nil(), node);
                     }
                     // push & unpack the expression
-                    self.chunk.write(Instr::dup(pattern_locals as u8));
+                    self.write(Instr::dup(pattern_locals as u8), node);
                     self.emit_assignment_pattern(pattern);
                 }
                 // else: (value is correct in local var slot)
 
                 // loop body
                 self.emit(body);
-                self.chunk.write(Instr::pop()); // to pop result of body
+                self.write(Instr::pop(), node); // to pop result of body
 
                 // loop back to top - pop local var + any pattern locals off the stack first
                 if is_complex_pattern {
                     for _ in 0..pattern_locals {
-                        self.chunk.write(Instr::pop());
+                        self.write(Instr::pop(), node);
                     }
                 }
-                self.chunk.write(Instr::pop());
-                self.chunk.write_jump_back(loop_start);
+                self.write(Instr::pop(), node);
+                self.chunk
+                    .write_jump_back(loop_start, node.source.end.clone());
 
                 self.chunk.patch_jump(loop_exit_branch);
 
                 // pop local var & iterator
-                self.chunk.write(Instr::pop());
-                self.chunk.write(Instr::pop());
+                self.write(Instr::pop(), node);
+                self.write(Instr::pop(), node);
                 // all for loops evaluate to nil
-                self.chunk.write(Instr::push_nil());
+                self.write(Instr::push_nil(), node);
             }
             ast => todo!("not yet implemented for: {:?}", ast),
         }
+    }
+
+    fn write(&mut self, instr: Instr, node: &Node) -> usize {
+        self.chunk.write(instr, node.source.start.clone())
     }
 
     fn emit_define(&mut self, pattern: &Node, expr: &Node) {
@@ -534,7 +543,7 @@ impl Emitter<'_> {
             _ => {
                 // preallocate room on stack for pattern
                 for _ in 0..self.count_pattern_locals(pattern) {
-                    self.chunk.write(Instr::push_nil());
+                    self.write(Instr::push_nil(), pattern);
                     *self.pushed_locals.last_mut().unwrap() += 1;
                 }
                 // push & unpack the expression
@@ -572,7 +581,7 @@ impl Emitter<'_> {
                 self.emit_set(pattern);
             }
             NodeKind::PatternTuple { elements } => {
-                self.chunk.write(Instr::unpack_tuple(elements.len()));
+                self.write(Instr::unpack_tuple(elements.len()), pattern);
                 elements.iter().rev().for_each(|element| {
                     self.emit_assignment_pattern(element);
                 });
@@ -586,16 +595,16 @@ impl Emitter<'_> {
             VariableAllocation::Global { module, name } => {
                 let module = self.chunk.write_constant(Value::Symbol(module.0));
                 let name = self.chunk.write_constant(Value::Symbol(name));
-                self.chunk.write(Instr::set_global(module, name));
+                self.write(Instr::set_global(module, name), node);
             }
             VariableAllocation::Upvalue {
                 source: _,
                 upvalue_index,
             } => {
-                self.chunk.write(Instr::set_upvalue(upvalue_index as u8));
+                self.write(Instr::set_upvalue(upvalue_index as u8), node);
             }
             VariableAllocation::Local { index } => {
-                self.chunk.write(Instr::set_local(index as u8));
+                self.write(Instr::set_local(index as u8), node);
             }
         }
     }
@@ -605,23 +614,23 @@ impl Emitter<'_> {
             VariableAllocation::Global { module, name } => {
                 let module = self.chunk.write_constant(Value::Symbol(module.0));
                 let name = self.chunk.write_constant(Value::Symbol(name));
-                self.chunk.write(Instr::get_global(module, name));
+                self.write(Instr::get_global(module, name), node);
             }
             VariableAllocation::Upvalue {
                 source: _,
                 upvalue_index,
             } => {
-                self.chunk.write(Instr::get_upvalue(upvalue_index as u8));
+                self.write(Instr::get_upvalue(upvalue_index as u8), node);
             }
             VariableAllocation::Local { index } => {
-                self.chunk.write(Instr::get_local(index as u8));
+                self.write(Instr::get_local(index as u8), node);
             }
         }
     }
 
     fn emit_function(&mut self, _arg_names: &[Node], body: &Node) {
         self.emit(body);
-        self.chunk.write(Instr::return_());
+        self.chunk.write(Instr::return_(), body.source.end.clone());
     }
 
     fn get_variable_allocation(&self, node: &Node) -> VariableAllocation {
@@ -632,27 +641,26 @@ impl Emitter<'_> {
             .clone()
     }
 
-    fn emit_module_load_guard(&mut self, module_name: ModuleName) {
+    fn emit_module_load_guard(&mut self, module_name: ModuleName, source_file_node: &Node) {
         let module = self.chunk.write_constant(Value::Symbol(module_name.0));
         let name = self.chunk.write_constant(Value::Symbol("<loaded>".into()));
-        self.chunk.write(Instr::global_is_defined(module, name));
+        self.write(Instr::global_is_defined(module, name), source_file_node);
 
-        let branch = self.chunk.write(Instr::branch_if_false(0));
-        self.chunk.write(Instr::return_());
+        let branch = self.write(Instr::branch_if_false(0), source_file_node);
+        self.write(Instr::return_(), source_file_node);
 
         self.chunk.patch_jump(branch);
-        self.chunk.write(Instr::logical_neg());
-        self.chunk.write(Instr::set_global(module, name));
+        self.write(Instr::logical_neg(), source_file_node);
+        self.write(Instr::set_global(module, name), source_file_node);
     }
 
-    fn emit_vm_arg_func(&mut self, arg: u8, name: &str) {
+    fn vm_arg_func_constant(&mut self, arg: u8, name: &str) -> u8 {
         let mut chunk = Chunk::new();
-        chunk.write(Instr::vm_arg(arg));
-        chunk.write(Instr::return_());
+        chunk.write(Instr::vm_arg(arg), LineCol::unknown());
+        chunk.write(Instr::return_(), LineCol::unknown());
 
         let function = Value::Function(Function::new(chunk, Vec::new(), name.to_owned()));
-        let constant = self.chunk.write_constant(function);
-        self.chunk.write(Instr::constant(constant));
+        self.chunk.write_constant(function)
     }
 
     fn function_name(&self, node: &Node) -> String {

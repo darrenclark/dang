@@ -1,5 +1,6 @@
 use common::assert_runs_vm;
 use dang::{
+    line_col::LineCol,
     value::Value,
     vm::{chunk::Chunk, function::Function, inst::Instr, VM},
 };
@@ -13,14 +14,16 @@ fn example() {
     let module = chunk.write_constant(Value::Symbol("example".into()));
     let test_var = chunk.write_constant(Value::Symbol("test_var".into()));
 
+    let line_col = LineCol::unknown();
+
     // test_var = 5
     let five = chunk.write_constant(Value::Integer(5));
-    chunk.write(Instr::constant(five));
-    chunk.write(Instr::set_global(module, test_var));
+    chunk.write(Instr::constant(five), line_col.clone());
+    chunk.write(Instr::set_global(module, test_var), line_col.clone());
 
     // test_var
-    chunk.write(Instr::get_global(module, test_var));
-    chunk.write(Instr::return_());
+    chunk.write(Instr::get_global(module, test_var), line_col.clone());
+    chunk.write(Instr::return_(), line_col);
 
     let mut vm = VM::new(Function::new(chunk, vec![], "example".to_owned()));
 

@@ -2,6 +2,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
 
+use crate::line_col::LineCol;
 use crate::scope::UpvalueSource;
 
 use super::chunk::Chunk;
@@ -32,6 +33,14 @@ impl Function {
 
     pub fn get_debug_name(&self) -> &str {
         &self.inner.debug_name
+    }
+
+    pub fn get_source_file(&self) -> &str {
+        &self.inner.chunk.source_file
+    }
+
+    pub fn get_source_loc(&self, ip: usize) -> &LineCol {
+        &self.inner.chunk.source_locs[ip]
     }
 }
 
