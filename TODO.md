@@ -12,11 +12,25 @@
 
 - `Module.field = "xyz"` assignment
 
+- Compile time checking of `Module.field` syntax - ensure `.field` actually exists
+
 - Less PushNil, Pop instructions
 
 ## Future
 
 Higher priority:
+
+- `match` statement, something like:
+    ```
+      match card {
+        "A": 14,
+        "K": 13,
+        "Q": 12,
+        "J": 11,
+        "T": 10,
+        _: int(card)
+      }
+    ```
 
 - `fn name(...) { ... }` syntax equivalent to `let name = fn(..) { ... }`
 - Module references - i.e. `@Std/Enum.map` should work without import
@@ -47,6 +61,7 @@ Lower priority:
     - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`
 - UFCS? Is it even possible?
 - Map merge syntax ala python: `{a: 1} | {a: 2, b: 3} == {a: 2, b: 3}`
+- Builtins.reverse -> Enum.reverse
 
 ## Bugs / Limitations
 

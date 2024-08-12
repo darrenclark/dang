@@ -1,0 +1,33 @@
+module Std/CountedSet
+
+import Std/Builtins
+import Std/Enum
+
+// Backed by a map
+struct {
+  _elements: {}
+}
+
+/// Creates a new CountedSet
+let new = fn(iterable) {
+  var elements = {}
+  for e in iterable {
+    elements[e] = (elements[e] || 0) + 1
+  }
+  CountedSet{_elements: elements}
+}
+
+/// Insert into CountedSet
+let insert = fn(counted_set, element) {
+  var s = counted_set
+  s._elements[element] = (s._elements[element] || 0) + 1
+  s
+}
+
+/// Returns items & their counts, sorted by count descending
+let item_counts = fn(counted_set) {
+  counted_set._elements
+  |> Enum.map(fn(kv) { (kv[1], kv[0]) })
+  |> Enum.sort()
+  |> Builtins.reverse()
+}
