@@ -137,3 +137,13 @@ let to_list = fn(enum) {
   }
   result
 }
+
+let to_dict = fn(enum) {
+  var result = {}
+
+  for (k, v) in enum {
+    result[k] = v
+  }
+
+  result
+}

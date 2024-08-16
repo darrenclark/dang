@@ -16,6 +16,8 @@
 
 - Less PushNil, Pop instructions
 
+- Tail call optimization
+
 ## Future
 
 Higher priority:
@@ -54,7 +56,6 @@ Lower priority:
 - more type casting
     - "try" casts
 - Regex captures
-- descriptive assert (show different parts of expression)
 - Shadowing library provided functions (perhaps it gives a warning instead?)
 - Pattern matching?
     - `match` statement
