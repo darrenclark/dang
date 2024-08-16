@@ -38,6 +38,8 @@ pub enum OpCode {
     SetLocal,
     /// Call(num_args) -1 -n +1 - calls function
     Call,
+    /// TailCall(num_args) -1 -n +1 - calls function, replacing current frame
+    TailCall,
     /// Return -1 - returns from function
     Return,
     /// Closure -1 +1 - creates a closure from the function at the top of the stack
@@ -156,6 +158,10 @@ impl Instr {
 
     pub fn call(num_args: u8) -> Self {
         Self::new(OpCode::Call, num_args, 0, 0)
+    }
+
+    pub fn tail_call(num_args: u8) -> Self {
+        Self::new(OpCode::TailCall, num_args, 0, 0)
     }
 
     pub fn return_() -> Self {

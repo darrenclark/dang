@@ -16,8 +16,6 @@
 
 - Less PushNil, Pop instructions
 
-- Tail call optimization
-
 ## Future
 
 Higher priority:

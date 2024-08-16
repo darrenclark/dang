@@ -87,7 +87,7 @@ impl VM {
             let _ = stats::InstructionTimer::new(&mut self.stats, instr.op);
 
             /*print!("> ");
-            disassembler::disassemble_instruction(self.chunk(), &self.chunk().code[ip]);
+            disassembler::disassemble_instruction(self.chunk(), ip);
             print!("  ");
             for v in self.stack.iter() {
                 print!("{} ", v);
@@ -216,6 +216,21 @@ impl VM {
                 } => {
                     let args = self.stack.split_off(self.stack.len() - arg0 as usize);
                     let callee = self.stack.pop().unwrap();
+                    self.call(callee, args)?;
+                }
+
+                Instr {
+                    op: OpCode::TailCall,
+                    arg0,
+                    ..
+                } => {
+                    let args = self.stack.split_off(self.stack.len() - arg0 as usize);
+                    let callee = self.stack.pop().unwrap();
+
+                    let frame = self.frames.pop().unwrap();
+                    self.close_upvalues(frame.base);
+                    self.stack.truncate(frame.base);
+
                     self.call(callee, args)?;
                 }
 

@@ -102,6 +102,11 @@ pub fn disassemble_instruction(chunk: &Chunk, i: usize) {
             ..
         } => println!("Call \t{}", arg0),
         Instr {
+            op: OpCode::TailCall,
+            arg0,
+            ..
+        } => println!("TailCall \t{}", arg0),
+        Instr {
             op: OpCode::Return, ..
         } => println!("Return"),
         Instr {

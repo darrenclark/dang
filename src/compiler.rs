@@ -11,6 +11,7 @@ mod resolve_imports_phase;
 mod resolve_structs_phase;
 mod resolve_variables_phase;
 pub mod struct_info_phase;
+mod tag_return_exprs_phase;
 pub mod tags;
 mod validate_struct_fields_phase;
 
@@ -33,6 +34,7 @@ use resolve_imports_phase::resolve_imports_phase;
 use resolve_structs_phase::resolve_structs_phase;
 use resolve_variables_phase::resolve_variables_phase;
 use struct_info_phase::struct_info_phase;
+use tag_return_exprs_phase::tag_return_exprs_phase;
 use tags::Tags;
 use validate_struct_fields_phase::validate_struct_fields_phase;
 
@@ -173,6 +175,7 @@ pub enum Phase {
     ResolveStructs,
     ValidateStructFields,
     FunctionNames,
+    TagReturnExprsPhase,
     EmitBytecode,
     Finish,
 }
@@ -191,6 +194,7 @@ lazy_static! {
         (Phase::ResolveStructs, resolve_structs_phase),
         (Phase::ValidateStructFields, validate_struct_fields_phase),
         (Phase::FunctionNames, function_names_phase),
+        (Phase::TagReturnExprsPhase, tag_return_exprs_phase),
         (Phase::EmitBytecode, emit_bytecode_phase),
         (Phase::Finish, finish_phase),
     ];

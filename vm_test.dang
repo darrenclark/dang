@@ -100,3 +100,15 @@ for v in VmTest{x: 11, y: 22, z: 33} {
 }
 
 println("=====")
+
+print("tail call optimization... ")
+
+let tc = fn(n) {
+  if n > 100000 {
+    println("works!")
+  } else {
+    tc(n + 1)
+  }
+}
+
+tc(0)

@@ -16,7 +16,8 @@ use crate::{
 
 use super::{
     function_names_phase::FunctionName, resolve_structs_phase::ReferencedStruct,
-    resolve_variables_phase::ModuleReference, CompilationState, Compiler,
+    resolve_variables_phase::ModuleReference, tag_return_exprs_phase::IsReturnExpr,
+    CompilationState, Compiler,
 };
 
 pub fn emit_bytecode_phase(
@@ -243,7 +244,12 @@ impl Emitter<'_> {
                 for arg in args {
                     self.emit(arg);
                 }
-                self.write(Instr::call(args.len() as u8), node);
+
+                if self.is_tail_call(node) {
+                    self.write(Instr::tail_call(args.len() as u8), node);
+                } else {
+                    self.write(Instr::call(args.len() as u8), node);
+                }
             }
             NodeKind::If {
                 condition,
@@ -678,5 +684,16 @@ impl Emitter<'_> {
             .tags
             .get::<ModuleReference>(node.id)
             .is_some()
+    }
+
+    fn is_tail_call(&self, function_call: &Node) -> bool {
+        self.compilation_state
+            .tags
+            .get::<IsReturnExpr>(function_call.id)
+            .map(|is_return_expr| {
+                // can't tail call from the root "function"
+                is_return_expr.function != self.compilation_state.ast.as_ref().unwrap().id
+            })
+            .unwrap_or(false)
     }
 }
