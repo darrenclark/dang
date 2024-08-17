@@ -3,8 +3,10 @@ use ustr::Ustr;
 use crate::module::ModuleName;
 
 /// Represents a variable definition
-#[derive(Debug, Clone)]
-pub struct Variable {}
+#[derive(Debug, Clone, Default)]
+pub struct Variable {
+    pub closed_over: bool,
+}
 
 /// Represents a reference to a variable
 #[derive(Debug, Clone)]

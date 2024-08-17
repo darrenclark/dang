@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use ustr::Ustr;
 
@@ -29,7 +29,6 @@ pub fn resolve_variables_phase(
     let variable_allocations: HashMap<NodeId, VariableAllocation>;
     let exports: HashMap<String, Variable>;
     let constants: HashMap<String, Value>;
-    let closed_over_variables: HashSet<NodeId>;
     let function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>;
 
     {
@@ -42,7 +41,6 @@ pub fn resolve_variables_phase(
         variable_allocations = phase.variable_allocations;
         exports = phase.exports;
         constants = phase.constants;
-        closed_over_variables = phase.closed_over_variables;
         function_upvalues = phase.function_upvalues;
     }
 
@@ -51,9 +49,6 @@ pub fn resolve_variables_phase(
         .clone_from(&variable_allocations);
     compilation_state.exports.clone_from(&exports);
     compilation_state.constants.clone_from(&constants);
-    compilation_state
-        .closed_over_variables
-        .clone_from(&closed_over_variables);
     compilation_state
         .function_upvalues
         .clone_from(&function_upvalues);
@@ -67,7 +62,6 @@ pub struct ResolveVariablesPhase<'a> {
     pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
-    pub closed_over_variables: HashSet<NodeId>,
     pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
     scopes_stack: Vec<Scope>,
     pub errors: Vec<Exception>,
@@ -84,7 +78,6 @@ impl<'a> ResolveVariablesPhase<'a> {
             exports: HashMap::new(),
             constants: HashMap::new(),
             variable_allocations: HashMap::new(),
-            closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),
             scopes_stack: Vec::new(),
             errors: Vec::new(),
@@ -142,6 +135,10 @@ impl<'a> ResolveVariablesPhase<'a> {
                 VariableAllocation::Local { index }
             };
             self.variable_allocations.insert(node.id, allocation);
+
+            self.compilation_state
+                .tags
+                .insert(node.id, Variable::default());
 
             Ok(())
         }
@@ -208,7 +205,11 @@ impl<'a> ResolveVariablesPhase<'a> {
                         };
 
                         if function_depth > 0 {
-                            self.closed_over_variables.insert(node_id);
+                            self.compilation_state
+                                .tags
+                                .get_mut::<Variable>(node_id)
+                                .unwrap()
+                                .closed_over = true;
                         }
 
                         Some(allocation)
@@ -304,8 +305,10 @@ impl<'a> ResolveVariablesPhase<'a> {
                 NodeKind::Builtin { identifier } => {
                     let res = self.define(identifier.unwrap_identifier(), node);
                     if let Ok(()) = res {
-                        self.exports
-                            .insert(identifier.unwrap_identifier().to_owned(), Variable {});
+                        self.exports.insert(
+                            identifier.unwrap_identifier().to_owned(),
+                            Variable::default(),
+                        );
                     }
                 }
                 NodeKind::Var { pattern, .. } | NodeKind::Let { pattern, .. } => {
@@ -313,8 +316,10 @@ impl<'a> ResolveVariablesPhase<'a> {
                         if let NodeKind::PatternIdentifier { identifier } = &node.kind {
                             let res = self.define(identifier.unwrap_identifier(), node);
                             if let Ok(()) = res {
-                                self.exports
-                                    .insert(identifier.unwrap_identifier().to_owned(), Variable {});
+                                self.exports.insert(
+                                    identifier.unwrap_identifier().to_owned(),
+                                    Variable::default(),
+                                );
                             }
                         }
                     }

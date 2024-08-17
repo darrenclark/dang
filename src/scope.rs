@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    ast::NodeId,
-    compiler::variable::{UpvalueSource, Variable},
-    module::ModuleName,
-};
+use crate::{ast::NodeId, compiler::variable::UpvalueSource};
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -103,14 +99,6 @@ impl Scope {
             .iter()
             .map(|(_, source)| source.clone())
             .collect()
-    }
-
-    pub fn into_exports(&self, _module: ModuleName) -> HashMap<String, Variable> {
-        let mut res = HashMap::new();
-        for name in self.definitions.keys() {
-            res.insert(name.clone(), Variable {});
-        }
-        res
     }
 
     pub fn is_function_or_global(&self) -> bool {

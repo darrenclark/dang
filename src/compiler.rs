@@ -16,10 +16,7 @@ pub mod tags;
 mod validate_struct_fields_phase;
 pub mod variable;
 
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use compile_dependencies_phase::compile_dependencies_phase;
 use desugar_pipe_phase::desugar_pipe_phase;
@@ -78,7 +75,6 @@ pub struct CompilationState {
     pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
-    pub closed_over_variables: HashSet<NodeId>,
     pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
     pub struct_info: Option<StructInfo>,
     pub function: Function,
@@ -102,7 +98,6 @@ impl CompilationState {
             exports: HashMap::new(),
             constants: HashMap::new(),
             variable_allocations: HashMap::new(),
-            closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),
             struct_info: None,
             function: Function::new(Chunk::new(), 0, vec![], "".to_owned()),
