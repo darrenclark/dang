@@ -432,14 +432,6 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
 
                 self.define_all_in_pattern(pattern);
             }
-            NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {
-                if self.is_global_scope() {
-                    // already defined by hoist_variables(..)
-                    return;
-                }
-
-                self.define_all_in_pattern(pattern);
-            }
             NodeKind::VariableRef { identifier } => {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }
@@ -458,6 +450,17 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
             }
             NodeKind::Body(_) | NodeKind::For { .. } => {
                 self.pop_scope().unwrap();
+            }
+            NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {
+                // Handle Let and Var on the exit, so that the variables are not visible to the
+                // expression on the right side of the assignment
+
+                if self.is_global_scope() {
+                    // already defined by hoist_variables(..)
+                    return;
+                }
+
+                self.define_all_in_pattern(pattern);
             }
             _ => {}
         }

@@ -16,14 +16,6 @@
 
 - Less PushNil, Pop instructions
 
-- Better handle the error here:
-    ```
-    let count_list = fn (l) {
-        let count = l |> count()
-        count
-    }
-    count_list([1, 2, 3])
-    ```
 
 ## Future
 
@@ -63,7 +55,6 @@ Lower priority:
 - more type casting
     - "try" casts
 - Regex captures
-- Shadowing library provided functions (perhaps it gives a warning instead?)
 - Pattern matching?
     - `match` statement
     - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`

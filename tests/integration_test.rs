@@ -703,11 +703,12 @@ fn exception_raised_when_function_given_wrong_number_of_args() {
     }
 }
 
-#[ignore = "todo"]
 #[test]
-fn fix_stack_out_of_bounds() {
+fn shadowing_imports_works_correctly_even_in_same_let_or_var() {
     assert_runs! {
         r#"
+        import Std/Enum.count
+
         let count_list = fn(l) {
           let count = l |> count()
           count
