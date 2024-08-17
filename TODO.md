@@ -16,6 +16,15 @@
 
 - Less PushNil, Pop instructions
 
+- Better handle the error here:
+    ```
+    let count_list = fn (l) {
+        let count = l |> count()
+        count
+    }
+    count_list([1, 2, 3])
+    ```
+
 ## Future
 
 Higher priority:

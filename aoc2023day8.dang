@@ -22,7 +22,7 @@ let parse = fn(input) {
 let part1 = fn(parsed) {
   var node = "AAA"
 
-  let count =
+  let c =
     parsed.instructions
     |> Stream.cycle()
     |> Stream.take_while(fn (i) {
@@ -34,9 +34,10 @@ let part1 = fn(parsed) {
 
       node != "ZZZ"
     })
-    |> Stream.count()
+    |> count()
 
-  count
+  // +1 since take_while exits before counting the last step
+  c + 1
 }
 
 let part2 = fn(parsed) {
