@@ -10,5 +10,6 @@ pub mod scope;
 pub mod stdlib;
 pub mod string_utils;
 pub mod struct_info;
+pub mod types;
 pub mod value;
 pub mod vm;

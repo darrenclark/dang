@@ -220,6 +220,7 @@ dependencies = [
  "regex",
  "rustyline",
  "strum",
+ "strum_macros",
  "tree-sitter",
  "tree-sitter-dang",
  "unescape",

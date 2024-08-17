@@ -20,6 +20,7 @@ ustr = "1.0.0"
 pretty = { version = "0.12.3", features = ["termcolor"] }
 escape8259 = "0.5.3"
 strum = { version = "0.26.3", features = ["derive"] }
+strum_macros = "0.26"
 
 [features]
 stats = []

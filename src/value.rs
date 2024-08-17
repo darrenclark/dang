@@ -14,6 +14,7 @@ use ustr::Ustr;
 use crate::ast::{BinOp, UnaryOp};
 use crate::exception::{exception, Exception};
 use crate::module::ModuleName;
+use crate::types::Type;
 use crate::vm::closure::Closure;
 use crate::vm::function::Function;
 
@@ -134,6 +135,68 @@ impl Value {
             Self::Bool(v) => *v,
             _ => true,
         }
+    }
+
+    pub fn get_type(&self) -> Type {
+        match self {
+            Self::Nil => Type::Nil,
+            Self::Symbol(_) => Type::Symbol,
+            Self::Bool(_) => Type::Bool,
+            Self::String(_) => Type::String,
+            Self::Integer(_) => Type::Int,
+            Self::NativeFunc(_) => Type::Function,
+            Self::NativeClosure(_) => Type::Function,
+            Self::Function(_) => Type::Function,
+            Self::Closure(_) => Type::Function,
+            Self::Tuple(_) => Type::Tuple,
+            Self::List(_) => Type::List,
+            Self::Dict(_) => Type::Dict,
+            Self::Struct(_, _) => Type::Struct,
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        self.get_type().is_nil()
+    }
+
+    pub fn is_symbol(&self) -> bool {
+        self.get_type().is_symbol()
+    }
+
+    pub fn is_bool(&self) -> bool {
+        self.get_type().is_bool()
+    }
+
+    pub fn is_string(&self) -> bool {
+        self.get_type().is_string()
+    }
+
+    pub fn is_int(&self) -> bool {
+        self.get_type().is_int()
+    }
+
+    pub fn is_function(&self) -> bool {
+        self.get_type().is_function()
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        self.get_type().is_tuple()
+    }
+
+    pub fn is_tuple_n(&self, size: usize) -> bool {
+        matches!(self, Self::Tuple(v) if v.len() == size)
+    }
+
+    pub fn is_list(&self) -> bool {
+        self.get_type().is_list()
+    }
+
+    pub fn is_dict(&self) -> bool {
+        self.get_type().is_dict()
+    }
+
+    pub fn is_struct(&self) -> bool {
+        self.get_type().is_struct()
     }
 
     pub fn is_enumerable(&self) -> bool {

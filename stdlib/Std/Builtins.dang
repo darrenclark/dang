@@ -22,6 +22,17 @@ __builtin regex_find_index
 __builtin int
 __builtin str
 __builtin symbol
+__builtin type
+__builtin is_nil
+__builtin is_symbol
+__builtin is_bool
+__builtin is_string
+__builtin is_int
+__builtin is_function
+__builtin is_tuple
+__builtin is_list
+__builtin is_dict
+__builtin is_struct
 __builtin raise
 
 // VM provided functions

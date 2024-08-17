@@ -39,6 +39,18 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("int", int),
         ("str", str_),
         ("symbol", symbol),
+        // type checking
+        ("type", type_),
+        ("is_nil", is_nil),
+        ("is_symbol", is_symbol),
+        ("is_bool", is_bool),
+        ("is_string", is_string),
+        ("is_int", is_int),
+        ("is_function", is_function),
+        ("is_tuple", is_tuple),
+        ("is_list", is_list),
+        ("is_dict", is_dict),
+        ("is_struct", is_struct),
         // misc
         ("raise", raise),
         // functions implemented in Rust for performance reasons
@@ -322,6 +334,88 @@ fn symbol(args: &[Value]) -> Result<Value, Exception> {
         exception!("symbol(other) expected one arg")
     }
     args[0].cast_to_symbol()
+}
+
+fn type_(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("type(other) expected one arg")
+    }
+    Ok(args[0].get_type().as_ref().into())
+}
+
+fn is_nil(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_nil(other) expected one arg")
+    }
+    Ok(args[0].is_nil().into())
+}
+
+fn is_symbol(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_symbol(other) expected one arg")
+    }
+    Ok(args[0].is_symbol().into())
+}
+
+fn is_bool(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_bool(other) expected one arg")
+    }
+    Ok(args[0].is_bool().into())
+}
+
+fn is_string(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_string(other) expected one arg")
+    }
+    Ok(args[0].is_string().into())
+}
+
+fn is_int(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_int(other) expected one arg")
+    }
+    Ok(args[0].is_int().into())
+}
+
+fn is_function(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_function(other) expected one arg")
+    }
+    Ok(args[0].is_function().into())
+}
+
+fn is_tuple(args: &[Value]) -> Result<Value, Exception> {
+    match args {
+        // is_tuple(value, arity)
+        [Value::Tuple(t), Value::Integer(l)] => Ok(Value::Bool(t.len() == *l as usize)),
+        [_, Value::Integer(_)] => Ok(Value::Bool(false)),
+        [_, _] => exception!("is_tuple(value, arity) expected arity to be an integer"),
+        // is_tuple(value)
+        [value] => Ok(value.is_tuple().into()),
+        _ => exception!("is_tuple(value [, arity]) expected one or two args"),
+    }
+}
+
+fn is_list(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_list(other) expected one arg")
+    }
+    Ok(args[0].is_list().into())
+}
+
+fn is_dict(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_dict(other) expected one arg")
+    }
+    Ok(args[0].is_dict().into())
+}
+
+fn is_struct(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 1 {
+        exception!("is_struct(other) expected one arg")
+    }
+    Ok(args[0].is_struct().into())
 }
 
 fn raise(args: &[Value]) -> Result<Value, Exception> {

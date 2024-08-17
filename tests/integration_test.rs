@@ -131,6 +131,34 @@ fn test_casting() {
 }
 
 #[test]
+fn type_introspection() {
+    assert_runs! {
+        r#"
+        assert(type(5) == "int")
+        assert(type("hello") == "string")
+        assert(type([1, 2, 3]) == "list")
+        assert(type({a: 1, b: 2}) == "dict")
+        assert(type(fn() {}) == "function")
+        assert(type(nil) == "nil")
+
+        assert(is_int(5))
+        assert(is_string("hello"))
+        assert(is_list([1, 2, 3]))
+        assert(is_dict({a: 1, b: 2}))
+
+        assert(is_tuple((1, 2)))
+        assert(is_tuple((1, 2), 2))
+        assert(!is_tuple((1, 2, 3), 2))
+        assert(!is_tuple("12", 2))
+
+        assert(!is_function(5))
+        assert(!is_nil(5))
+        assert(!is_list("hello"))
+        "#
+    };
+}
+
+#[test]
 fn test_scoping() {
     assert_runs! {
         r#"
