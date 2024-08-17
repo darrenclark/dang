@@ -25,15 +25,16 @@ let part1 = fn(parsed) {
   let c =
     parsed.instructions
     |> Stream.cycle()
-    |> Stream.take_while(fn (i) {
+    |> Stream.map(fn (i) {
       if i == "L" {
         node = parsed.nodes[node][0]
       } else if i == "R" {
         node = parsed.nodes[node][1]
       }
 
-      node != "ZZZ"
+      node
     })
+    |> Stream.take_until(fn (n) { n == "ZZZ" })
     |> count()
 
   // +1 since take_while exits before counting the last step

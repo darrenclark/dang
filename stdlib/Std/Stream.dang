@@ -101,3 +101,8 @@ let take_while = fn(iterable, f) {
 
   Stream{_iter: it}
 }
+
+/// Taks elements from a stream until the predicate returns true
+let take_until = fn(iterable, f) {
+  take_while(iterable, fn(x) { !f(x) })
+}
