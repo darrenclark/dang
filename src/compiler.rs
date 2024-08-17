@@ -42,10 +42,10 @@ use variable::Variable;
 
 use crate::{
     ast::{ImportKind, Node, NodeId},
+    compiler::variable::{UpvalueSource, VariableAllocation},
     exception::Exception,
     module::ModuleName,
     program::Program,
-    scope::{UpvalueSource, VariableAllocation},
     struct_info::StructInfo,
     value::Value,
     vm::{chunk::Chunk, function::Function},

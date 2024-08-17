@@ -9,14 +9,16 @@ use crate::{
     module::ModuleName,
     native_funcs,
     program::Program,
-    scope::{UpvalueSource, VariableAllocation},
     value::Value,
     vm::{chunk::Chunk, function::Function, inst::Instr},
 };
 
 use super::{
-    function_names_phase::FunctionName, resolve_structs_phase::ReferencedStruct,
-    resolve_variables_phase::ModuleReference, tag_return_exprs_phase::IsReturnExpr,
+    function_names_phase::FunctionName,
+    resolve_structs_phase::ReferencedStruct,
+    resolve_variables_phase::ModuleReference,
+    tag_return_exprs_phase::IsReturnExpr,
+    variable::{UpvalueSource, VariableAllocation},
     CompilationState, Compiler,
 };
 

@@ -7,11 +7,14 @@ use crate::{
     exception::{exception, Exception},
     module::ModuleName,
     program::Program,
-    scope::{Scope, UpvalueSource, VariableAllocation},
+    scope::Scope,
     value::Value,
 };
 
-use super::{variable::Variable, CompilationState, Compiler};
+use super::{
+    variable::{UpvalueSource, Variable, VariableAllocation},
+    CompilationState, Compiler,
+};
 
 #[derive(Debug)]
 pub struct ModuleReference {

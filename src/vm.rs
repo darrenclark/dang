@@ -10,9 +10,9 @@ use ustr::Ustr;
 
 use crate::{
     ast::{BinOp, UnaryOp},
+    compiler::variable::UpvalueSource,
     exception::{exception, Exception},
     module::ModuleName,
-    scope::UpvalueSource,
     value::Value,
 };
 

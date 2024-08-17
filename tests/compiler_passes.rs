@@ -3,9 +3,9 @@ use std::collections::{HashMap, HashSet};
 use assert_matches::assert_matches;
 use dang::{
     ast::NodeKind,
+    compiler::variable::VariableAllocation,
     compiler::{CompilationState, Compiler, Input, Phase},
     program::Program,
-    scope::VariableAllocation,
     value::Value,
 };
 

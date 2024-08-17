@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
-use ustr::Ustr;
-
-use crate::{ast::NodeId, compiler::variable::Variable, module::ModuleName};
+use crate::{
+    ast::NodeId,
+    compiler::variable::{UpvalueSource, Variable},
+    module::ModuleName,
+};
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -128,30 +130,4 @@ impl Scope {
                 self.upvalues.len() - 1
             })
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum VariableAllocation {
-    Global {
-        module: ModuleName,
-        name: Ustr,
-    },
-    Upvalue {
-        source: UpvalueSource,
-        upvalue_index: usize,
-    },
-    /// index relative to the frame base
-    Local {
-        index: usize,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum UpvalueSource {
-    /// Upvalue is a local captured from the parent function.  Index is relative to base of the
-    /// caller's stack frame.
-    Local { stack_index_relative_to_base: usize },
-    /// Upvalue is an upvalue already captured by the parent function.  Index is the upvalue index
-    /// of
-    Upvalue { upvalue_index: usize },
 }

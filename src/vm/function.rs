@@ -2,8 +2,8 @@ use std::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
 
+use crate::compiler::variable::UpvalueSource;
 use crate::line_col::LineCol;
-use crate::scope::UpvalueSource;
 
 use super::chunk::Chunk;
 
