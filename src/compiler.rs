@@ -38,8 +38,7 @@ use validate_struct_fields_phase::validate_struct_fields_phase;
 use variable::Variable;
 
 use crate::{
-    ast::{ImportKind, Node, NodeId},
-    compiler::variable::{UpvalueSource, VariableAllocation},
+    ast::{ImportKind, Node},
     exception::Exception,
     module::ModuleName,
     program::Program,
@@ -74,8 +73,6 @@ pub struct CompilationState {
     pub imports: Vec<ResolvedImport>,
     pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
-    pub variable_allocations: HashMap<NodeId, VariableAllocation>,
-    pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
     pub struct_info: Option<StructInfo>,
     pub function: Function,
 }
@@ -97,8 +94,6 @@ impl CompilationState {
             imports: Vec::new(),
             exports: HashMap::new(),
             constants: HashMap::new(),
-            variable_allocations: HashMap::new(),
-            function_upvalues: HashMap::new(),
             struct_info: None,
             function: Function::new(Chunk::new(), 0, vec![], "".to_owned()),
         }

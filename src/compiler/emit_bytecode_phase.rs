@@ -9,6 +9,7 @@ use crate::{
     module::ModuleName,
     native_funcs,
     program::Program,
+    scope::Scope,
     value::Value,
     vm::{chunk::Chunk, function::Function, inst::Instr},
 };
@@ -18,7 +19,7 @@ use super::{
     resolve_structs_phase::ReferencedStruct,
     resolve_variables_phase::ModuleReference,
     tag_return_exprs_phase::IsReturnExpr,
-    variable::{UpvalueSource, VariableAllocation},
+    variable::{UpvalueSource, VariableAllocation, VariableRef},
     CompilationState, Compiler,
 };
 
@@ -64,12 +65,8 @@ impl Emitter<'_> {
     fn emit(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(statements) => {
-                self.upvalue_sources.clone_from(
-                    self.compilation_state
-                        .function_upvalues
-                        .get(&node.id)
-                        .unwrap(),
-                );
+                self.upvalue_sources
+                    .clone_from(&self.get_upvalue_sources(node));
 
                 let module_name = self.compilation_state.module_name;
 
@@ -285,7 +282,7 @@ impl Emitter<'_> {
             }
             NodeKind::FunctionLiteral { arg_names, body } => {
                 let mut chunk = Chunk::new();
-                let mut upvalue_sources = Vec::new();
+                let mut upvalue_sources = self.get_upvalue_sources(node);
 
                 // TODO: use actual source file name eventually
                 chunk.source_file = self.compilation_state.module_name.0.clone().to_owned();
@@ -298,14 +295,6 @@ impl Emitter<'_> {
                     pushed_locals: Vec::new(),
                 };
                 emitter.emit_function(arg_names, body);
-
-                // TODO: refactor this
-                upvalue_sources.clone_from(
-                    self.compilation_state
-                        .function_upvalues
-                        .get(&node.id)
-                        .unwrap(),
-                );
 
                 let has_upvalues = !upvalue_sources.is_empty();
 
@@ -650,10 +639,19 @@ impl Emitter<'_> {
 
     fn get_variable_allocation(&self, node: &Node) -> VariableAllocation {
         self.compilation_state
-            .variable_allocations
-            .get(&node.id)
+            .tags
+            .get::<VariableRef>(node.id)
             .unwrap()
+            .allocation
             .clone()
+    }
+
+    fn get_upvalue_sources(&self, function_node: &Node) -> Vec<UpvalueSource> {
+        self.compilation_state
+            .tags
+            .get::<Scope>(function_node.id)
+            .unwrap()
+            .get_upvalue_sources()
     }
 
     fn emit_module_load_guard(&mut self, module_name: ModuleName, source_file_node: &Node) {

@@ -1,6 +1,6 @@
 use ustr::Ustr;
 
-use crate::module::ModuleName;
+use crate::{ast::NodeId, module::ModuleName};
 
 /// Represents a variable definition
 #[derive(Debug, Clone, Default)]
@@ -12,6 +12,16 @@ pub struct Variable {
 #[derive(Debug, Clone)]
 pub struct VariableRef {
     pub allocation: VariableAllocation,
+    pub definition_node_id: Option<NodeId>,
+}
+
+impl VariableRef {
+    pub fn new(allocation: VariableAllocation) -> Self {
+        VariableRef {
+            allocation,
+            definition_node_id: None,
+        }
+    }
 }
 
 /// Represents the technical details on how to access a variable
@@ -30,6 +40,12 @@ pub enum VariableAllocation {
     Local {
         index: usize,
     },
+}
+
+impl VariableAllocation {
+    pub fn is_global(&self) -> bool {
+        matches!(self, VariableAllocation::Global { .. })
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -213,6 +213,25 @@ fn test_scoping_edge_case() {
 }
 
 #[test]
+fn test_upvalues_more_than_two_functions_deep() {
+    assert_runs! {
+        r#"
+        let outer = fn(x) {
+            let middle = fn(y) {
+                let inner = fn(z) {
+                    x + y + z
+                }
+                inner
+            }
+            middle
+        }
+
+        assert(outer(1)(2)(3) == 6)
+        "#
+    };
+}
+
+#[test]
 fn test_variable_hoisting_at_root() {
     assert_raises! {
         (3, "Global not found: (u!(\"(run)\"), u!(\"i\"))"),

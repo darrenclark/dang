@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    variable::{UpvalueSource, Variable, VariableAllocation},
+    variable::{UpvalueSource, Variable, VariableAllocation, VariableRef},
     CompilationState, Compiler,
 };
 
@@ -26,10 +26,8 @@ pub fn resolve_variables_phase(
     compilation_state: &mut CompilationState,
     program: &mut Program,
 ) -> Result<(), Exception> {
-    let variable_allocations: HashMap<NodeId, VariableAllocation>;
     let exports: HashMap<String, Variable>;
     let constants: HashMap<String, Value>;
-    let function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>;
 
     {
         let mut phase = ResolveVariablesPhase::new(program, compilation_state);
@@ -38,20 +36,12 @@ pub fn resolve_variables_phase(
             exception!("unable to resolve all variables")
         }
 
-        variable_allocations = phase.variable_allocations;
         exports = phase.exports;
         constants = phase.constants;
-        function_upvalues = phase.function_upvalues;
     }
 
-    compilation_state
-        .variable_allocations
-        .clone_from(&variable_allocations);
     compilation_state.exports.clone_from(&exports);
     compilation_state.constants.clone_from(&constants);
-    compilation_state
-        .function_upvalues
-        .clone_from(&function_upvalues);
     Ok(())
 }
 
@@ -61,9 +51,7 @@ pub struct ResolveVariablesPhase<'a> {
     compilation_state: &'a mut CompilationState,
     pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
-    pub variable_allocations: HashMap<NodeId, VariableAllocation>,
-    pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
-    scopes_stack: Vec<Scope>,
+    scopes_stack: Vec<NodeId>,
     pub errors: Vec<Exception>,
 }
 
@@ -77,8 +65,6 @@ impl<'a> ResolveVariablesPhase<'a> {
             compilation_state,
             exports: HashMap::new(),
             constants: HashMap::new(),
-            variable_allocations: HashMap::new(),
-            function_upvalues: HashMap::new(),
             scopes_stack: Vec::new(),
             errors: Vec::new(),
         }
@@ -92,29 +78,55 @@ impl<'a> ResolveVariablesPhase<'a> {
             .append(&mut self.errors.clone());
     }
 
-    fn push_child_scope(&mut self) {
-        let parent = self.scopes_stack.last().unwrap();
-        self.scopes_stack.push(Scope::new_child_scope(parent));
+    fn push_child_scope(&mut self, node: &Node) {
+        let parent = self.current_scope();
+
+        let scope = Scope::new_child_scope(node.id, parent);
+        self.compilation_state.tags.insert(node.id, scope);
+
+        self.scopes_stack.push(node.id);
     }
 
     fn push_global_scope(&mut self, node: &Node) {
-        self.scopes_stack.push(Scope::new_global_scope(node.id));
+        let scope = Scope::new_global_scope(node.id);
+        self.compilation_state.tags.insert(node.id, scope);
+
+        self.scopes_stack.push(node.id);
     }
 
     fn push_function_scope(&mut self, node: &Node) {
-        self.scopes_stack.push(Scope::new_function_scope(node.id));
+        let parent = self.current_scope();
+        let scope = Scope::new_function_scope(node.id, parent);
+        self.compilation_state.tags.insert(node.id, scope);
+
+        self.scopes_stack.push(node.id);
     }
 
-    fn pop_scope(&mut self) -> Option<Scope> {
-        self.scopes_stack.pop()
+    fn pop_scope(&mut self) -> Option<&Scope> {
+        self.scopes_stack
+            .pop()
+            .map(|node_id| self.compilation_state.tags.get::<Scope>(node_id).unwrap())
     }
 
     fn is_global_scope(&self) -> bool {
         self.scopes_stack.len() <= 1
     }
 
+    fn current_scope(&self) -> &Scope {
+        let node_id = self.scopes_stack.last().unwrap();
+        self.compilation_state.tags.get::<Scope>(*node_id).unwrap()
+    }
+
+    fn current_scope_mut(&mut self) -> &mut Scope {
+        let node_id = self.scopes_stack.last().unwrap();
+        self.compilation_state
+            .tags
+            .get_mut::<Scope>(*node_id)
+            .unwrap()
+    }
+
     fn define(&mut self, name: &str, node: &Node) -> Result<(), ()> {
-        let scope = self.scopes_stack.last_mut().unwrap();
+        let scope = self.current_scope_mut();
 
         if scope.is_defined(name) {
             self.errors.push(Exception {
@@ -134,7 +146,9 @@ impl<'a> ResolveVariablesPhase<'a> {
             } else {
                 VariableAllocation::Local { index }
             };
-            self.variable_allocations.insert(node.id, allocation);
+            self.compilation_state
+                .tags
+                .insert(node.id, VariableRef::new(allocation));
 
             self.compilation_state
                 .tags
@@ -154,85 +168,99 @@ impl<'a> ResolveVariablesPhase<'a> {
         }
     }
 
-    fn lookup(&mut self, name: &str) -> Option<VariableAllocation> {
-        self.scopes_stack
-            .clone()
-            .iter()
-            .rev()
-            .enumerate()
-            .find_map(|(i, s)| {
-                if let Some(node_id) = s.get_node_id(name) {
-                    if i >= self.scopes_stack.len() - 1 {
-                        let allocation = VariableAllocation::Global {
-                            module: self.compilation_state.module_name,
-                            name: name.into(),
-                        };
-                        Some(allocation)
-                    } else if i == 0 {
-                        let allocation = VariableAllocation::Local {
-                            index: s.get_index(name).unwrap(),
-                        };
-                        Some(allocation)
-                    } else {
-                        let mut function_depth = 0;
-                        let mut current_func = self.scopes_stack.last().unwrap().get_function();
-                        for s in self.scopes_stack.iter().rev().take(i + 1) {
-                            if s.get_function() != current_func {
-                                function_depth += 1;
-                                current_func = s.get_function();
-                            }
-                        }
-
-                        let allocation = if function_depth == 0 {
-                            VariableAllocation::Local {
-                                index: s.get_index(name).unwrap(),
-                            }
-                        } else if function_depth > 1 {
-                            todo!()
-                        } else {
-                            // TODO: Handle variables multiple levels deep
-
-                            let source = UpvalueSource::Local {
-                                stack_index_relative_to_base: s.get_index(name).unwrap(),
-                            };
-
-                            let upvalue_index = self.get_upvalue(node_id, &source);
-
-                            VariableAllocation::Upvalue {
-                                source,
-                                upvalue_index,
-                            }
-                        };
-
-                        if function_depth > 0 {
-                            self.compilation_state
-                                .tags
-                                .get_mut::<Variable>(node_id)
-                                .unwrap()
-                                .closed_over = true;
-                        }
-
-                        Some(allocation)
-                    }
-                } else {
-                    None
-                }
-            })
+    fn lookup(&mut self, name: &str) -> Option<VariableRef> {
+        self.lookup_in_scope(name, *self.scopes_stack.last().unwrap())
             .or_else(|| self.lookup_imported(name))
     }
 
-    fn get_upvalue(&mut self, node_id: NodeId, source: &UpvalueSource) -> usize {
-        // TODO: Handle variables multiple levels deep
+    fn lookup_in_scope(&mut self, name: &str, scope_node: NodeId) -> Option<VariableRef> {
+        let scope = self
+            .compilation_state
+            .tags
+            .get::<Scope>(scope_node)
+            .unwrap();
 
-        let function = self.scopes_stack.last().unwrap().get_function();
-        self.scopes_stack
-            .iter_mut()
-            .find(|s| s.is_function_or_global() && s.get_function() == function)
-            .unwrap()
-            .get_or_allocate_upvalue(node_id, source)
+        if let Some(node_id) = scope.get_node_id(name) {
+            let allocation = if scope.is_global() {
+                VariableAllocation::Global {
+                    module: self.compilation_state.module_name,
+                    name: Ustr::from(name),
+                }
+            } else {
+                VariableAllocation::Local {
+                    index: scope.get_index(name).unwrap(),
+                }
+            };
+            let mut variable_ref = VariableRef::new(allocation);
+            variable_ref.definition_node_id = Some(node_id);
+            Some(variable_ref)
+        } else if let Some(parent_node) = scope.parent_node_id() {
+            if let Some(mut variable_ref) = self.lookup_in_scope(name, parent_node) {
+                if !variable_ref.allocation.is_global()
+                    && self.different_function_scope(parent_node, scope_node)
+                {
+                    // TODO: get correct NodeId
+                    let definition_node_id = variable_ref.definition_node_id.unwrap();
+
+                    self.compilation_state
+                        .tags
+                        .get_mut::<Variable>(definition_node_id)
+                        .unwrap()
+                        .closed_over = true;
+
+                    let upvalue_source = match variable_ref.allocation {
+                        VariableAllocation::Local { index } => UpvalueSource::Local {
+                            stack_index_relative_to_base: index,
+                        },
+                        VariableAllocation::Upvalue {
+                            source: _,
+                            upvalue_index,
+                        } => UpvalueSource::Upvalue { upvalue_index },
+                        _ => unreachable!(),
+                    };
+
+                    let upvalue_index = self
+                        .compilation_state
+                        .tags
+                        // scope_node will always be a function scope here
+                        .get_mut::<Scope>(scope_node)
+                        .unwrap()
+                        .get_or_allocate_upvalue(definition_node_id, &upvalue_source);
+
+                    variable_ref.allocation = VariableAllocation::Upvalue {
+                        source: upvalue_source,
+                        upvalue_index,
+                    };
+
+                    Some(variable_ref)
+                } else {
+                    Some(variable_ref)
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
-    fn lookup_imported(&self, name: &str) -> Option<VariableAllocation> {
+    fn different_function_scope(&self, parent_scope_node: NodeId, scope_node: NodeId) -> bool {
+        let scope = self
+            .compilation_state
+            .tags
+            .get::<Scope>(scope_node)
+            .unwrap();
+
+        let parent_scope = self
+            .compilation_state
+            .tags
+            .get::<Scope>(parent_scope_node)
+            .unwrap();
+
+        scope.get_function() != parent_scope.get_function()
+    }
+
+    fn lookup_imported(&self, name: &str) -> Option<VariableRef> {
         for resolved_import in &self.compilation_state.imports {
             match &resolved_import.kind {
                 super::ResolvedImportKind::Module => {
@@ -255,7 +283,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                                     module: resolved_import.module_name,
                                     name: name.into(),
                                 };
-                                return Some(allocation);
+                                return Some(VariableRef::new(allocation));
                             }
                         }
                     }
@@ -270,7 +298,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                             module: resolved_import.module_name,
                             name: name.into(),
                         };
-                        return Some(allocation);
+                        return Some(VariableRef::new(allocation));
                     }
                 }
             }
@@ -281,8 +309,8 @@ impl<'a> ResolveVariablesPhase<'a> {
 
     fn resolve_variable(&mut self, node: &Node, name: &str) {
         match self.lookup(name) {
-            Some(allocaction) => {
-                self.variable_allocations.insert(node.id, allocaction);
+            Some(variable_ref) => {
+                self.compilation_state.tags.insert(node.id, variable_ref);
 
                 if self.constants.contains_key(name) {
                     let symbol = self.constants.get(name).unwrap().unwrap_symbol();
@@ -367,7 +395,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 self.define_constant(short_name, node, value);
             }
             NodeKind::Body(_) => {
-                self.push_child_scope();
+                self.push_child_scope(node);
             }
             NodeKind::FunctionLiteral { arg_names, .. } => {
                 self.push_function_scope(node);
@@ -380,25 +408,20 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                 enumerable: _,
                 body: _,
             } => {
-                self.push_child_scope();
+                self.push_child_scope(node);
 
-                let iter_index = self
-                    .scopes_stack
-                    .last_mut()
-                    .unwrap()
-                    .allocate_anonymous_local();
-                self.variable_allocations
-                    .insert(node.id, VariableAllocation::Local { index: iter_index });
+                let iter_index = self.current_scope_mut().allocate_anonymous_local();
+                self.compilation_state.tags.insert(
+                    node.id,
+                    VariableRef::new(VariableAllocation::Local { index: iter_index }),
+                );
 
                 let is_complex_pattern =
                     !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
 
                 if is_complex_pattern {
                     // need to allocate a second anonymous local to hold the iterator value
-                    self.scopes_stack
-                        .last_mut()
-                        .unwrap()
-                        .allocate_anonymous_local();
+                    self.current_scope_mut().allocate_anonymous_local();
                 }
 
                 self.define_all_in_pattern(pattern);
@@ -415,9 +438,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
     fn exit_node(&mut self, node: &Node) {
         match &node.kind {
             NodeKind::SourceFile(_) | NodeKind::FunctionLiteral { .. } => {
-                let scope = self.pop_scope().unwrap();
-                self.function_upvalues
-                    .insert(node.id, scope.get_upvalue_sources());
+                self.pop_scope().unwrap();
             }
             NodeKind::Body(_) | NodeKind::For { .. } => {
                 self.pop_scope().unwrap();

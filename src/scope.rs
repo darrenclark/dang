@@ -5,6 +5,8 @@ use crate::{ast::NodeId, compiler::variable::UpvalueSource};
 #[derive(Debug, Clone)]
 pub struct Scope {
     kind: ScopeKind,
+    node_id: NodeId,
+    parent: Option<NodeId>,
     function: NodeId,
     definitions: HashMap<String, NodeId>,
     base_offset: usize,
@@ -23,6 +25,8 @@ impl Scope {
     pub fn new_global_scope(node_id: NodeId) -> Self {
         Self {
             kind: ScopeKind::Global,
+            node_id,
+            parent: None,
             function: node_id,
             definitions: HashMap::new(),
             base_offset: 0,
@@ -31,10 +35,12 @@ impl Scope {
         }
     }
 
-    pub fn new_function_scope(node_id: NodeId) -> Self {
+    pub fn new_function_scope(node_id: NodeId, parent: &Scope) -> Self {
         Self {
             kind: ScopeKind::Function,
+            node_id,
             function: node_id,
+            parent: Some(parent.node_id),
             definitions: HashMap::new(),
             base_offset: 0,
             indices: Vec::new(),
@@ -42,7 +48,7 @@ impl Scope {
         }
     }
 
-    pub fn new_child_scope(parent: &Scope) -> Self {
+    pub fn new_child_scope(node_id: NodeId, parent: &Scope) -> Self {
         let base_offset = if parent.kind != ScopeKind::Global {
             parent.base_offset + parent.indices.len()
         } else {
@@ -51,7 +57,9 @@ impl Scope {
 
         Self {
             kind: ScopeKind::Child,
+            node_id,
             function: parent.function,
+            parent: Some(parent.node_id),
             definitions: HashMap::new(),
             base_offset,
             indices: Vec::new(),
@@ -101,6 +109,10 @@ impl Scope {
             .collect()
     }
 
+    pub fn is_global(&self) -> bool {
+        self.kind == ScopeKind::Global
+    }
+
     pub fn is_function_or_global(&self) -> bool {
         self.kind != ScopeKind::Child
     }
@@ -117,5 +129,9 @@ impl Scope {
                 self.upvalues.push((definition_node_id, source.clone()));
                 self.upvalues.len() - 1
             })
+    }
+
+    pub fn parent_node_id(&self) -> Option<NodeId> {
+        self.parent
     }
 }
