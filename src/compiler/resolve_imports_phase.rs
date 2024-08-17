@@ -1,4 +1,4 @@
-use crate::{ast::NodeKind, interpreter::Exception, program::Program};
+use crate::{ast::NodeKind, exception::Exception, program::Program};
 
 use super::{CompilationState, Compiler, ResolvedImport};
 

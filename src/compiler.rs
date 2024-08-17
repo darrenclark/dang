@@ -40,7 +40,7 @@ use validate_struct_fields_phase::validate_struct_fields_phase;
 
 use crate::{
     ast::{ImportKind, Node, NodeId},
-    interpreter::Exception,
+    exception::Exception,
     module::ModuleName,
     program::Program,
     scope::{UpvalueSource, VariableAllocation, VariableLocation},
@@ -233,18 +233,6 @@ pub struct Compiler {
 
 impl Default for Compiler {
     fn default() -> Self {
-        let mut c = Compiler {
-            implicit_imports: DEFAULT_IMPLICIT_IMPORTS.clone(),
-            module_search_paths: Vec::default(),
-            phases: (*ALL_PHASES).clone(),
-        };
-        c.remove_phase(Phase::EmitBytecode);
-        c
-    }
-}
-
-impl Compiler {
-    pub fn for_vm() -> Self {
         Compiler {
             implicit_imports: DEFAULT_IMPLICIT_IMPORTS.clone(),
             module_search_paths: Vec::default(),

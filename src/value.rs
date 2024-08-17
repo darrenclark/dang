@@ -11,14 +11,10 @@ use pretty::RcDoc;
 use ustr::Ustr;
 
 use crate::ast::{BinOp, UnaryOp};
-use crate::interpreter::Environment;
+use crate::exception::{exception, Exception};
 use crate::module::ModuleName;
 use crate::vm::closure::Closure;
 use crate::vm::function::Function;
-use crate::{
-    ast::Node,
-    interpreter::{exception, Exception},
-};
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Value {
@@ -29,7 +25,6 @@ pub enum Value {
     Integer(i64),
     NativeFunc(fn(&[Value]) -> Result<Value, Exception>),
     NativeClosure(NativeClosure),
-    Func(FunctionLiteral),
     Function(Function),
     Closure(Closure),
     Tuple(Vec<Value>),
@@ -394,7 +389,6 @@ impl Value {
             Value::Integer(i) => RcDoc::as_string(i).annotate((*PRETTY_NUMBER).clone()),
             Value::NativeFunc(ptr) => RcDoc::text(format!("<NativeFunc({:?})>", ptr)),
             Value::NativeClosure(c) => RcDoc::text(format!("<NativeFunc({:?})>", c)),
-            Value::Func(literal) => RcDoc::text(format!("<Func({})>", literal.body.source)),
             Value::Function(function) => RcDoc::text(format!("<Func({:?})>", function)),
             Value::Closure(function) => RcDoc::text(format!("<Func({:?})>", function)),
             Value::Tuple(list) if list.len() == 1 => RcDoc::text("(")
@@ -494,40 +488,6 @@ lazy_static! {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_pretty())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct FunctionLiteral {
-    pub body: Rc<Node>,
-    pub environment: Rc<RefCell<Environment>>,
-}
-
-impl Eq for FunctionLiteral {}
-
-impl PartialEq for FunctionLiteral {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.body, &other.body)
-    }
-}
-
-impl Hash for FunctionLiteral {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        Rc::as_ptr(&self.body).hash(state)
-    }
-}
-
-impl Ord for FunctionLiteral {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let self_ptr = Rc::as_ptr(&self.body);
-        let other_ptr = Rc::as_ptr(&other.body);
-        self_ptr.cmp(&other_ptr)
-    }
-}
-
-impl PartialOrd for FunctionLiteral {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
 

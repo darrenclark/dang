@@ -1,6 +1,6 @@
 use crate::{
     dang_parser,
-    interpreter::{exception, Exception},
+    exception::{exception, Exception},
     program::Program,
 };
 

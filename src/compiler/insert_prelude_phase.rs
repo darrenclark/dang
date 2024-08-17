@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 
 use crate::{
     ast::{Node, NodeId, NodeKind, Source},
-    interpreter::Exception,
+    exception::Exception,
     line_col::LineCol,
     program::Program,
 };

@@ -10,7 +10,7 @@ use ustr::Ustr;
 
 use crate::{
     ast::{BinOp, UnaryOp},
-    interpreter::{exception, Exception},
+    exception::{exception, Exception},
     module::ModuleName,
     native_funcs,
     scope::UpvalueSource,
@@ -590,7 +590,7 @@ impl VM {
                             self.stack.extend(t);
                         }
                         _ => {
-                            exception!("expected {} arity tuple, got {:?}", arg0, tuple);
+                            exception!("expected {} arity tuple, got {}", arg0, tuple);
                         }
                     }
                 }

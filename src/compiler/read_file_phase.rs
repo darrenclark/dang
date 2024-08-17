@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use crate::{
-    interpreter::{exception, Exception},
+    exception::{exception, Exception},
     module::module_name_to_file_path,
     program::Program,
     stdlib::load_stdlib_file,

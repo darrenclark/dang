@@ -1,11 +1,10 @@
 pub mod ast;
 pub mod compiler;
 pub mod dang_parser;
-pub mod interpreter;
+pub mod exception;
 pub mod line_col;
 pub mod module;
 pub mod native_funcs;
-mod patterns;
 pub mod program;
 pub mod scope;
 pub mod stdlib;

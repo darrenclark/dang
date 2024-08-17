@@ -4,7 +4,7 @@ use ustr::Ustr;
 
 use crate::{
     ast::{AstWalker, Node, NodeKind},
-    interpreter::{exception, Exception},
+    exception::{exception, Exception},
     program::Program,
     struct_info::StructInfo,
 };

@@ -4,7 +4,7 @@ use pretty::termcolor::{ColorChoice, StandardStream};
 use regex::Regex;
 use ustr::ustr;
 
-use crate::interpreter::{exception, Exception};
+use crate::exception::{exception, Exception};
 use crate::string_utils::byte_to_char_index;
 use crate::value::Value;
 

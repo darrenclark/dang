@@ -1,10 +1,10 @@
-use common::{assert_raises, assert_runs_both, assert_runs_vm};
+use common::{assert_raises, assert_runs};
 
 mod common;
 
 #[test]
 fn test_math_bedmas() {
-    assert_runs_both! {
+    assert_runs! {
         "
         let x = 1 + 2 * 3 * (5 - 1) / 2
         assert(x == 13)
@@ -14,7 +14,7 @@ fn test_math_bedmas() {
 
 #[test]
 fn test_function_calls() {
-    assert_runs_both! {
+    assert_runs! {
         "
         let f = fn(x, y) {
             (x + 1) * y
@@ -27,7 +27,7 @@ fn test_function_calls() {
 
 #[test]
 fn test_string_functions() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert(split("a,,c", ",") == ["a", "", "c"])
 
@@ -46,7 +46,7 @@ fn test_string_functions() {
 
 #[test]
 fn test_for_iteration() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         // lists
         var s = 0
@@ -67,7 +67,7 @@ fn test_for_iteration() {
 
 #[test]
 fn test_len() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert(len("abcdef") == 6)
         assert(len([1, 2, 3]) == 3)
@@ -77,7 +77,7 @@ fn test_len() {
 
 #[test]
 fn test_append() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         var list = [1, 2, 3]
         list = append(list, 4)
@@ -88,7 +88,7 @@ fn test_append() {
 
 #[test]
 fn test_reverse() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert(reverse([1, 2, 3]) == [3, 2, 1])
         "#
@@ -97,7 +97,7 @@ fn test_reverse() {
 
 #[test]
 fn test_get() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert(get("abcdef", 3) == "d")
         assert(get([1, 2, 3], 1) == 2)
@@ -117,7 +117,7 @@ fn test_get() {
 
 #[test]
 fn test_casting() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert(int(5) == 5)
         assert(int("11") == 11)
@@ -132,7 +132,7 @@ fn test_casting() {
 
 #[test]
 fn test_scoping() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         for x in [1, 2, 3] { print(x) }
         for x in ["a", "b", "c"] { print(x) }
@@ -160,7 +160,7 @@ fn test_scoping() {
 
 #[test]
 fn test_scoping_edge_case() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         var a = "hello"
         let edge_case = fn () {
@@ -182,7 +182,7 @@ fn test_scoping_edge_case() {
 #[test]
 fn test_variable_hoisting_at_root() {
     assert_raises! {
-        (3, "`i` hasn't been initialized yet"),
+        (3, "Global not found: (u!(\"(run)\"), u!(\"i\"))"),
         r#"
         let incr = fn() {
             i = i + 1
@@ -196,7 +196,7 @@ fn test_variable_hoisting_at_root() {
         "#
     }
 
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let incr = fn() {
             i = i + 1
@@ -213,7 +213,7 @@ fn test_variable_hoisting_at_root() {
 
 #[test]
 fn test_regex() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert(regex_match("hello", "hel+o"))
 
@@ -232,7 +232,7 @@ fn test_regex() {
 
 #[test]
 fn test_logical_and_or() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         assert((5 || 2) == 5)
         assert((nil || 2) == 2)
@@ -250,7 +250,7 @@ fn test_logical_and_or() {
 
 #[test]
 fn test_newline_scenarios() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let x =
             5 +
@@ -272,7 +272,7 @@ fn test_newline_scenarios() {
 
 #[test]
 fn test_subscripting() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let x = [
             "abc",
@@ -290,7 +290,7 @@ fn test_subscripting() {
 
 #[test]
 fn test_piping() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let numbers = [
             "one",
@@ -311,7 +311,7 @@ fn test_piping() {
 
 #[test]
 fn test_tuples() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let t0 = ()
         let t1 = (42,)
@@ -331,7 +331,7 @@ fn test_tuples() {
 
 #[test]
 fn test_tuple_unpacking() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let (a, b, c) = (5, "two", 3)
 
@@ -354,14 +354,14 @@ fn test_tuple_unpacking() {
     };
 
     assert_raises! {
-        (2, "match failure"),
+        (2, "expected 3 arity tuple, got (1, 2)"),
         r#"
         let (a, b, c) = (1, 2)
         "#
     }
 
     assert_raises! {
-        (2, "match failure"),
+        (2, "expected 3 arity tuple, got [1, 2, 3]"),
         r#"
         let (a, b, c) = [1, 2, 3]
         "#
@@ -370,7 +370,7 @@ fn test_tuple_unpacking() {
 
 #[test]
 fn test_dicts() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let k = "c"
 
@@ -392,7 +392,7 @@ fn test_dicts() {
 
 #[test]
 fn test_iterating_dict() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let d = {
             a: 1,
@@ -416,7 +416,7 @@ fn test_iterating_dict() {
 
 #[test]
 fn test_trailing_commas_in_literals() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let a1 = [1, 2, 3,]
         let a2 = [
@@ -440,7 +440,7 @@ fn test_trailing_commas_in_literals() {
 
 #[test]
 fn test_module_field_access() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         import Std/Enum
 
@@ -451,7 +451,7 @@ fn test_module_field_access() {
 
 #[test]
 fn test_modules_dont_overwrite_other_modules_globals() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         import Tests/NameConflictOne.conflict
         import Tests/NameConflictTwo
@@ -465,7 +465,7 @@ fn test_modules_dont_overwrite_other_modules_globals() {
 
 #[test]
 fn test_can_refer_to_module_with_short_name_in_same_file() {
-    assert_runs_both! {
+    assert_runs! {
         "TestCase/ShortName",
         r#"
         module TestCase/ShortName
@@ -477,7 +477,7 @@ fn test_can_refer_to_module_with_short_name_in_same_file() {
 
 #[test]
 fn test_module_imports_can_be_referred_to() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         import Tests/NameConflictOne
         import Tests/NameConflictTwo
@@ -490,7 +490,7 @@ fn test_module_imports_can_be_referred_to() {
 
 #[test]
 fn struct_from_current_file() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         module TestCase/Point
 
@@ -503,7 +503,7 @@ fn struct_from_current_file() {
 
 #[test]
 fn struct_from_imported_file() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         import Tests/Note
 
@@ -512,7 +512,7 @@ fn struct_from_imported_file() {
     };
 }
 
-#[ignore = "requires deeper changes to the compiler"]
+#[ignore = "requires compiler to output better errors"]
 #[test]
 fn struct_raises_if_a_missing_field_is_not_provided() {
     assert_raises! {
@@ -525,7 +525,7 @@ fn struct_raises_if_a_missing_field_is_not_provided() {
     };
 }
 
-#[ignore = "requires deeper changes to the compiler"]
+#[ignore = "requires compiler to output better errors"]
 #[test]
 fn struct_raises_if_an_unknown_field_is_provided() {
     assert_raises! {
@@ -544,7 +544,7 @@ fn struct_raises_if_an_unknown_field_is_provided() {
 
 #[test]
 fn struct_field_access() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         import Tests/Note
 
@@ -575,7 +575,7 @@ fn struct_field_access() {
 
 #[test]
 fn struct_defaults() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         module TestCase/Defaults
 
@@ -593,7 +593,7 @@ fn struct_defaults() {
 
 #[test]
 fn structs_implementing_iter() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         module TestCase/Repeat
 
@@ -625,7 +625,7 @@ fn structs_implementing_iter() {
 
 #[test]
 fn assigning_to_fields() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         module TestCase/Fields
 
@@ -645,7 +645,7 @@ fn assigning_to_fields() {
 
 #[test]
 fn empty_functions_return_nil() {
-    assert_runs_both! {
+    assert_runs! {
         r#"
         let f = fn() {}
         assert(f() == nil)

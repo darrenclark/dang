@@ -1,4 +1,4 @@
-use crate::{interpreter::Exception, module::Module, program::Program};
+use crate::{exception::Exception, module::Module, program::Program};
 
 use super::{CompilationState, Compiler};
 

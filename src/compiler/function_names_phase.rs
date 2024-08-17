@@ -1,6 +1,6 @@
 use crate::{
     ast::{AstWalker, Node, NodeKind},
-    interpreter::Exception,
+    exception::Exception,
     program::Program,
 };
 

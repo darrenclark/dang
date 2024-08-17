@@ -4,7 +4,7 @@ use ustr::Ustr;
 
 use crate::{
     ast::{AstWalker, ImportKind, Node, NodeId, NodeKind},
-    interpreter::{exception, Exception},
+    exception::{exception, Exception},
     module::ModuleName,
     program::Program,
     scope::{Scope, UpvalueSource, VariableAllocation, VariableLocation},

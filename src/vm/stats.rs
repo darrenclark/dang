@@ -67,6 +67,7 @@ pub struct InstructionTimer<'a> {
 }
 
 impl<'a> InstructionTimer<'a> {
+    #[allow(dead_code)]
     pub fn new(stats: &'a mut StatsCollector, op: OpCode) -> Self {
         Self {
             stats,

@@ -4,7 +4,7 @@ use ustr::Ustr;
 
 use crate::{
     ast::{BinOp, Node, NodeKind, UnaryOp},
-    interpreter::Exception,
+    exception::Exception,
     line_col::LineCol,
     module::ModuleName,
     native_funcs,
