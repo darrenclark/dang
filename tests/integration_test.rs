@@ -619,6 +619,12 @@ fn structs_implementing_iter() {
         }
 
         assert(result == "aaa")
+
+        result = ""
+        let it = iter(Repeat{element: "b", times: 2})
+        assert(it() == (some, "b"))
+        assert(it() == (some, "b"))
+        assert(it() == nil)
         "#
     }
 }

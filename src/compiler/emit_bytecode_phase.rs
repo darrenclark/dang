@@ -131,6 +131,12 @@ impl Emitter<'_> {
                 self.emit_set(node);
                 self.write(Instr::push_nil(), node);
             }
+            NodeKind::Builtin { identifier } if identifier.unwrap_identifier() == "iter" => {
+                let constant = self.iter_func_constant();
+                self.write(Instr::constant(constant), node);
+                self.emit_set(node);
+                self.write(Instr::push_nil(), node);
+            }
             NodeKind::Builtin { identifier } => {
                 let ptr = native_funcs::func(identifier.unwrap_identifier()).unwrap();
                 let constant = self.chunk.write_constant(Value::NativeFunc(ptr));
@@ -667,6 +673,14 @@ impl Emitter<'_> {
         chunk.write(Instr::return_(), LineCol::unknown());
 
         let function = Value::Function(Function::new(chunk, 0, Vec::new(), name.to_owned()));
+        self.chunk.write_constant(function)
+    }
+
+    fn iter_func_constant(&mut self) -> u8 {
+        let mut chunk = Chunk::new();
+        chunk.write(Instr::get_iter(), LineCol::unknown());
+        chunk.write(Instr::return_(), LineCol::unknown());
+        let function = Value::Function(Function::new(chunk, 1, Vec::new(), "iter".to_owned()));
         self.chunk.write_constant(function)
     }
 

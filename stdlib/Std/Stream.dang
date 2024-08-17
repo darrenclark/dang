@@ -29,7 +29,6 @@ let cycle = fn(ls) {
 
 /// Map a function over a stream
 let map = fn(iterable, f) {
-  // TODO: Fix iter(..) to lookup instrinsic or user defined iter
   let inner = Builtins.iter(iterable)
 
   let it = fn () {
@@ -48,7 +47,6 @@ let map = fn(iterable, f) {
 
 /// Map a function over a stream and flatten the result
 let flat_map = fn(iterable, f) {
-  // TODO: Fix iter(..) to lookup instrinsic or user defined iter
   let source = Builtins.iter(iterable)
 
   var current = nil
@@ -81,7 +79,7 @@ let _flat_map = fn (source, current, f) {
 
 /// Takes elements from a stream while the predicate returns true
 let take_while = fn(iterable, f) {
-  let inner = BUiltins.iter(iterable)
+  let inner = Builtins.iter(iterable)
 
   let it = fn () {
     let next = inner()

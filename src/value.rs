@@ -8,6 +8,7 @@ use escape8259::escape;
 use lazy_static::lazy_static;
 use pretty::termcolor::{Color, ColorSpec};
 use pretty::RcDoc;
+use ustr::ustr;
 use ustr::Ustr;
 
 use crate::ast::{BinOp, UnaryOp};
@@ -333,6 +334,28 @@ impl Value {
             )),
             _ => None,
         }
+    }
+
+    pub fn into_iter_function(self) -> Result<Value, Exception> {
+        let iter = self.into_iter();
+        if iter.is_none() {
+            exception!("not an iterable")
+        }
+        let mut iter = iter.unwrap();
+
+        let sym_item = Value::Symbol(ustr("item"));
+
+        let closure = Value::closure(move |args| {
+            if !args.is_empty() {
+                exception!("expected zero args to iterator function")
+            } else {
+                match iter.next() {
+                    Some(val) => Ok(Value::Tuple(vec![sym_item.clone(), val])),
+                    None => Ok(Value::Nil),
+                }
+            }
+        });
+        Ok(closure)
     }
 
     pub fn bin_op(op: BinOp, lhs: &Value, rhs: &Value) -> Result<Value, Exception> {

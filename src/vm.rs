@@ -12,7 +12,6 @@ use crate::{
     ast::{BinOp, UnaryOp},
     exception::{exception, Exception},
     module::ModuleName,
-    native_funcs,
     scope::UpvalueSource,
     value::Value,
 };
@@ -543,7 +542,7 @@ impl VM {
                             }
                         }
                         _ => {
-                            let iter = native_funcs::iter(&[obj])?;
+                            let iter = obj.into_iter_function()?;
                             self.stack.push(iter);
                         }
                     }

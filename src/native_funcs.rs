@@ -20,7 +20,6 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         // enumerables
         ("len", len),
         ("get", get),
-        ("iter", iter),
         // lists
         ("append", append),
         ("sort_impl", sort_impl),
@@ -96,7 +95,6 @@ fn readfile(args: &[Value]) -> Result<Value, Exception> {
         }
     }
 }
-
 fn inspect(args: &[Value]) -> Result<Value, Exception> {
     for v in args {
         v.to_doc()
@@ -134,33 +132,6 @@ fn get(args: &[Value]) -> Result<Value, Exception> {
         res = res.at(index)?;
     }
     Ok(res)
-}
-
-pub fn iter(args: &[Value]) -> Result<Value, Exception> {
-    if args.len() != 1 {
-        exception!("iter(enumerable) expected only a single arg")
-    }
-
-    let value = args[0].clone();
-    let iter = value.into_iter();
-    if iter.is_none() {
-        exception!("not an iterable")
-    }
-    let mut iter = iter.unwrap();
-
-    let sym_item = Value::Symbol(ustr("item"));
-
-    let closure = Value::closure(move |args| {
-        if !args.is_empty() {
-            exception!("expected zero args to iterator function")
-        } else {
-            match iter.next() {
-                Some(val) => Ok(Value::Tuple(vec![sym_item.clone(), val])),
-                None => Ok(Value::Nil),
-            }
-        }
-    });
-    Ok(closure)
 }
 
 fn append(args: &[Value]) -> Result<Value, Exception> {
