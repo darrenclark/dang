@@ -1,7 +1,10 @@
 module Std/Stream
 
 import Std/Builtins.some
+import Std/Builtins.is_tuple
 import Std/Builtins
+import Std/Builtins.inspect
+import Std/Builtins.println
 
 struct {
   _iter
@@ -33,7 +36,6 @@ let map = fn(iterable, f) {
 
   let it = fn () {
     let next = inner()
-    // TODO: implement is_tuple
     if is_tuple(next, 2) {
       let (_, x) = next
       (some, f(x))
@@ -52,7 +54,9 @@ let flat_map = fn(iterable, f) {
   var current = nil
 
   let it = fn () {
-    _flat_map(source, current, f)
+    let (new_current, res) = _flat_map(source, current, f)
+    current = new_current
+    res
   }
 
   Stream{_iter: it}
@@ -65,12 +69,12 @@ let _flat_map = fn (source, current, f) {
       let (_, x) = next_elem_from_source
       _flat_map(source, Builtins.iter(f(x)), f)
     } else {
-      nil
+      (nil, nil)
     }
   } else {
     let next_result_elem = current()
     if is_tuple(next_result_elem, 2) {
-      next_result_elem
+      (current, next_result_elem)
     } else {
       _flat_map(source, nil, f)
     }

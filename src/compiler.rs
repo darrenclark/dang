@@ -221,6 +221,9 @@ lazy_static! {
         ImportKind::Module {
             module_name: "Std/Set".to_owned()
         },
+        ImportKind::Module {
+            module_name: "Std/Stream".to_owned()
+        },
     ];
 }
 

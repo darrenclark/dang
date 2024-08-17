@@ -13,7 +13,7 @@ struct {
 
 
 var iter_state = 0
-let iter = fn (t) {
+let __iter__ = fn (t) {
   fn () {
     if iter_state == 0 {
       iter_state = 1
@@ -112,3 +112,35 @@ let tc = fn(n) {
 }
 
 tc(0)
+
+println("====")
+
+[1, 2, 3]
+|> Stream.map(fn (x) {
+  println(x, " * 2")
+  x * 2
+})
+|> Stream.map(fn (x) {
+  println(x, " + 5")
+  x + 5
+})
+|> to_list()
+|> inspect()
+
+[1, 2, 3]
+|> Stream.flat_map(fn (x) {
+  [x, x, x]
+})
+|> to_list()
+|> inspect()
+
+var si = 0
+
+Stream.cycle([1, 2, 3])
+|> Stream.take_while(fn (x) {
+  si = si + x
+
+  si < 1000
+})
+|> count()
+|> inspect()
