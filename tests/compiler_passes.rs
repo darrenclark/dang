@@ -5,7 +5,7 @@ use dang::{
     ast::NodeKind,
     compiler::{CompilationState, Compiler, Input, Phase},
     program::Program,
-    scope::VariableLocation,
+    scope::VariableAllocation,
     value::Value,
 };
 
@@ -68,17 +68,11 @@ fn resolve_function_variables() {
         .expect("couldn't find 'words'");
 
     let variable_loc = compilation_state
-        .variable_locations
+        .variable_allocations
         .get(&words_variable_ref.id)
         .expect("variable location not populated");
 
-    assert_matches!(
-        variable_loc,
-        VariableLocation::Closure {
-            name,
-            nth_parent: 2
-        } if *name == "words"
-    );
+    assert_matches!(variable_loc, VariableAllocation::Local { index: 0 });
 }
 
 /*#[test]

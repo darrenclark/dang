@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use lazy_static::lazy_static;
 use ustr::Ustr;
 
-use crate::{ast::NodeId, module::ModuleName};
+use crate::{ast::NodeId, compiler::variable::Variable, module::ModuleName};
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -104,16 +103,10 @@ impl Scope {
             .collect()
     }
 
-    pub fn into_exports(&self, module: ModuleName) -> HashMap<String, VariableLocation> {
+    pub fn into_exports(&self, _module: ModuleName) -> HashMap<String, Variable> {
         let mut res = HashMap::new();
-        for (name, _) in &self.definitions {
-            res.insert(
-                name.clone(),
-                VariableLocation::Global {
-                    module,
-                    name: Ustr::from(name),
-                },
-            );
+        for name in self.definitions.keys() {
+            res.insert(name.clone(), Variable {});
         }
         res
     }
@@ -137,42 +130,6 @@ impl Scope {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum VariableLocation {
-    Global { module: ModuleName, name: Ustr },
-    Closure { name: Ustr, nth_parent: usize },
-    Local { name: Ustr },
-}
-
-lazy_static! {
-    static ref LOCAL: Ustr = Ustr::from("");
-}
-
-impl VariableLocation {
-    pub fn get_name(&self) -> Ustr {
-        match self {
-            VariableLocation::Global { module: _, name } => *name,
-            VariableLocation::Closure {
-                name,
-                nth_parent: _,
-            } => *name,
-            VariableLocation::Local { name } => *name,
-        }
-    }
-
-    pub fn get_key(&self) -> (Ustr, Ustr) {
-        match self {
-            VariableLocation::Global { module, name } => (module.0, *name),
-            VariableLocation::Closure {
-                name,
-                nth_parent: _,
-            } => (*LOCAL, *name),
-            VariableLocation::Local { name } => (*LOCAL, *name),
-        }
-    }
-}
-
-/// VM equivalent of VariableLocation
 #[derive(Debug, Clone)]
 pub enum VariableAllocation {
     Global {

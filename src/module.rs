@@ -4,10 +4,7 @@ use std::collections::HashMap;
 use ustr::Ustr;
 
 use crate::{
-    ast::{Node, NodeId},
-    scope::VariableLocation,
-    struct_info::StructInfo,
-    value::Value,
+    ast::Node, compiler::variable::Variable, struct_info::StructInfo, value::Value,
     vm::function::Function,
 };
 
@@ -15,9 +12,8 @@ use crate::{
 pub struct Module {
     pub name: ModuleName,
     pub ast: Box<Node>,
-    pub exports: HashMap<String, VariableLocation>,
+    pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
-    pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub struct_info: Option<StructInfo>,
     pub function: Function,
 }

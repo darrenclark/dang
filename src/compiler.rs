@@ -14,6 +14,7 @@ pub mod struct_info_phase;
 mod tag_return_exprs_phase;
 pub mod tags;
 mod validate_struct_fields_phase;
+pub mod variable;
 
 use std::{
     collections::{HashMap, HashSet},
@@ -37,13 +38,14 @@ use struct_info_phase::struct_info_phase;
 use tag_return_exprs_phase::tag_return_exprs_phase;
 use tags::Tags;
 use validate_struct_fields_phase::validate_struct_fields_phase;
+use variable::Variable;
 
 use crate::{
     ast::{ImportKind, Node, NodeId},
     exception::Exception,
     module::ModuleName,
     program::Program,
-    scope::{UpvalueSource, VariableAllocation, VariableLocation},
+    scope::{UpvalueSource, VariableAllocation},
     struct_info::StructInfo,
     value::Value,
     vm::{chunk::Chunk, function::Function},
@@ -73,9 +75,8 @@ pub struct CompilationState {
     pub ast: Option<Node>,
     pub tags: Tags,
     pub imports: Vec<ResolvedImport>,
-    pub exports: HashMap<String, VariableLocation>,
+    pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
-    pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
     pub closed_over_variables: HashSet<NodeId>,
     pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
@@ -100,7 +101,6 @@ impl CompilationState {
             imports: Vec::new(),
             exports: HashMap::new(),
             constants: HashMap::new(),
-            variable_locations: HashMap::new(),
             variable_allocations: HashMap::new(),
             closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),

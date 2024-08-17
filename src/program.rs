@@ -1,10 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{
-    ast::Node,
-    module::{Module, ModuleName},
-    scope::VariableLocation,
-};
+use crate::module::{Module, ModuleName};
 
 /// Represents compile time info about a program.
 ///
@@ -38,20 +34,5 @@ impl Program {
         }
 
         self.modules.push((name, Rc::new(module)));
-    }
-
-    pub fn variable_location(&self, node: &Node) -> VariableLocation {
-        match self
-            .get_module(&node.id.module())
-            .expect("expected module loaded")
-            .variable_locations
-            .get(&node.id)
-        {
-            Some(l) => l.clone(),
-            None => panic!(
-                "variable location not found for node at {}: {:?}",
-                node.source, node
-            ),
-        }
     }
 }

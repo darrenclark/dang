@@ -7,11 +7,11 @@ use crate::{
     exception::{exception, Exception},
     module::ModuleName,
     program::Program,
-    scope::{Scope, UpvalueSource, VariableAllocation, VariableLocation},
+    scope::{Scope, UpvalueSource, VariableAllocation},
     value::Value,
 };
 
-use super::{CompilationState, Compiler};
+use super::{variable::Variable, CompilationState, Compiler};
 
 #[derive(Debug)]
 pub struct ModuleReference {
@@ -23,9 +23,8 @@ pub fn resolve_variables_phase(
     compilation_state: &mut CompilationState,
     program: &mut Program,
 ) -> Result<(), Exception> {
-    let variable_locations: HashMap<NodeId, VariableLocation>;
     let variable_allocations: HashMap<NodeId, VariableAllocation>;
-    let exports: HashMap<String, VariableLocation>;
+    let exports: HashMap<String, Variable>;
     let constants: HashMap<String, Value>;
     let closed_over_variables: HashSet<NodeId>;
     let function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>;
@@ -37,7 +36,6 @@ pub fn resolve_variables_phase(
             exception!("unable to resolve all variables")
         }
 
-        variable_locations = phase.variable_locations;
         variable_allocations = phase.variable_allocations;
         exports = phase.exports;
         constants = phase.constants;
@@ -45,9 +43,6 @@ pub fn resolve_variables_phase(
         function_upvalues = phase.function_upvalues;
     }
 
-    compilation_state
-        .variable_locations
-        .clone_from(&variable_locations);
     compilation_state
         .variable_allocations
         .clone_from(&variable_allocations);
@@ -66,9 +61,8 @@ pub fn resolve_variables_phase(
 pub struct ResolveVariablesPhase<'a> {
     program: &'a mut Program,
     compilation_state: &'a mut CompilationState,
-    pub exports: HashMap<String, VariableLocation>,
+    pub exports: HashMap<String, Variable>,
     pub constants: HashMap<String, Value>,
-    pub variable_locations: HashMap<NodeId, VariableLocation>,
     pub variable_allocations: HashMap<NodeId, VariableAllocation>,
     pub closed_over_variables: HashSet<NodeId>,
     pub function_upvalues: HashMap<NodeId, Vec<UpvalueSource>>,
@@ -86,7 +80,6 @@ impl<'a> ResolveVariablesPhase<'a> {
             compilation_state,
             exports: HashMap::new(),
             constants: HashMap::new(),
-            variable_locations: HashMap::new(),
             variable_allocations: HashMap::new(),
             closed_over_variables: HashSet::new(),
             function_upvalues: HashMap::new(),
@@ -124,7 +117,7 @@ impl<'a> ResolveVariablesPhase<'a> {
         self.scopes_stack.len() <= 1
     }
 
-    fn define(&mut self, name: &str, node: &Node) -> Result<VariableLocation, ()> {
+    fn define(&mut self, name: &str, node: &Node) -> Result<(), ()> {
         let scope = self.scopes_stack.last_mut().unwrap();
 
         if scope.is_defined(name) {
@@ -137,17 +130,6 @@ impl<'a> ResolveVariablesPhase<'a> {
             scope.define(name, node.id);
             let index = scope.get_index(name).unwrap();
 
-            let location = if self.is_global_scope() {
-                VariableLocation::Global {
-                    module: self.compilation_state.module_name,
-                    name: name.into(),
-                }
-            } else {
-                VariableLocation::Local { name: name.into() }
-            };
-
-            self.variable_locations.insert(node.id, location.clone());
-
             let allocation = if self.is_global_scope() {
                 VariableAllocation::Global {
                     module: self.compilation_state.module_name,
@@ -158,7 +140,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             };
             self.variable_allocations.insert(node.id, allocation);
 
-            Ok(location)
+            Ok(())
         }
     }
 
@@ -172,7 +154,7 @@ impl<'a> ResolveVariablesPhase<'a> {
         }
     }
 
-    fn lookup(&mut self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
+    fn lookup(&mut self, name: &str) -> Option<VariableAllocation> {
         self.scopes_stack
             .clone()
             .iter()
@@ -181,27 +163,17 @@ impl<'a> ResolveVariablesPhase<'a> {
             .find_map(|(i, s)| {
                 if let Some(node_id) = s.get_node_id(name) {
                     if i >= self.scopes_stack.len() - 1 {
-                        let location = VariableLocation::Global {
-                            module: self.compilation_state.module_name,
-                            name: name.into(),
-                        };
                         let allocation = VariableAllocation::Global {
                             module: self.compilation_state.module_name,
                             name: name.into(),
                         };
-                        Some((location, allocation))
+                        Some(allocation)
                     } else if i == 0 {
-                        let location = VariableLocation::Local { name: name.into() };
                         let allocation = VariableAllocation::Local {
                             index: s.get_index(name).unwrap(),
                         };
-                        Some((location, allocation))
+                        Some(allocation)
                     } else {
-                        let location = VariableLocation::Closure {
-                            name: name.into(),
-                            nth_parent: i,
-                        };
-
                         let mut function_depth = 0;
                         let mut current_func = self.scopes_stack.last().unwrap().get_function();
                         for s in self.scopes_stack.iter().rev().take(i + 1) {
@@ -236,7 +208,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                             self.closed_over_variables.insert(node_id);
                         }
 
-                        Some((location, allocation))
+                        Some(allocation)
                     }
                 } else {
                     None
@@ -256,7 +228,7 @@ impl<'a> ResolveVariablesPhase<'a> {
             .get_or_allocate_upvalue(node_id, source)
     }
 
-    fn lookup_imported(&self, name: &str) -> Option<(VariableLocation, VariableAllocation)> {
+    fn lookup_imported(&self, name: &str) -> Option<VariableAllocation> {
         for resolved_import in &self.compilation_state.imports {
             match &resolved_import.kind {
                 super::ResolvedImportKind::Module => {
@@ -275,15 +247,11 @@ impl<'a> ResolveVariablesPhase<'a> {
                         {
                             None => panic!("importing by field name, but field does not exist"),
                             Some(_) => {
-                                let location = VariableLocation::Global {
-                                    module: resolved_import.module_name,
-                                    name: name.into(),
-                                };
                                 let allocation = VariableAllocation::Global {
                                     module: resolved_import.module_name,
                                     name: name.into(),
                                 };
-                                return Some((location, allocation));
+                                return Some(allocation);
                             }
                         }
                     }
@@ -294,15 +262,11 @@ impl<'a> ResolveVariablesPhase<'a> {
                         .get_module(&resolved_import.module_name)
                         .unwrap();
                     if module.exports.contains_key(name) {
-                        let location = VariableLocation::Global {
-                            module: resolved_import.module_name,
-                            name: name.into(),
-                        };
                         let allocation = VariableAllocation::Global {
                             module: resolved_import.module_name,
                             name: name.into(),
                         };
-                        return Some((location, allocation));
+                        return Some(allocation);
                     }
                 }
             }
@@ -313,8 +277,7 @@ impl<'a> ResolveVariablesPhase<'a> {
 
     fn resolve_variable(&mut self, node: &Node, name: &str) {
         match self.lookup(name) {
-            Some((location, allocaction)) => {
-                self.variable_locations.insert(node.id, location);
+            Some(allocaction) => {
                 self.variable_allocations.insert(node.id, allocaction);
 
                 if self.constants.contains_key(name) {
@@ -337,18 +300,18 @@ impl<'a> ResolveVariablesPhase<'a> {
             match &node.kind {
                 NodeKind::Builtin { identifier } => {
                     let res = self.define(identifier.unwrap_identifier(), node);
-                    if let Ok(location) = res {
+                    if let Ok(()) = res {
                         self.exports
-                            .insert(identifier.unwrap_identifier().to_owned(), location);
+                            .insert(identifier.unwrap_identifier().to_owned(), Variable {});
                     }
                 }
                 NodeKind::Var { pattern, .. } | NodeKind::Let { pattern, .. } => {
                     for node in pattern.iter() {
                         if let NodeKind::PatternIdentifier { identifier } = &node.kind {
                             let res = self.define(identifier.unwrap_identifier(), node);
-                            if let Ok(location) = res {
+                            if let Ok(()) = res {
                                 self.exports
-                                    .insert(identifier.unwrap_identifier().to_owned(), location);
+                                    .insert(identifier.unwrap_identifier().to_owned(), Variable {});
                             }
                         }
                     }

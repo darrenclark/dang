@@ -12,7 +12,6 @@ pub fn finish_phase(
         ast: Box::new(compilation_state.ast().clone()),
         exports: compilation_state.exports.clone(),
         constants: compilation_state.constants.clone(),
-        variable_locations: compilation_state.variable_locations.clone(),
         struct_info: compilation_state.struct_info.clone(),
         function: compilation_state.function.clone(),
     };
