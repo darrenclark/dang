@@ -232,6 +232,37 @@ fn test_upvalues_more_than_two_functions_deep() {
 }
 
 #[test]
+fn test_capturing_loop_variables() {
+    assert_runs! {
+        r#"
+        var funcs = []
+        for i in [1, 2, 3] {
+            funcs = funcs + [fn() { i }]
+        }
+        let results = []
+        for f in funcs {
+            results = results + [f()]
+        }
+        assert(results == [1, 2, 3])
+        "#
+    };
+
+    assert_runs! {
+        r#"
+        var funcs = []
+        for (_, i) in [(nil, 1), (nil, 2), (nil, 3)] {
+            funcs = funcs + [fn() { i }]
+        }
+        let results = []
+        for f in funcs {
+            results = results + [f()]
+        }
+        assert(results == [1, 2, 3])
+        "#
+    };
+}
+
+#[test]
 fn test_variable_hoisting_at_root() {
     assert_raises! {
         (3, "Global not found: (u!(\"(run)\"), u!(\"i\"))"),

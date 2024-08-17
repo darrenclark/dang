@@ -504,21 +504,24 @@ impl Emitter<'_> {
 
                 // loop body
                 self.emit(body);
-                self.write(Instr::pop(), node); // to pop result of body
 
-                // loop back to top - pop local var + any pattern locals off the stack first
+                // pop local var & any pattern locals off the stack
+                let mut locals_to_pop = 1;
                 if is_complex_pattern {
-                    for _ in 0..pattern_locals {
-                        self.write(Instr::pop(), node);
-                    }
+                    locals_to_pop += pattern_locals;
                 }
+                self.write(Instr::pop_locals(locals_to_pop), node);
+
+                // pop result of body (preserved by pop_locals)
                 self.write(Instr::pop(), node);
+
+                // finally loop back to start
                 self.chunk
                     .write_jump_back(loop_start, node.source.end.clone());
 
                 self.chunk.patch_jump(loop_exit_branch);
 
-                // pop local var & iterator
+                // pop local var slot (always nil here) & iterator
                 self.write(Instr::pop(), node);
                 self.write(Instr::pop(), node);
                 // all for loops evaluate to nil

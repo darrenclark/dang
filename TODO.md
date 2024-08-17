@@ -2,9 +2,6 @@
 
 ## VM
 
-- Closures
-    - closing upvalues in loops (need to implement something like OP_CLOSE_UPVALUE)
-
 - Mutate in-place instructions (faster arrays)
 
 - Improve error handling in compiler, phases shouldn't need to error with an Exception
