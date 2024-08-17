@@ -20,6 +20,6 @@ let range = fn(begin, end) {
   Range{begin: begin, end: end}
 }
 
-let iter = fn(range) {
+let __iter__ = fn(range) {
   _range_iter(range.begin, range.end, range.step)
 }

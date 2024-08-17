@@ -83,7 +83,7 @@ let neighbor_coords = fn(grid, x, y) {
 
 /// Returns iterator yielding (x, y, cell) for each cell
 /// Iteration goes row by row
-let iter = fn(grid) {
+let __iter__ = fn(grid) {
   var x = 0
   var y = 0
 

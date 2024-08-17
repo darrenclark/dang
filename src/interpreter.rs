@@ -310,7 +310,7 @@ impl Interpreter {
                 } else if let Value::Struct(module_name, _) = val {
                     (|| {
                         let iter_module_func =
-                            match self.module_field_access(module_name.0.as_ref(), "iter") {
+                            match self.module_field_access(module_name.0.as_ref(), "__iter__") {
                                 Ok(Value::Func(func)) => func,
                                 _ => exception!("value is not iterable: {:?}", val),
                             };

@@ -535,7 +535,7 @@ impl VM {
                     let obj = self.stack.pop().unwrap();
                     match &obj {
                         Value::Struct(module_name, _) => {
-                            let key = (module_name.0, Ustr::from("iter"));
+                            let key = (module_name.0, Ustr::from("__iter__"));
                             if let Some(iter) = self.globals.get(&key) {
                                 self.call(iter.clone(), vec![obj])?;
                             } else {

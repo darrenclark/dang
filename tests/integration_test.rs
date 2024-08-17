@@ -602,7 +602,7 @@ fn structs_implementing_iter() {
             times,
         }
 
-        let iter = fn (repeat) {
+        let __iter__ = fn (repeat) {
             var i = 0
 
             fn () {
