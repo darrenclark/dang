@@ -40,6 +40,11 @@ fn test_string_functions() {
 
         assert(str_rfind("hahaha", "ha") == 4)
         assert(str_rfind("hahaha", "404") == nil)
+
+        assert(str_starts_with?("hello world", "hello"))
+        assert(!str_starts_with?("hello world", "hi"))
+        assert(str_ends_with?("hello world", "world"))
+        assert(!str_ends_with?("hello world", "earth"))
         "#
     };
 }
@@ -710,4 +715,22 @@ fn fix_stack_out_of_bounds() {
         count_list([1, 2, 3])
         "#
     }
+}
+
+#[test]
+fn math() {
+    assert_runs! {
+        r#"
+        assert(Math.lcm(4, 6) == 12)
+        assert(Math.gcd(4, 6) == 2)
+        assert(Math.rem(8, 3) == 2)
+        "#
+    };
+
+    assert_raises! {
+        (3, "rem: division by zero"),
+        r#"
+        Math.rem(5, 0)
+        "#
+    };
 }

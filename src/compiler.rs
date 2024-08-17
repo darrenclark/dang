@@ -224,6 +224,9 @@ lazy_static! {
         ImportKind::Module {
             module_name: "Std/Stream".to_owned()
         },
+        ImportKind::Module {
+            module_name: "Std/Math".to_owned()
+        },
     ];
 }
 

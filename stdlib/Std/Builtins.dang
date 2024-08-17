@@ -16,6 +16,8 @@ __builtin str_replace
 __builtin str_reverse
 __builtin str_find
 __builtin str_rfind
+__builtin str_starts_with?
+__builtin str_ends_with?
 __builtin regex_match
 __builtin regex_find
 __builtin regex_find_index

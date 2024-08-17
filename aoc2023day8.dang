@@ -20,7 +20,19 @@ let parse = fn(input) {
 }
 
 let part1 = fn(parsed) {
-  var node = "AAA"
+  count_until(parsed, "AAA", fn (n) { n == "ZZZ" })
+}
+
+let part2 = fn(parsed) {
+  parsed.nodes
+  |> filter(fn (kv) { str_ends_with?(kv[0], "A") })
+  |> map(fn (kv) { kv[0] })
+  |> map(fn (start) { count_until(parsed, start, fn (n) { str_ends_with?(n, "Z") }) })
+  |> fold(Math.lcm)
+}
+
+let count_until = fn(parsed, start, predicate) {
+  var node = start
 
   let c =
     parsed.instructions
@@ -34,15 +46,11 @@ let part1 = fn(parsed) {
 
       node
     })
-    |> Stream.take_until(fn (n) { n == "ZZZ" })
+    |> Stream.take_until(predicate)
     |> count()
 
   // +1 since take_while exits before counting the last step
   c + 1
-}
-
-let part2 = fn(parsed) {
-  ""
 }
 
 

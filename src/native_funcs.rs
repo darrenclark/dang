@@ -31,6 +31,8 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("str_reverse", str_reverse),
         ("str_find", str_find),
         ("str_rfind", str_rfind),
+        ("str_starts_with?", str_starts_with),
+        ("str_ends_with?", str_ends_with),
         // regex
         ("regex_match", regex_match),
         ("regex_find", regex_find),
@@ -55,6 +57,8 @@ pub fn funcs() -> Vec<(&'static str, NativeFuncPtr)> {
         ("raise", raise),
         // functions implemented in Rust for performance reasons
         ("_range_iter", _range_iter),
+        // Math
+        ("rem", rem),
     ]
 }
 
@@ -285,6 +289,36 @@ fn str_rfind(args: &[Value]) -> Result<Value, Exception> {
     Ok(res)
 }
 
+fn str_starts_with(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("str_starts_with?(string, prefix) expected two args")
+    }
+    let string = match &args[0] {
+        Value::String(s) => s.as_str(),
+        _ => exception!("expected string at arg 0"),
+    };
+    let prefix = match &args[1] {
+        Value::String(s) => s.as_str(),
+        _ => exception!("expected string at arg 1"),
+    };
+    Ok(string.starts_with(prefix).into())
+}
+
+fn str_ends_with(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("str_ends_with?(string, suffix) expected two args")
+    }
+    let string = match &args[0] {
+        Value::String(s) => s.as_str(),
+        _ => exception!("expected string at arg 0"),
+    };
+    let suffix = match &args[1] {
+        Value::String(s) => s.as_str(),
+        _ => exception!("expected string at arg 1"),
+    };
+    Ok(string.ends_with(suffix).into())
+}
+
 fn regex_match(args: &[Value]) -> Result<Value, Exception> {
     let (string, pattern) = match args {
         [Value::String(string), Value::String(pattern)] => (string, pattern),
@@ -453,4 +487,24 @@ fn _range_iter(args: &[Value]) -> Result<Value, Exception> {
     });
 
     Ok(iter)
+}
+
+fn rem(args: &[Value]) -> Result<Value, Exception> {
+    if args.len() != 2 {
+        exception!("rem(a, b) expected two args")
+    }
+    let a = match &args[0] {
+        Value::Integer(i) => *i,
+        _ => exception!("expected int at arg 0"),
+    };
+    let b = match &args[1] {
+        Value::Integer(i) => *i,
+        _ => exception!("expected int at arg 1"),
+    };
+
+    if b == 0 {
+        exception!("rem: division by zero")
+    }
+
+    Ok((a % b).into())
 }

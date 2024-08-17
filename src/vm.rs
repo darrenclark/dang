@@ -541,6 +541,18 @@ impl VM {
                                 exception!("struct `{}` doesn't implement iter", module_name);
                             }
                         }
+                        Value::NativeFunc(_) | Value::NativeClosure(_) => {
+                            // TODO: figure out how to check arity of native functions
+                            self.stack.push(obj);
+                        }
+                        Value::Function(f) if f.arity() == 0 => {
+                            // already (likely) an iterator
+                            self.stack.push(obj);
+                        }
+                        Value::Closure(c) if c.function().arity() == 0 => {
+                            // already (likely) an iterator
+                            self.stack.push(obj);
+                        }
                         _ => {
                             let iter = obj.into_iter_function()?;
                             self.stack.push(iter);

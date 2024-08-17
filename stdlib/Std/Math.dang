@@ -1,0 +1,18 @@
+module Std/Math
+
+/// rem(a, b) - remainder of dividing a by b
+__builtin rem
+
+/// Greatest common divisor of two integers
+let gcd = fn(a, b) {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, rem(a, b))
+    }
+}
+
+/// Least common multiple
+let lcm = fn(a, b) {
+    a * b / gcd(a, b)
+}

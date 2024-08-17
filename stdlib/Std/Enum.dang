@@ -36,6 +36,22 @@ let reduce = fn(enum, acc, func) {
   result
 }
 
+/// Reduce without an initial value
+let fold = fn(enum, func) {
+  let it = iter(enum)
+
+  let n = it()
+  var acc = nil
+  if is_tuple(n, 2) {
+    let (_, e) = n
+    acc = e
+  } else {
+    raise("fold requires at least one element")
+  }
+
+  reduce(it, acc, func)
+}
+
 let filter = fn(enum, func) {
   var result = []
   for x in enum {
