@@ -240,12 +240,16 @@ impl ToAst {
             }
             Rule::pattern_identifier => {
                 let identifier = self.to_ast(pair.into_inner().next().unwrap()).unwrap();
-                self.new_node(
-                    loc,
-                    NodeKind::PatternIdentifier {
-                        identifier: Box::new(identifier),
-                    },
-                )
+                if identifier.unwrap_identifier() == "_" {
+                    self.new_node(loc, NodeKind::PatternWildcard)
+                } else {
+                    self.new_node(
+                        loc,
+                        NodeKind::PatternIdentifier {
+                            identifier: Box::new(identifier),
+                        },
+                    )
+                }
             }
             Rule::pattern_tuple => {
                 let elements: Vec<Node> =

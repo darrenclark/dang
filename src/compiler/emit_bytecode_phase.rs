@@ -572,6 +572,7 @@ impl Emitter<'_> {
             NodeKind::PatternTuple { elements } => {
                 elements.iter().map(|e| self.count_pattern_locals(e)).sum()
             }
+            NodeKind::PatternWildcard => 0,
             _ => unreachable!(),
         }
     }
@@ -592,6 +593,9 @@ impl Emitter<'_> {
                 elements.iter().rev().for_each(|element| {
                     self.emit_assignment_pattern(element);
                 });
+            }
+            NodeKind::PatternWildcard => {
+                self.write(Instr::pop(), pattern);
             }
             _ => todo!(),
         }

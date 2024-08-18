@@ -40,7 +40,6 @@ Higher priority:
     - etc.
 - Lightweight way to write tests - maybe `test "some test case" {` blocks?
 
-- `_` pattern matching
 - `zip` function
 
 Lower priority:

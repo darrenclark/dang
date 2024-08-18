@@ -452,6 +452,16 @@ fn test_tuple_unpacking() {
 }
 
 #[test]
+fn test_wildcards_in_patterns() {
+    assert_runs! {
+        r#"
+        let (_, _, c) = (1, 2, 3)
+        assert(c == 3)
+        "#
+    };
+}
+
+#[test]
 fn test_dicts() {
     assert_runs! {
         r#"
