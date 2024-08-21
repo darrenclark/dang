@@ -6,8 +6,6 @@
 
 - Improve error handling in compiler, phases shouldn't need to error with an Exception
 
-- `Module.field = "xyz"` assignment
-
 - Compile time checking of `Module.field` syntax - ensure `.field` actually exists
 
 - Less PushNil, Pop instructions
