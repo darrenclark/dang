@@ -111,6 +111,10 @@ impl Value {
         Value::String(Rc::new(s.into()))
     }
 
+    pub fn list(list: Vec<Value>) -> Self {
+        Value::List(Rc::new(list))
+    }
+
     pub fn dict(map: BTreeMap<Value, Value>) -> Self {
         Value::Dict(Rc::new(map))
     }
