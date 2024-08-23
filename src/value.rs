@@ -471,7 +471,14 @@ impl Value {
     pub fn to_doc(&self) -> RcDoc<ColorSpec> {
         match self {
             Value::Nil => RcDoc::text("nil").annotate((*PRETTY_KEYWORD).clone()),
-            Value::Symbol(s) => RcDoc::text(format!(":{}", s)).annotate((*PRETTY_SYMBOL).clone()),
+            Value::Symbol(s) => {
+                if Self::symbol_needs_escape_for_printing(s) {
+                    RcDoc::text(format!(":\"{}\"", escape(s.as_str())))
+                        .annotate((*PRETTY_SYMBOL).clone())
+                } else {
+                    RcDoc::text(format!(":{}", s)).annotate((*PRETTY_SYMBOL).clone())
+                }
+            }
             Value::Bool(true) => RcDoc::text("true").annotate((*PRETTY_KEYWORD).clone()),
             Value::Bool(false) => RcDoc::text("false").annotate((*PRETTY_KEYWORD).clone()),
             Value::String(s) => RcDoc::text(format!("\"{}\"", escape(s.as_ref())))
@@ -551,6 +558,33 @@ impl Value {
                     .append(RcDoc::text("}")),
             ),
         }
+    }
+
+    fn symbol_needs_escape_for_printing(s: &str) -> bool {
+        if s.is_empty() {
+            return true;
+        }
+
+        let first = s.chars().next().unwrap();
+        if !first.is_ascii_alphanumeric() {
+            return true;
+        }
+
+        let last = s.chars().last().unwrap();
+        if !last.is_ascii_alphanumeric() && last != '_' && last != '?' && last != '!' {
+            return true;
+        }
+
+        if s.len() > 1
+            && s.chars()
+                .skip(1)
+                .take(s.len() - 2)
+                .any(|c| !c.is_ascii_alphanumeric() && c != '_')
+        {
+            return true;
+        }
+
+        false
     }
 
     pub fn to_pretty(&self) -> String {

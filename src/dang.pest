@@ -120,7 +120,8 @@ term = {
     nil_literal |
     bool_literal |
     string_literal |
-    number_literal ) ~ (subscript | field_access | call)*
+    number_literal |
+    symbol_literal ) ~ (subscript | field_access | call)*
 }
 
 variable_ref = { identifier }
@@ -195,3 +196,5 @@ number_literal = @{
 
 nil_literal = { "nil" }
 bool_literal = { "true" | "false" }
+
+symbol_literal = ${ ":" ~ (identifier | string_literal) }

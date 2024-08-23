@@ -50,6 +50,18 @@ fn test_string_functions() {
 }
 
 #[test]
+fn test_symbol_literals() {
+    assert_runs! {
+        r#"
+        assert(:hello == symbol("hello"))
+        assert(:hello_world == symbol("hello_world"))
+        assert(:hello_world? == symbol("hello_world?"))
+        assert(:"hello world #@$" == symbol("hello world #@$"))
+        "#
+    };
+}
+
+#[test]
 fn test_for_iteration() {
     assert_runs! {
         r#"

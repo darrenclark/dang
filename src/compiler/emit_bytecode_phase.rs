@@ -167,6 +167,10 @@ impl Emitter<'_> {
                 let constant = self.chunk.write_constant(Value::Integer(*int));
                 self.write(Instr::constant(constant), node);
             }
+            NodeKind::SymbolLiteral(ustr) => {
+                let constant = self.chunk.write_constant(Value::Symbol(*ustr));
+                self.write(Instr::constant(constant), node);
+            }
             NodeKind::VariableRef { .. } => {
                 self.emit_get(node);
             }

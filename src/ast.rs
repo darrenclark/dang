@@ -214,6 +214,7 @@ pub enum NodeKind {
     BoolLiteral(bool),
     StringLiteral(String),
     IntegerLiteral(i64),
+    SymbolLiteral(Ustr),
     BinaryOp {
         op: BinOp,
         lhs: Box<Node>,
@@ -444,6 +445,7 @@ impl Node {
             NodeKind::BoolLiteral(_) => None,
             NodeKind::StringLiteral(_) => None,
             NodeKind::IntegerLiteral(_) => None,
+            NodeKind::SymbolLiteral(_) => None,
             NodeKind::BinaryOp { op: _, lhs, rhs } => match index {
                 0 => Some(lhs.as_ref()),
                 1 => Some(rhs.as_ref()),
@@ -665,6 +667,7 @@ impl Node {
             NodeKind::BoolLiteral(_) => None,
             NodeKind::StringLiteral(_) => None,
             NodeKind::IntegerLiteral(_) => None,
+            NodeKind::SymbolLiteral(_) => None,
             NodeKind::BinaryOp { op: _, lhs, rhs } => match index {
                 0 => Some(lhs.as_mut()),
                 1 => Some(rhs.as_mut()),
@@ -940,6 +943,9 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
         NodeKind::IntegerLiteral(value) => {
             writeln!(f, "IntegerLiteral({})", value)?;
+        }
+        NodeKind::SymbolLiteral(value) => {
+            writeln!(f, "SymbolLiteral({})", value)?;
         }
         NodeKind::BinaryOp { op, lhs, rhs } => {
             writeln!(f, "BinaryOp({:?}):", op)?;

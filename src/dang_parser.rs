@@ -542,6 +542,21 @@ impl ToAst {
                 NodeKind::BoolLiteral(pair.as_str().parse::<bool>().unwrap()),
             ),
             Rule::nil_literal => self.new_node(loc, NodeKind::NilLiteral),
+            Rule::symbol_literal => {
+                let contents = pair.into_inner().next().unwrap();
+                match contents.as_rule() {
+                    Rule::identifier => {
+                        let string = contents.as_str().to_owned();
+                        self.new_node(loc, NodeKind::SymbolLiteral(string.into()))
+                    }
+                    Rule::string_literal => {
+                        let string =
+                            unescape(contents.into_inner().next().unwrap().as_str()).unwrap();
+                        self.new_node(loc, NodeKind::SymbolLiteral(string.into()))
+                    }
+                    _ => unreachable!(),
+                }
+            }
             rule => todo!("implement {:?}", rule),
         }
     }
