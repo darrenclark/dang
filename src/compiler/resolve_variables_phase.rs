@@ -9,6 +9,7 @@ use crate::{
     program::Program,
     scope::Scope,
     value::Value,
+    vm::pattern::Pattern,
 };
 
 use super::{
@@ -19,6 +20,12 @@ use super::{
 #[derive(Debug)]
 pub struct ModuleReference {
     pub module_name: ModuleName,
+}
+
+#[derive(Debug)]
+pub struct PatternInfo {
+    pub pattern: Pattern,
+    pub are_globals: bool,
 }
 
 pub fn resolve_variables_phase(
@@ -340,7 +347,7 @@ impl<'a> ResolveVariablesPhase<'a> {
                     }
                 }
                 NodeKind::Var { pattern, .. } | NodeKind::Let { pattern, .. } => {
-                    for node in pattern.iter() {
+                    for node in Pattern::variable_nodes_iter(pattern) {
                         if let NodeKind::PatternIdentifier { identifier } = &node.kind {
                             let res = self.define(identifier.unwrap_identifier(), node);
                             if let Ok(()) = res {
@@ -351,6 +358,16 @@ impl<'a> ResolveVariablesPhase<'a> {
                             }
                         }
                     }
+
+                    if Pattern::is_complex_pattern(pattern) {
+                        self.compilation_state.tags.insert(
+                            pattern.id,
+                            PatternInfo {
+                                pattern: Pattern::from_ast(pattern),
+                                are_globals: true,
+                            },
+                        );
+                    }
                 }
                 _ => {}
             }
@@ -358,18 +375,38 @@ impl<'a> ResolveVariablesPhase<'a> {
     }
 
     fn define_all_in_pattern(&mut self, pattern: &Node) {
-        for node in pattern.iter() {
+        for node in Pattern::variable_nodes_iter(pattern) {
             if let NodeKind::PatternIdentifier { identifier } = &node.kind {
                 let _ = self.define(identifier.unwrap_identifier(), node);
             }
         }
+
+        if Pattern::is_complex_pattern(pattern) {
+            self.compilation_state.tags.insert(
+                pattern.id,
+                PatternInfo {
+                    pattern: Pattern::from_ast(pattern),
+                    are_globals: false,
+                },
+            );
+        }
     }
 
     fn resolve_all_in_pattern(&mut self, pattern: &Node) {
-        for node in pattern.iter() {
+        for node in Pattern::variable_nodes_iter(pattern) {
             if let NodeKind::PatternIdentifier { identifier } = &node.kind {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }
+        }
+
+        if Pattern::is_complex_pattern(pattern) {
+            self.compilation_state.tags.insert(
+                pattern.id,
+                PatternInfo {
+                    pattern: Pattern::from_ast(pattern),
+                    are_globals: false,
+                },
+            );
         }
     }
 }
@@ -415,14 +452,6 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
                     node.id,
                     VariableRef::new(VariableAllocation::Local { index: iter_index }),
                 );
-
-                let is_complex_pattern =
-                    !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
-
-                if is_complex_pattern {
-                    // need to allocate a second anonymous local to hold the iterator value
-                    self.current_scope_mut().allocate_anonymous_local();
-                }
 
                 self.define_all_in_pattern(pattern);
             }

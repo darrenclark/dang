@@ -113,6 +113,9 @@ pub enum OpCode {
     ForIter,
     /// UnpackTuple(arity) -1 +arity - unpacks a tuple, popping it & pushing each element
     UnpackTuple,
+    /// Match(pattern) -1 +x - matches value at top of stack against pattern & pushes all bindings
+    /// on to the stack
+    Match,
 }
 
 impl Instr {
@@ -294,6 +297,10 @@ impl Instr {
 
     pub fn unpack_tuple(arity: usize) -> Self {
         Self::new(OpCode::UnpackTuple, arity as u8, 0, 0)
+    }
+
+    pub fn match_(pattern_index: u8) -> Self {
+        Self::new(OpCode::Match, pattern_index, 0, 0)
     }
 
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {

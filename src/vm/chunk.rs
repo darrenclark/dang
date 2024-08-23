@@ -1,11 +1,12 @@
 use crate::{line_col::LineCol, value::Value};
 
-use super::inst::Instr;
+use super::{inst::Instr, pattern::Pattern};
 
 #[derive(Debug, Clone, Default)]
 pub struct Chunk {
     pub code: Vec<Instr>,
     pub constants: Vec<Value>,
+    pub patterns: Vec<Pattern>,
     pub source_file: String,
     pub source_locs: Vec<LineCol>,
 }
@@ -30,6 +31,11 @@ impl Chunk {
 
         self.constants.push(value);
         (self.constants.len() - 1) as u8
+    }
+
+    pub fn write_pattern(&mut self, pattern: Pattern) -> u8 {
+        self.patterns.push(pattern);
+        (self.patterns.len() - 1) as u8
     }
 
     pub fn patch_jump(&mut self, jump_instr_offset: usize) {

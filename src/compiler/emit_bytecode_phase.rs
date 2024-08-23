@@ -11,13 +11,13 @@ use crate::{
     program::Program,
     scope::Scope,
     value::Value,
-    vm::{chunk::Chunk, function::Function, inst::Instr},
+    vm::{chunk::Chunk, function::Function, inst::Instr, pattern::Pattern},
 };
 
 use super::{
     function_names_phase::FunctionName,
     resolve_structs_phase::ReferencedStruct,
-    resolve_variables_phase::ModuleReference,
+    resolve_variables_phase::{ModuleReference, PatternInfo},
     tag_return_exprs_phase::IsReturnExpr,
     variable::{UpvalueSource, VariableAllocation, VariableRef},
     CompilationState, Compiler,
@@ -480,9 +480,11 @@ impl Emitter<'_> {
                 self.emit(enumerable);
                 self.write(Instr::get_iter(), node);
 
-                let is_complex_pattern =
-                    !matches!(&pattern.kind, NodeKind::PatternIdentifier { .. });
-                let pattern_locals = self.count_pattern_locals(pattern);
+                let pattern_info = self.compilation_state.tags.get::<PatternInfo>(pattern.id);
+
+                let pattern_locals = pattern_info
+                    .map(|pi| pi.pattern.stack_slot_count)
+                    .unwrap_or(1);
 
                 let loop_start = self.chunk.label("loop_start");
 
@@ -491,14 +493,12 @@ impl Emitter<'_> {
 
                 // handle result
                 let loop_exit_branch = self.write(Instr::for_iter(0), node);
-                if is_complex_pattern {
-                    // preallocate room on stack for pattern
-                    for _ in 0..pattern_locals {
-                        self.write(Instr::push_nil(), node);
-                    }
+                if pattern_info.is_some() {
                     // push & unpack the expression
-                    self.write(Instr::dup(pattern_locals as u8), node);
-                    self.emit_assignment_pattern(pattern);
+                    let p = self
+                        .chunk
+                        .write_pattern(pattern_info.unwrap().pattern.clone());
+                    self.write(Instr::match_(p), node);
                 }
                 // else: (value is correct in local var slot)
 
@@ -506,11 +506,7 @@ impl Emitter<'_> {
                 self.emit(body);
 
                 // pop local var & any pattern locals off the stack
-                let mut locals_to_pop = 1;
-                if is_complex_pattern {
-                    locals_to_pop += pattern_locals;
-                }
-                self.write(Instr::pop_locals(locals_to_pop), node);
+                self.write(Instr::pop_locals(pattern_locals), node);
 
                 // pop result of body (preserved by pop_locals)
                 self.write(Instr::pop(), node);
@@ -548,32 +544,23 @@ impl Emitter<'_> {
                 }
             }
             _ => {
-                // preallocate room on stack for pattern
-                for _ in 0..self.count_pattern_locals(pattern) {
-                    self.write(Instr::push_nil(), pattern);
-                    *self.pushed_locals.last_mut().unwrap() += 1;
-                }
-                // push & unpack the expression
+                let pattern_info = self
+                    .compilation_state
+                    .tags
+                    .get::<PatternInfo>(pattern.id)
+                    .unwrap();
                 self.emit(expr);
-                self.emit_assignment_pattern(pattern);
-            }
-        }
-    }
+                let p = self.chunk.write_pattern(pattern_info.pattern.clone());
+                self.write(Instr::match_(p), pattern);
 
-    fn count_pattern_locals(&self, pattern: &Node) -> usize {
-        match &pattern.kind {
-            NodeKind::PatternIdentifier { .. } => {
-                if let VariableAllocation::Local { .. } = self.get_variable_allocation(pattern) {
-                    1
+                if pattern_info.are_globals {
+                    self.emit_assignment_pattern(pattern);
                 } else {
-                    0
+                    // variables are in right spot on stack
+                    *self.pushed_locals.last_mut().unwrap() +=
+                        pattern_info.pattern.stack_slot_count;
                 }
             }
-            NodeKind::PatternTuple { elements } => {
-                elements.iter().map(|e| self.count_pattern_locals(e)).sum()
-            }
-            NodeKind::PatternWildcard => 0,
-            _ => unreachable!(),
         }
     }
 
@@ -584,20 +571,18 @@ impl Emitter<'_> {
     }
 
     fn emit_assignment_pattern(&mut self, pattern: &Node) {
-        match &pattern.kind {
-            NodeKind::PatternIdentifier { .. } => {
-                self.emit_set(pattern);
+        let pattern_info = self.compilation_state.tags.get::<PatternInfo>(pattern.id);
+
+        if pattern_info.is_some() {
+            for node in Pattern::variable_nodes_iter(pattern)
+                .collect::<Vec<_>>()
+                .iter()
+                .rev()
+            {
+                self.emit_set(node);
             }
-            NodeKind::PatternTuple { elements } => {
-                self.write(Instr::unpack_tuple(elements.len()), pattern);
-                elements.iter().rev().for_each(|element| {
-                    self.emit_assignment_pattern(element);
-                });
-            }
-            NodeKind::PatternWildcard => {
-                self.write(Instr::pop(), pattern);
-            }
-            _ => todo!(),
+        } else {
+            self.emit_set(pattern);
         }
     }
 

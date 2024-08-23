@@ -606,6 +606,17 @@ impl VM {
                         }
                     }
                 }
+
+                Instr {
+                    op: OpCode::Match,
+                    arg0,
+                    ..
+                } => {
+                    let value = self.stack.pop().unwrap();
+                    let pattern = &self.chunk().patterns[arg0 as usize];
+                    let result = pattern.match_pattern(&value)?;
+                    self.stack.extend(result);
+                }
             }
 
             //println!("stack: {:?}", self.stack);

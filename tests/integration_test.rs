@@ -437,14 +437,14 @@ fn test_tuple_unpacking() {
     };
 
     assert_raises! {
-        (2, "expected 3 arity tuple, got (1, 2)"),
+        (2, "Pattern match failed, got (1, 2)"),
         r#"
         let (a, b, c) = (1, 2)
         "#
     }
 
     assert_raises! {
-        (2, "expected 3 arity tuple, got [1, 2, 3]"),
+        (2, "Pattern match failed, got [1, 2, 3]"),
         r#"
         let (a, b, c) = [1, 2, 3]
         "#

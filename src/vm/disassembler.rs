@@ -222,6 +222,11 @@ pub fn disassemble_instruction(chunk: &Chunk, i: usize) {
             arg0,
             ..
         } => println!("UnpackTuple {}", arg0),
+        Instr {
+            op: OpCode::Match,
+            arg0,
+            ..
+        } => println!("Match {}     {:?}", arg0, pattern(chunk, *arg0)),
     }
 }
 
@@ -236,4 +241,12 @@ fn consts(chunk: &Chunk, constants: &[u8]) -> String {
         })
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn pattern(chunk: &Chunk, pattern_index: u8) -> String {
+    if let Some(pattern) = chunk.patterns.get(pattern_index as usize) {
+        return format!("{:?}", pattern);
+    } else {
+        "{INVALID_PATTERN}".to_owned()
+    }
 }

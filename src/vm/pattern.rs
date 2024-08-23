@@ -1,8 +1,10 @@
 use crate::{
+    ast::{Node, NodeKind},
     exception::{exception, Exception},
     value::Value,
 };
 
+#[derive(Debug, Clone)]
 pub struct Pattern {
     /// How many stack slots to store the result of the pattern match.
     pub stack_slot_count: usize,
@@ -10,6 +12,7 @@ pub struct Pattern {
     pub node: PatternNode,
 }
 
+#[derive(Debug, Clone)]
 pub enum PatternNode {
     /// A variable, eg. `x`
     Variable { stack_slot: usize },
@@ -35,12 +38,32 @@ impl Pattern {
         }
     }
 
+    pub fn from_ast(node: &Node) -> Self {
+        let mut top_stack_slot = 0;
+        let node = PatternNode::from_ast(node, &mut top_stack_slot);
+        Pattern::new(top_stack_slot, node)
+    }
+
+    pub fn is_complex_pattern(node: &Node) -> bool {
+        !matches!(node.kind, NodeKind::PatternIdentifier { .. })
+    }
+
+    /// Iteration order is guaranteed to be the same as the order of the variables in the pattern.
+    ///
+    /// This function must match PatternNode::from_ast(...) ordering
+    pub fn variable_nodes_iter(node: &Node) -> impl Iterator<Item = &Node> {
+        node.iter()
+            .filter(|child| matches!(child.kind, NodeKind::PatternIdentifier { .. }))
+    }
+
     pub fn match_pattern(&self, value: &Value) -> Result<Vec<Value>, Exception> {
         let mut stack = vec![Value::Nil; self.stack_slot_count];
 
-        self.node.match_pattern(value, &mut stack)?;
-
-        Ok(stack)
+        if let Ok(()) = self.node.match_pattern(value, &mut stack) {
+            Ok(stack)
+        } else {
+            exception!("Pattern match failed, got {}", value)
+        }
     }
 }
 
@@ -109,6 +132,26 @@ impl PatternNode {
                     exception!("Pattern match failed")
                 }
             }
+        }
+    }
+
+    /// This function must match Pattern::variable_nodes_iter(...) ordering
+    pub fn from_ast(node: &Node, top_stack_slot: &mut usize) -> Self {
+        match &node.kind {
+            NodeKind::PatternIdentifier { identifier: _ } => {
+                let stack_slot = *top_stack_slot;
+                *top_stack_slot += 1;
+                PatternNode::Variable { stack_slot }
+            }
+            NodeKind::PatternTuple { elements } => {
+                let patterns = elements
+                    .iter()
+                    .map(|element| PatternNode::from_ast(element, top_stack_slot))
+                    .collect();
+                PatternNode::Tuple(patterns)
+            }
+            NodeKind::PatternWildcard => PatternNode::Wildcard,
+            _ => unreachable!("only expected pattern nodes, got: {:?}", node.kind),
         }
     }
 }
