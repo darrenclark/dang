@@ -814,6 +814,7 @@ fn matches() {
         r#"
         let m = fn (x) {
             match x {
+                "one" -> 1
                 (_, r) -> r,
                 r -> r
             }
@@ -821,6 +822,7 @@ fn matches() {
 
         assert(m((1, 2)) == 2)
         assert(m(4) == 4)
+        assert(m("one") == 1)
         "#
     }
 }

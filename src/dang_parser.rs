@@ -238,6 +238,15 @@ impl ToAst {
                 let child = pair.into_inner().next().unwrap();
                 self.to_ast(child)
             }
+            Rule::pattern_constant => {
+                let child = pair.into_inner().next().unwrap();
+                self.new_node(
+                    loc,
+                    NodeKind::PatternConstant {
+                        value: Box::new(self.to_ast(child).unwrap()),
+                    },
+                )
+            }
             Rule::pattern_identifier => {
                 let identifier = self.to_ast(pair.into_inner().next().unwrap()).unwrap();
                 if identifier.unwrap_identifier() == "_" {

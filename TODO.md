@@ -15,18 +15,6 @@
 
 Higher priority:
 
-- `match` statement, something like:
-    ```
-      match card {
-        "A": 14,
-        "K": 13,
-        "Q": 12,
-        "J": 11,
-        "T": 10,
-        _: int(card)
-      }
-    ```
-
 - `fn name(...) { ... }` syntax equivalent to `let name = fn(..) { ... }`
 - Module references - i.e. `@Std/Enum.map` should work without import
 - metamethods for structs:
@@ -47,8 +35,8 @@ Lower priority:
 - more type casting
     - "try" casts
 - Regex captures
-- Pattern matching?
-    - `match` statement
+- Pattern matching additions:
+    - guard (`if`) clauses
     - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`
 - UFCS? Is it even possible?
 - Map merge syntax ala python: `{a: 1} | {a: 2, b: 3} == {a: 2, b: 3}`

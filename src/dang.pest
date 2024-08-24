@@ -85,8 +85,16 @@ field_assignment_path = {
 }
 
 pattern = {
+  pattern_constant |
   pattern_identifier |
   pattern_tuple
+}
+pattern_constant = {
+  nil_literal |
+  bool_literal |
+  string_literal |
+  number_literal |
+  symbol_literal
 }
 pattern_identifier = { identifier }
 

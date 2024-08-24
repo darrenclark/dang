@@ -138,6 +138,9 @@ impl PatternNode {
     /// This function must match Pattern::variable_nodes_iter(...) ordering
     pub fn from_ast(node: &Node, top_stack_slot: &mut usize) -> Self {
         match &node.kind {
+            NodeKind::PatternConstant { value } => {
+                PatternNode::Constant(value.compile_time_value().unwrap())
+            }
             NodeKind::PatternIdentifier { identifier: _ } => {
                 let stack_slot = *top_stack_slot;
                 *top_stack_slot += 1;

@@ -196,6 +196,9 @@ pub enum NodeKind {
         identifier: Box<Node>,
     },
     PatternWildcard,
+    PatternConstant {
+        value: Box<Node>,
+    },
     PatternIdentifier {
         identifier: Box<Node>,
     },
@@ -390,6 +393,13 @@ impl Node {
                 }
             }
             NodeKind::PatternWildcard => None,
+            NodeKind::PatternConstant { value } => {
+                if index == 0 {
+                    Some(value.as_ref())
+                } else {
+                    None
+                }
+            }
             NodeKind::PatternIdentifier { identifier } => {
                 if index == 0 {
                     Some(identifier.as_ref())
@@ -630,6 +640,13 @@ impl Node {
                 }
             }
             NodeKind::PatternWildcard => None,
+            NodeKind::PatternConstant { value } => {
+                if index == 0 {
+                    Some(value.as_mut())
+                } else {
+                    None
+                }
+            }
             NodeKind::PatternIdentifier { identifier } => {
                 if index == 0 {
                     Some(identifier.as_mut())
@@ -936,6 +953,10 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
         }
         NodeKind::PatternWildcard => {
             writeln!(f, "PatternWildcard(_)")?;
+        }
+        NodeKind::PatternConstant { value } => {
+            writeln!(f, "PatternConstant:")?;
+            fmt_node(value, depth + 1, "value", f)?;
         }
         NodeKind::PatternIdentifier { identifier } => {
             writeln!(f, "PatternIdentifier:")?;
