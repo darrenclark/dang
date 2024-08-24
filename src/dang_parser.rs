@@ -574,11 +574,19 @@ impl ToAst {
                         let loc = self.location(&p);
                         let mut iter = p.into_inner();
                         let pattern = self.to_ast(iter.next().unwrap()).unwrap();
+
+                        let guard = if iter.len() >= 2 {
+                            Some(Box::new(self.to_ast(iter.next().unwrap()).unwrap()))
+                        } else {
+                            None
+                        };
+
                         let body = self.wrap_in_body(self.to_ast(iter.next().unwrap()).unwrap());
                         self.new_node(
                             loc,
                             NodeKind::MatchCase {
                                 pattern: Box::new(pattern),
+                                guard,
                                 body: Box::new(body),
                             },
                         )

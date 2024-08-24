@@ -455,9 +455,14 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
 
                 self.define_all_in_pattern(pattern);
             }
-            NodeKind::MatchCase { pattern, body: _ } => {
+            NodeKind::MatchCase {
+                pattern,
+                body: _,
+                guard: _,
+            } => {
                 self.push_child_scope(node);
-
+                // room for match expr
+                self.current_scope_mut().allocate_anonymous_local();
                 self.define_all_in_pattern(pattern);
             }
             NodeKind::VariableRef { identifier } => {

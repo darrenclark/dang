@@ -237,6 +237,7 @@ pub enum NodeKind {
     },
     MatchCase {
         pattern: Box<Node>,
+        guard: Option<Box<Node>>,
         body: Box<Node>,
     },
 }
@@ -487,11 +488,25 @@ impl Node {
                     None
                 }
             }
-            NodeKind::MatchCase { pattern, body } => {
+            NodeKind::MatchCase {
+                pattern,
+                guard,
+                body,
+            } => {
                 if index == 0 {
-                    Some(pattern)
+                    Some(pattern.as_ref())
                 } else if index == 1 {
-                    Some(body)
+                    if let Some(g) = guard {
+                        Some(g.as_ref())
+                    } else {
+                        Some(body.as_ref())
+                    }
+                } else if index == 2 {
+                    if guard.is_some() {
+                        Some(body.as_ref())
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -734,11 +749,25 @@ impl Node {
                     None
                 }
             }
-            NodeKind::MatchCase { pattern, body } => {
+            NodeKind::MatchCase {
+                pattern,
+                guard,
+                body,
+            } => {
                 if index == 0 {
-                    Some(pattern)
+                    Some(pattern.as_mut())
                 } else if index == 1 {
-                    Some(body)
+                    if let Some(g) = guard {
+                        Some(g.as_mut())
+                    } else {
+                        Some(body.as_mut())
+                    }
+                } else if index == 2 {
+                    if guard.is_some() {
+                        Some(body.as_mut())
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -1034,9 +1063,16 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
                 fmt_node(c, depth + 1, "case", f)?;
             }
         }
-        NodeKind::MatchCase { pattern, body } => {
+        NodeKind::MatchCase {
+            pattern,
+            guard,
+            body,
+        } => {
             writeln!(f, "MatchCase")?;
             fmt_node(pattern, depth + 1, "pattern", f)?;
+            if let Some(g) = guard {
+                fmt_node(g, depth + 1, "guard", f)?;
+            }
             fmt_node(body, depth + 1, "body", f)?;
         }
     }

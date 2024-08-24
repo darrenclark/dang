@@ -815,7 +815,17 @@ fn matches() {
         let m = fn (x) {
             match x {
                 "one" -> 1
+                (:abs, r) if r > 0 -> r
+                (:abs, r) if r < 0 -> -r
+                (:abs, 0) -> 0
                 (_, r) -> r,
+                (:complex, a, (b, c)) -> {
+                  var s = 0
+                  for x in range(b, c) {
+                    s = s + a
+                  }
+                  s
+                }
                 r -> r
             }
         }
@@ -823,6 +833,10 @@ fn matches() {
         assert(m((1, 2)) == 2)
         assert(m(4) == 4)
         assert(m("one") == 1)
+        assert(m((:abs, 5)) == 5)
+        assert(m((:abs, -5)) == 5)
+        assert(m((:abs, 0)) == 0)
+        assert(m((:complex, 2, (1, 3))) == 4)
         "#
     }
 }

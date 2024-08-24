@@ -116,9 +116,9 @@ pub enum OpCode {
     /// Match(pattern) -1 +x - matches value at top of stack against pattern & pushes all bindings
     /// on to the stack
     Match,
-    /// TryMatch(pattern, n:16bit) -1 +x | -0 +0 - matches value at top of stack against pattern. If it
-    /// matches, pops the value and pushes all bindings on to the stack. If it doesn't match,
-    /// jumps forward n instructions
+    /// TryMatch(pattern, n:16bit) -0 +x | -0 +0 - matches value at top of stack against pattern. If it
+    /// matches, pushes all bindings on to the stack. If it doesn't match, jumps forward n instructions.
+    /// Leaves the value on the stack in both cases.
     TryMatch,
     /// MatchFailure(first_pattern, last_pattern) -1 +0 - pops value from stack and prints error
     /// Used at end of match block to print error if no patterns match.

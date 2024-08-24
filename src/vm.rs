@@ -626,7 +626,6 @@ impl VM {
                     let top = self.stack.last().unwrap();
                     let pattern = &self.chunk().patterns[arg0 as usize];
                     if let Ok(result) = pattern.match_pattern(top) {
-                        self.stack.pop();
                         self.stack.extend(result);
                     } else {
                         *self.ip_mut() += self.chunk().code[ip].arg1_arg2();

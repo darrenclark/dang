@@ -537,6 +537,7 @@ impl Emitter<'_> {
                 for case in cases {
                     if let NodeKind::MatchCase {
                         pattern: pattern_node,
+                        guard,
                         body,
                     } = &case.kind
                     {
@@ -549,12 +550,35 @@ impl Emitter<'_> {
                             // the resolve_variables_phase
                             .unwrap_or_else(|| Pattern::from_ast(pattern_node));
 
+                        let locals = pattern.stack_slot_count;
+
                         // try matching the pattern
                         let p = self.chunk.write_pattern(pattern);
                         let branch = self.write(Instr::try_match(p, 0), pattern_node);
-                        // if it matched, run the body and jump to the end of the match
+                        // if it matched, check the guard if needed
+                        let mut guard_branch = None;
+                        if let Some(g) = guard {
+                            self.emit(g);
+                            // if guard is false, jump to the next case
+                            guard_branch =
+                                Some(self.write(Instr::branch_if_false(0), pattern_node));
+                            // pop comparison result off
+                            self.write(Instr::pop(), pattern_node);
+                        }
+                        // then run the body and jump to the end of the match
                         self.emit(body);
+                        // +1 because we also need to pop the match expr
+                        self.write(Instr::pop_locals(locals + 1), pattern_node);
                         jumps_to_patch.push(self.write(Instr::jump(0), case));
+
+                        // else, if comparison result failed: pop comparison & pattern results
+                        if let Some(guard_branch) = guard_branch {
+                            self.chunk.patch_jump(guard_branch);
+                            self.write(Instr::pop_locals(locals), pattern_node);
+                            self.write(Instr::pop(), pattern_node);
+                            // and fallthrough to the next case
+                        }
+
                         // else jump to the next case
                         self.chunk.patch_jump(branch);
 
