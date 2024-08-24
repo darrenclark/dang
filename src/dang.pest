@@ -118,7 +118,7 @@ expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
     logical_neg = { "!" } // logical negation
   primary  =  _{ match_expr | term | "(" ~ nl ~ expr ~ nl ~ ")" }
 
-match_expr = { "match" ~ nl ~ expr ~ nl ~ "{" ~ nl ~ match_case* ~ nl ~ "}" }
+match_expr = { "match" ~ nl ~ expr ~ nl ~ "{" ~ nl ~ match_case+ ~ nl ~ "}" }
 match_case = { pattern ~ "->" ~ nl ~ (expr | body) ~ ","? ~ nl }
 
 term = {
