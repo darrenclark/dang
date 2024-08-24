@@ -481,12 +481,12 @@ fn test_dicts() {
 
         let d = {
             a: 1,
-            " b ": 2,
+            " b " => 2,
             k => 3,
             [1,2] => 4
         }
 
-        assert(d["a"] == 1)
+        assert(d[:a] == 1)
         assert(d.a == 1)
         assert(d[" b "] == 2)
         assert(d["c"] == 3)
@@ -500,9 +500,9 @@ fn test_iterating_dict() {
     assert_runs! {
         r#"
         let d = {
-            a: 1,
-            b: 2,
-            c: 3
+            "a" => 1,
+            "b" => 2,
+            "c" => 3
         }
 
         var keys = ""
@@ -746,7 +746,7 @@ fn assigning_to_fields() {
         }
 
         var f = Fields{one: {a: "a", b: [1, 2, 3]}, two: 2}
-        f.one["b"][1] = 36
+        f.one[:b][1] = 36
 
         let expected = Fields{one: {a: "a", b: [1, 36, 3]}, two: 2}
         assert(f == expected)

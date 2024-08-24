@@ -167,10 +167,10 @@ dict_literal = {
   "{" ~ dict_kv ~ ("," ~ dict_kv)* ~ ","? ~ nl ~ "}"
 }
 dict_kv = {
-  nl ~ (unquoted_dict_key_string | string_literal) ~ nl ~ ":" ~ nl ~ expr ~ nl |
+  nl ~ symbol_dict_key ~ nl ~ ":" ~ nl ~ expr ~ nl |
   nl ~ expr ~ nl ~ "=>" ~ nl ~ expr ~ nl
 }
-unquoted_dict_key_string = { identifier }
+symbol_dict_key = { identifier }
 
 struct_literal = {
   struct_start ~ nl ~ "}" |

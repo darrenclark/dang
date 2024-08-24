@@ -484,7 +484,7 @@ impl VM {
                 } => {
                     let key = self.stack.pop().unwrap();
                     let obj = self.stack.pop().unwrap();
-                    let value = obj.at_field(key.unwrap_string())?;
+                    let value = obj.at_field(&key.unwrap_symbol())?;
                     self.stack.push(value);
                 }
 
@@ -505,7 +505,7 @@ impl VM {
                     let value = self.stack.pop().unwrap();
                     let key = self.stack.pop().unwrap();
                     let obj = self.stack.last_mut().unwrap();
-                    *obj.at_field_mut(key.unwrap_string())? = value;
+                    *obj.at_field_mut(&key.unwrap_symbol())? = value;
                 }
 
                 Instr {

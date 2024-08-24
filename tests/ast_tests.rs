@@ -5,6 +5,7 @@ use dang::{
     ast::{Node, NodeKind},
     value::Value,
 };
+use ustr::ustr;
 
 mod common;
 
@@ -65,8 +66,8 @@ fn compile_time_values() {
     assert_eq!(parse("[1, 2, 3]").compile_time_value(), Some(expected_list));
 
     let expected_dict = Value::dict(BTreeMap::from([
-        (Value::string("x"), Value::Integer(1)),
-        (Value::string("y"), Value::Integer(2)),
+        (Value::symbol(&ustr("x")), Value::Integer(1)),
+        (Value::symbol(&ustr("y")), Value::Integer(2)),
     ]));
     assert_eq!(
         parse("{x: 1, y: 2}").compile_time_value(),

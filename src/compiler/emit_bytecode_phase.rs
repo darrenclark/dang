@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ustr::Ustr;
+use ustr::{ustr, Ustr};
 
 use crate::{
     ast::{BinOp, Node, NodeKind, UnaryOp},
@@ -405,7 +405,7 @@ impl Emitter<'_> {
 
                 let constant = self
                     .chunk
-                    .write_constant(Value::string(key.unwrap_identifier()));
+                    .write_constant(Value::symbol(&ustr(key.unwrap_identifier())));
                 self.write(Instr::constant(constant), node);
 
                 self.write(Instr::get_field(), node);
@@ -427,7 +427,7 @@ impl Emitter<'_> {
                         NodeKind::FieldAssignmentPathField { key } => {
                             let constant = self
                                 .chunk
-                                .write_constant(Value::string(key.unwrap_identifier()));
+                                .write_constant(Value::symbol(&ustr(key.unwrap_identifier())));
                             self.write(Instr::constant(constant), node);
                             self.write(Instr::dup(1), node);
                             self.write(Instr::dup(1), node);

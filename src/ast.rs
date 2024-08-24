@@ -747,6 +747,7 @@ impl Node {
             NodeKind::BoolLiteral(v) => Some(Value::Bool(*v)),
             NodeKind::StringLiteral(contents) => Some(Value::string(contents)),
             NodeKind::IntegerLiteral(i) => Some(Value::Integer(*i)),
+            NodeKind::SymbolLiteral(s) => Some(Value::Symbol(*s)),
             _ => None,
         }
     }

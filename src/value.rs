@@ -36,9 +36,9 @@ pub enum Value {
 }
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ValuePath<'a> {
+pub enum ValuePath {
     At(Value),
-    AtField(&'a str),
+    AtField(Ustr),
 }
 
 impl From<()> for Value {
@@ -121,6 +121,10 @@ impl Value {
 
     pub fn struct_(module: ModuleName, map: BTreeMap<Ustr, Value>) -> Self {
         Value::Struct(module, Rc::new(map))
+    }
+
+    pub fn symbol(s: &Ustr) -> Self {
+        Value::Symbol(*s)
     }
 
     pub fn closure<F>(func: F) -> Self
@@ -290,9 +294,9 @@ impl Value {
         }
     }
 
-    pub fn at_field(&self, key: &str) -> Result<Value, Exception> {
+    pub fn at_field(&self, key: &Ustr) -> Result<Value, Exception> {
         if let Self::Dict(v) = self {
-            match v.get(&Value::from(key)) {
+            match v.get(&Value::symbol(key)) {
                 None => exception!("field {:?} not found in {:?}", key, self),
                 Some(v) => Ok(v.clone()),
             }
@@ -306,14 +310,14 @@ impl Value {
         }
     }
 
-    pub fn at_field_mut(&mut self, key: &str) -> Result<&mut Value, Exception> {
+    pub fn at_field_mut(&mut self, key: &Ustr) -> Result<&mut Value, Exception> {
         if let Self::Dict(v) = self {
-            match Rc::make_mut(v).get_mut(&Value::from(key)) {
+            match Rc::make_mut(v).get_mut(&Value::symbol(key)) {
                 None => exception!("field {:?} not found in dict", key),
                 Some(v) => Ok(v),
             }
         } else if let Self::Struct(m, v) = self {
-            match Rc::make_mut(v).get_mut(&Ustr::from(key)) {
+            match Rc::make_mut(v).get_mut(key) {
                 None => exception!("field `{}` not found in struct `{}`", key, m),
                 Some(v) => Ok(v),
             }
@@ -322,7 +326,7 @@ impl Value {
         }
     }
 
-    pub fn at_path_mut<'a>(&mut self, path: &'a [ValuePath<'a>]) -> Result<&mut Value, Exception> {
+    pub fn at_path_mut(&mut self, path: &[ValuePath]) -> Result<&mut Value, Exception> {
         let mut current = self;
         for p in path {
             match p {

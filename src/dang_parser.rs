@@ -520,9 +520,9 @@ impl ToAst {
                     },
                 )
             }
-            Rule::unquoted_dict_key_string => {
+            Rule::symbol_dict_key => {
                 let string = pair.into_inner().next().unwrap().as_str().to_owned();
-                self.new_node(loc, NodeKind::StringLiteral(string))
+                self.new_node(loc, NodeKind::SymbolLiteral(string.into()))
             }
             Rule::string_literal => {
                 let string = unescape(pair.into_inner().next().unwrap().as_str()).unwrap();
