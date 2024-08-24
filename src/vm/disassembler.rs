@@ -227,6 +227,22 @@ pub fn disassemble_instruction(chunk: &Chunk, i: usize) {
             arg0,
             ..
         } => println!("Match {}     {:?}", arg0, pattern(chunk, *arg0)),
+        Instr {
+            op: OpCode::TryMatch,
+            arg0,
+            ..
+        } => println!(
+            "TryMatch {} {}  {:?}",
+            arg0,
+            instr.arg1_arg2(),
+            pattern(chunk, *arg0)
+        ),
+        Instr {
+            op: OpCode::MatchFailure,
+            arg0,
+            arg1,
+            ..
+        } => println!("MatchBind {} {}", arg0, arg1),
     }
 }
 

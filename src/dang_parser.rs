@@ -557,6 +557,33 @@ impl ToAst {
                     _ => unreachable!(),
                 }
             }
+            Rule::match_expr => {
+                let mut iter = pair.into_inner();
+                let expr = self.to_ast(iter.next().unwrap()).unwrap();
+                let cases: Vec<Node> = iter
+                    .map(|p| {
+                        let loc = self.location(&p);
+                        let mut iter = p.into_inner();
+                        let pattern = self.to_ast(iter.next().unwrap()).unwrap();
+                        let body = self.wrap_in_body(self.to_ast(iter.next().unwrap()).unwrap());
+                        self.new_node(
+                            loc,
+                            NodeKind::MatchCase {
+                                pattern: Box::new(pattern),
+                                body: Box::new(body),
+                            },
+                        )
+                        .unwrap()
+                    })
+                    .collect();
+                self.new_node(
+                    loc,
+                    NodeKind::Match {
+                        expr: Box::new(expr),
+                        cases,
+                    },
+                )
+            }
             rule => todo!("implement {:?}", rule),
         }
     }
@@ -579,5 +606,17 @@ impl ToAst {
             },
         };
         Some(node)
+    }
+
+    fn wrap_in_body(&self, node: Node) -> Node {
+        if matches!(node.kind, NodeKind::Body(_)) {
+            return node;
+        }
+
+        self.new_node(
+            (node.source.start.clone(), node.source.end.clone()),
+            NodeKind::Body(vec![node]),
+        )
+        .unwrap()
     }
 }

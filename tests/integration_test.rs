@@ -807,3 +807,20 @@ fn math() {
         "#
     };
 }
+
+#[test]
+fn matches() {
+    assert_runs! {
+        r#"
+        let m = fn (x) {
+            match x {
+                (_, r) -> r,
+                r -> r
+            }
+        }
+
+        assert(m((1, 2)) == 2)
+        assert(m(4) == 4)
+        "#
+    }
+}

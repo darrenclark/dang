@@ -455,6 +455,11 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
 
                 self.define_all_in_pattern(pattern);
             }
+            NodeKind::MatchCase { pattern, body: _ } => {
+                self.push_child_scope(node);
+
+                self.define_all_in_pattern(pattern);
+            }
             NodeKind::VariableRef { identifier } => {
                 self.resolve_variable(node, identifier.unwrap_identifier())
             }
@@ -469,7 +474,7 @@ impl<'a> AstWalker for ResolveVariablesPhase<'a> {
             NodeKind::SourceFile(_) | NodeKind::FunctionLiteral { .. } => {
                 self.pop_scope().unwrap();
             }
-            NodeKind::Body(_) | NodeKind::For { .. } => {
+            NodeKind::Body(_) | NodeKind::For { .. } | NodeKind::MatchCase { .. } => {
                 self.pop_scope().unwrap();
             }
             NodeKind::Let { pattern, .. } | NodeKind::Var { pattern, .. } => {

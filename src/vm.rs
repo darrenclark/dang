@@ -617,6 +617,28 @@ impl VM {
                     let result = pattern.match_pattern(&value)?;
                     self.stack.extend(result);
                 }
+
+                Instr {
+                    op: OpCode::TryMatch,
+                    arg0,
+                    ..
+                } => {
+                    let top = self.stack.last().unwrap();
+                    let pattern = &self.chunk().patterns[arg0 as usize];
+                    if let Ok(result) = pattern.match_pattern(top) {
+                        self.stack.pop();
+                        self.stack.extend(result);
+                    } else {
+                        *self.ip_mut() += self.chunk().code[ip].arg1_arg2();
+                    }
+                }
+
+                Instr {
+                    op: OpCode::MatchFailure,
+                    ..
+                } => {
+                    exception!("value didn't match any case: {}", self.stack.pop().unwrap());
+                }
             }
 
             //println!("stack: {:?}", self.stack);

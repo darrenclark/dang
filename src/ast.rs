@@ -228,6 +228,14 @@ pub enum NodeKind {
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
+    Match {
+        expr: Box<Node>,
+        cases: Vec<Node>,
+    },
+    MatchCase {
+        pattern: Box<Node>,
+        body: Box<Node>,
+    },
 }
 
 impl Node {
@@ -460,6 +468,24 @@ impl Node {
                 1 => Some(rhs.as_ref()),
                 _ => None,
             },
+            NodeKind::Match { expr, cases } => {
+                if index == 0 {
+                    Some(expr.as_ref())
+                } else if index - 1 < cases.len() {
+                    Some(&cases[index - 1])
+                } else {
+                    None
+                }
+            }
+            NodeKind::MatchCase { pattern, body } => {
+                if index == 0 {
+                    Some(pattern)
+                } else if index == 1 {
+                    Some(body)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -682,6 +708,24 @@ impl Node {
                 1 => Some(rhs.as_mut()),
                 _ => None,
             },
+            NodeKind::Match { expr, cases } => {
+                if index == 0 {
+                    Some(expr.as_mut())
+                } else if index - 1 < cases.len() {
+                    Some(cases.get_mut(index - 1).unwrap())
+                } else {
+                    None
+                }
+            }
+            NodeKind::MatchCase { pattern, body } => {
+                if index == 0 {
+                    Some(pattern)
+                } else if index == 1 {
+                    Some(body)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -961,6 +1005,18 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             writeln!(f, "Pipe(|>)")?;
             fmt_node(lhs, depth + 1, "lhs", f)?;
             fmt_node(rhs, depth + 1, "rhs", f)?;
+        }
+        NodeKind::Match { expr, cases } => {
+            writeln!(f, "Match")?;
+            fmt_node(expr, depth + 1, "expr", f)?;
+            for c in cases {
+                fmt_node(c, depth + 1, "case", f)?;
+            }
+        }
+        NodeKind::MatchCase { pattern, body } => {
+            writeln!(f, "MatchCase")?;
+            fmt_node(pattern, depth + 1, "pattern", f)?;
+            fmt_node(body, depth + 1, "body", f)?;
         }
     }
     Ok(())

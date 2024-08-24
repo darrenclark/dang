@@ -21,7 +21,8 @@ keywords = {
   "import" |
   "module" |
   "__builtin" |
-  "struct"
+  "struct" |
+  "match"
 }
 
 // module Std/Enum
@@ -107,7 +108,10 @@ expr = { prefix? ~ primary ~ (infix ~ nl ~ prefix? ~ nl ~ primary )* }
   prefix   =  _{ neg | logical_neg }
     neg    =   { "-" } // Integer regation
     logical_neg = { "!" } // logical negation
-  primary  =  _{ term | "(" ~ nl ~ expr ~ nl ~ ")" }
+  primary  =  _{ match_expr | term | "(" ~ nl ~ expr ~ nl ~ ")" }
+
+match_expr = { "match" ~ nl ~ expr ~ nl ~ "{" ~ nl ~ match_case* ~ nl ~ "}" }
+match_case = { pattern ~ "->" ~ nl ~ (expr | body) ~ ","? ~ nl }
 
 term = {
   ( function_literal |

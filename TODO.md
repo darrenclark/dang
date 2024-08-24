@@ -42,7 +42,6 @@ Higher priority:
 
 Lower priority:
 
-- Maps - Symbols/atoms for keys?
 - Bitwise operators / functions
 - big int
 - more type casting

@@ -527,6 +527,57 @@ impl Emitter<'_> {
                 // all for loops evaluate to nil
                 self.write(Instr::push_nil(), node);
             }
+            NodeKind::Match { expr, cases } => {
+                self.emit(expr);
+
+                let mut jumps_to_patch: Vec<usize> = Vec::new();
+                let mut first_pattern: Option<usize> = None;
+                let mut last_pattern: Option<usize> = None;
+
+                for case in cases {
+                    if let NodeKind::MatchCase {
+                        pattern: pattern_node,
+                        body,
+                    } = &case.kind
+                    {
+                        let pattern = self
+                            .compilation_state
+                            .tags
+                            .get::<PatternInfo>(pattern_node.id)
+                            .map(|pi| pi.pattern.clone())
+                            // PatternIndentifier is a special case - it doesn't get tagged in
+                            // the resolve_variables_phase
+                            .unwrap_or_else(|| Pattern::from_ast(pattern_node));
+
+                        // try matching the pattern
+                        let p = self.chunk.write_pattern(pattern);
+                        let branch = self.write(Instr::try_match(p, 0), pattern_node);
+                        // if it matched, run the body and jump to the end of the match
+                        self.emit(body);
+                        jumps_to_patch.push(self.write(Instr::jump(0), case));
+                        // else jump to the next case
+                        self.chunk.patch_jump(branch);
+
+                        if first_pattern.is_none() {
+                            first_pattern = Some(p as usize);
+                        }
+                        last_pattern = Some(p as usize);
+                    } else {
+                        panic!()
+                    }
+                }
+
+                // if no cases matched, raise an error
+                self.write(
+                    Instr::match_failure(first_pattern.unwrap(), last_pattern.unwrap()),
+                    node,
+                );
+                // else continue on
+                for jump in jumps_to_patch {
+                    self.chunk.patch_jump(jump);
+                }
+            }
+            NodeKind::MatchCase { .. } => unreachable!(),
             ast => todo!("not yet implemented for: {:?}", ast),
         }
     }

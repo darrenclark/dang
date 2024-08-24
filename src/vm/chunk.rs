@@ -41,7 +41,7 @@ impl Chunk {
     pub fn patch_jump(&mut self, jump_instr_offset: usize) {
         let offset = self.code.len() - jump_instr_offset - 1;
         let jump_instr = &mut self.code[jump_instr_offset];
-        jump_instr.set_wide_arg(offset);
+        jump_instr.set_jump_offset(offset);
     }
 
     pub fn write_jump_back(&mut self, label: usize, source_loc: LineCol) -> usize {

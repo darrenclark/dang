@@ -116,6 +116,13 @@ pub enum OpCode {
     /// Match(pattern) -1 +x - matches value at top of stack against pattern & pushes all bindings
     /// on to the stack
     Match,
+    /// TryMatch(pattern, n:16bit) -1 +x | -0 +0 - matches value at top of stack against pattern. If it
+    /// matches, pops the value and pushes all bindings on to the stack. If it doesn't match,
+    /// jumps forward n instructions
+    TryMatch,
+    /// MatchFailure(first_pattern, last_pattern) -1 +0 - pops value from stack and prints error
+    /// Used at end of match block to print error if no patterns match.
+    MatchFailure,
 }
 
 impl Instr {
@@ -303,6 +310,24 @@ impl Instr {
         Self::new(OpCode::Match, pattern_index, 0, 0)
     }
 
+    pub fn try_match(pattern_index: u8, offset: usize) -> Self {
+        Self::new(
+            OpCode::TryMatch,
+            pattern_index,
+            offset as u8,
+            (offset >> 8) as u8,
+        )
+    }
+
+    pub fn match_failure(first_pattern: usize, last_pattern: usize) -> Self {
+        Self::new(
+            OpCode::MatchFailure,
+            first_pattern as u8,
+            last_pattern as u8,
+            0,
+        )
+    }
+
     fn new(op: OpCode, arg0: u8, arg1: u8, arg2: u8) -> Self {
         Instr {
             op,
@@ -325,10 +350,19 @@ impl Instr {
         usize::from(self.arg0) | (usize::from(self.arg1) << 8) | (usize::from(self.arg2) << 16)
     }
 
-    pub fn set_wide_arg(&mut self, offset: usize) {
-        self.arg0 = offset as u8;
-        self.arg1 = (offset >> 8) as u8;
-        self.arg2 = (offset >> 16) as u8;
+    pub fn set_jump_offset(&mut self, offset: usize) {
+        if self.op == OpCode::TryMatch {
+            self.arg1 = offset as u8;
+            self.arg2 = (offset >> 8) as u8;
+        } else {
+            self.arg0 = offset as u8;
+            self.arg1 = (offset >> 8) as u8;
+            self.arg2 = (offset >> 16) as u8;
+        }
+    }
+
+    pub fn arg1_arg2(&self) -> usize {
+        usize::from(self.arg1) | (usize::from(self.arg2) << 8)
     }
 }
 

@@ -6,11 +6,11 @@ Support pattern matching in a:
 
 ```
   match card {
-    "A" -> 14,
-    "K" -> 13,
-    "Q" -> 12,
-    "J" -> 11,
-    "T" -> 10,
+    "A" -> 14
+    "K" -> 13
+    "Q" -> 12
+    "J" -> 11
+    "T" -> 10
     _ -> int(card)
   }
 ```
