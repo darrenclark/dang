@@ -849,6 +849,8 @@ fn zip() {
         let b = ["a", "b", "c", "d"]
 
         assert(zip(a, b) == [(1, "a"), (2, "b"), (3, "c")])
+
+        assert(Stream.zip(a, b) |> to_list() == [(1, "a"), (2, "b"), (3, "c")])
         "#
     }
 }

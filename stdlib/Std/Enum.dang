@@ -173,6 +173,7 @@ let to_dict = fn(enum) {
   result
 }
 
+/// Zip two sequences together
 let zip = fn(enum1, enum2) {
   var it1 = iter(enum1)
   var it2 = iter(enum2)

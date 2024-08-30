@@ -106,3 +106,19 @@ let take_while = fn(iterable, f) {
 let take_until = fn(iterable, f) {
   take_while(iterable, fn(x) { !f(x) })
 }
+
+/// Zip two iterables together lazily
+let zip = fn(a, b) {
+  let a_iter = Builtins.iter(a)
+  let b_iter = Builtins.iter(b)
+  let it = fn () {
+    let a_next = a_iter()
+    let b_next = b_iter()
+    match (a_next, b_next) {
+      (_, nil) -> nil,
+      (nil, _) -> nil,
+      ((_, a), (_, b)) -> (:some, (a, b))
+    }
+  }
+  Stream{_iter: it}
+}
