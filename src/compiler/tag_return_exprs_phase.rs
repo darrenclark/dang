@@ -36,6 +36,7 @@ impl TagReturnExprsPhase<'_> {
             NodeKind::SourceFile(nodes) if !nodes.is_empty() => nodes.last().unwrap(),
             NodeKind::Body(nodes) if !nodes.is_empty() => nodes.last().unwrap(),
             NodeKind::If { .. } => node,
+            NodeKind::Match { .. } => node,
             _ => return,
         };
 
@@ -48,6 +49,18 @@ impl TagReturnExprsPhase<'_> {
                 self.tag_return_exprs(function, body);
                 if let Some(else_branch) = else_branch {
                     self.tag_return_exprs(function, else_branch);
+                }
+            }
+            NodeKind::Match { expr: _, cases } => {
+                for case in cases {
+                    if let NodeKind::MatchCase {
+                        pattern: _,
+                        guard: _,
+                        body,
+                    } = &case.kind
+                    {
+                        self.tag_return_exprs(function, body);
+                    }
                 }
             }
             _ => {
