@@ -122,3 +122,28 @@ let zip = fn(a, b) {
   }
   Stream{_iter: it}
 }
+
+/// Repeatedly calls f to produce a sequence of values
+///
+/// If f returns (value, new_state) then the value is yielded and the
+/// new state is used for the next iteration
+///
+/// If f returns nil then the sequence is terminated
+let unfold = fn(init, f) {
+  var state = init
+  let it = fn () {
+    match f(state) {
+      (value, new_state) -> {
+        state = new_state
+        (:some, value)
+      }
+      nil -> nil
+    }
+  }
+  Stream{_iter: it}
+}
+
+/// Concat two streams together
+let concat = fn(a, b) {
+  flat_map([a, b], fn(x) { x })
+}

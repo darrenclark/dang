@@ -854,3 +854,30 @@ fn zip() {
         "#
     }
 }
+
+#[test]
+fn unfold() {
+    assert_runs! {
+        r#"
+        let f = fn(x) {
+            if x < 5 {
+                (x, x + 1)
+            } else {
+                nil
+            }
+        }
+        assert(Stream.unfold(0, f) |> to_list() == [0, 1, 2, 3, 4])
+        "#
+    }
+}
+
+#[test]
+fn stream_concat() {
+    assert_runs! {
+        r#"
+        let a = [1, 2, 3]
+        let b = [4, 5, 6]
+        assert(Stream.concat(a, b) |> to_list() == [1, 2, 3, 4, 5, 6])
+        "#
+    }
+}
