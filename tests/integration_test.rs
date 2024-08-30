@@ -840,3 +840,15 @@ fn matches() {
         "#
     }
 }
+
+#[test]
+fn zip() {
+    assert_runs! {
+        r#"
+        let a = [1, 2, 3]
+        let b = ["a", "b", "c", "d"]
+
+        assert(zip(a, b) == [(1, "a"), (2, "b"), (3, "c")])
+        "#
+    }
+}

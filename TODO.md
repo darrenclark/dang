@@ -26,8 +26,6 @@ Higher priority:
     - etc.
 - Lightweight way to write tests - maybe `test "some test case" {` blocks?
 
-- `zip` function
-
 Lower priority:
 
 - Bitwise operators / functions
@@ -36,7 +34,6 @@ Lower priority:
     - "try" casts
 - Regex captures
 - Pattern matching additions:
-    - guard (`if`) clauses
     - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`
 - UFCS? Is it even possible?
 - Map merge syntax ala python: `{a: 1} | {a: 2, b: 3} == {a: 2, b: 3}`

@@ -172,3 +172,17 @@ let to_dict = fn(enum) {
 
   result
 }
+
+let zip = fn(enum1, enum2) {
+  var it1 = iter(enum1)
+  var it2 = iter(enum2)
+  _zip(it1, it2, it1(), it2(), [])
+}
+
+let _zip = fn(it1, it2, next1, next2, acc) {
+  match (next1, next2) {
+    (_, nil) -> acc
+    (nil, _) -> acc
+    ((_, x1), (_, x2)) -> _zip(it1, it2, it1(), it2(), acc + [(x1, x2)])
+  }
+}
