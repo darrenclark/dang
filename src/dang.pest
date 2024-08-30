@@ -177,8 +177,16 @@ list_literal = {
 
 pattern_list = {
   "[" ~ nl ~ "]" |
-  "[" ~ nl ~ pattern ~ nl ~ ("," ~ nl ~ pattern ~ nl)* ~ ","? ~ nl ~ "]"
+  "[" ~ nl ~ pattern_list_item ~ nl ~ ("," ~ nl ~ pattern_list_item ~ nl)* ~ ","? ~ nl ~ "]"
 }
+
+pattern_list_item = {
+  pattern_list_dots ~ pattern_identifier |
+  pattern_identifier ~ pattern_list_dots |
+  pattern_list_dots |
+  pattern
+}
+pattern_list_dots = { "..." }
 
 dict_literal = {
   "{" ~ nl ~ "}" |

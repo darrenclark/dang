@@ -33,8 +33,6 @@ Lower priority:
 - more type casting
     - "try" casts
 - Regex captures
-- Pattern matching additions:
-    - `[a, b, ...rest]`, `[...rest, y, z]`, `[a, b, ...rest, y, z]`
 - UFCS? Is it even possible?
 - Map merge syntax ala python: `{a: 1} | {a: 2, b: 3} == {a: 2, b: 3}`
 - Builtins.reverse -> Enum.reverse

@@ -829,6 +829,9 @@ fn matches() {
                 [] -> 0
                 [x] -> x
                 [a, b] -> a + b
+                [1, 1, rest...] -> len(rest)
+                [0, ..., z] -> z
+                [..., a, b, c] -> a + b + c
                 r -> r
             }
         }
@@ -843,6 +846,9 @@ fn matches() {
         assert(m([]) == 0)
         assert(m([5]) == 5)
         assert(m([2, 3]) == 5)
+        assert(m([1, 1, 1, 2, 3]) == 3)
+        assert(m([0, 1, 1, 2, 8]) == 8)
+        assert(m([1, 2, 1, 2, 8]) == 11)
         "#
     }
 }

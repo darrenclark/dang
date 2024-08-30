@@ -208,6 +208,9 @@ pub enum NodeKind {
     PatternList {
         items: Vec<Node>,
     },
+    PatternListDots {
+        pattern: Box<Node>,
+    },
     Identifier(String),
     TupleLiteral(Vec<Node>),
     ListLiteral(Vec<Node>),
@@ -421,6 +424,15 @@ impl Node {
             NodeKind::PatternList { items } => {
                 if index < items.len() {
                     Some(&items[index])
+                } else {
+                    None
+                }
+            }
+            NodeKind::PatternListDots {
+                pattern: pattern_identifier,
+            } => {
+                if index == 0 {
+                    Some(pattern_identifier.as_ref())
                 } else {
                     None
                 }
@@ -689,6 +701,15 @@ impl Node {
             NodeKind::PatternList { items } => {
                 if index < items.len() {
                     items.get_mut(index)
+                } else {
+                    None
+                }
+            }
+            NodeKind::PatternListDots {
+                pattern: pattern_identifier,
+            } => {
+                if index == 0 {
+                    Some(pattern_identifier.as_mut())
                 } else {
                     None
                 }
@@ -1019,6 +1040,10 @@ fn fmt_node(node: &Node, depth: usize, label: &str, f: &mut fmt::Formatter<'_>) 
             for e in items {
                 fmt_node(e, depth + 1, "item", f)?;
             }
+        }
+        NodeKind::PatternListDots { pattern } => {
+            writeln!(f, "PatternListDots")?;
+            fmt_node(pattern, depth + 1, "pattern", f)?;
         }
         NodeKind::Identifier(name) => {
             writeln!(f, "Identifier({})", name)?;

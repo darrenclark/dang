@@ -269,6 +269,40 @@ impl ToAst {
                 let items: Vec<Node> = pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
                 self.new_node(loc, NodeKind::PatternList { items })
             }
+            Rule::pattern_list_item => {
+                let mut inner = pair.into_inner();
+                let first = inner.next().unwrap();
+                let second = inner.next();
+
+                let is_dots = first.as_rule() == Rule::pattern_list_dots
+                    || second
+                        .as_ref()
+                        .map_or(false, |p| p.as_rule() == Rule::pattern_list_dots);
+
+                let pattern = self
+                    .to_ast(first)
+                    .or_else(|| second.and_then(|p| self.to_ast(p)))
+                    // if we don't have anything else, add a wildcard
+                    .unwrap_or_else(|| {
+                        self.new_node(loc.clone(), NodeKind::PatternWildcard)
+                            .unwrap()
+                    });
+
+                if is_dots {
+                    self.new_node(
+                        loc,
+                        NodeKind::PatternListDots {
+                            pattern: Box::new(pattern),
+                        },
+                    )
+                } else {
+                    Some(pattern)
+                }
+            }
+            Rule::pattern_list_dots => {
+                // Handled in pattern_list_item, returning None here makes code easier there
+                None
+            }
             Rule::expr => {
                 self.pratt
                     .map_primary(|primary| self.to_ast(primary))

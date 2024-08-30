@@ -154,15 +154,35 @@ impl PatternNode {
                 PatternNode::Tuple(patterns)
             }
             NodeKind::PatternList { items } => {
-                let start = items
-                    .iter()
-                    .map(|item| PatternNode::from_ast(item, top_stack_slot))
-                    .collect();
-                PatternNode::List {
-                    start,
-                    rest: None,
-                    end: vec![],
+                let mut iter = items.iter();
+
+                let mut start: Vec<PatternNode> = vec![];
+                let mut rest: Option<Box<PatternNode>> = None;
+                let mut end: Vec<PatternNode> = vec![];
+
+                // fill up start (if needed)
+                for item in &mut iter {
+                    match &item.kind {
+                        NodeKind::PatternListDots { pattern } => {
+                            rest = Some(Box::new(Self::from_ast(pattern, top_stack_slot)));
+                            break;
+                        }
+                        _ => start.push(Self::from_ast(item, top_stack_slot)),
+                    }
                 }
+
+                // fill up end (if needed)
+                for item in &mut iter {
+                    match &item.kind {
+                        NodeKind::PatternListDots { pattern } => {
+                            rest = Some(Box::new(Self::from_ast(pattern, top_stack_slot)));
+                            break;
+                        }
+                        _ => end.push(Self::from_ast(item, top_stack_slot)),
+                    }
+                }
+
+                PatternNode::List { start, rest, end }
             }
             NodeKind::PatternWildcard => PatternNode::Wildcard,
             _ => unreachable!("only expected pattern nodes, got: {:?}", node.kind),
