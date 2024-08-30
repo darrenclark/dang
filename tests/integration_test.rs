@@ -893,3 +893,14 @@ fn stream_concat() {
         "#
     }
 }
+
+#[test]
+fn find() {
+    assert_runs! {
+        r#"
+        let f = fn(x) { x > 3 }
+        assert(find([1, 2, 3, 4, 5], f) == 4)
+        assert(find([1, 2, 3], f) == nil)
+        "#
+    }
+}

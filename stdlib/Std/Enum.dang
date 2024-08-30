@@ -187,3 +187,17 @@ let _zip = fn(it1, it2, next1, next2, acc) {
     ((_, x1), (_, x2)) -> _zip(it1, it2, it1(), it2(), acc + [(x1, x2)])
   }
 }
+
+/// Find the first element that satisfies the predicate
+let find = fn(enum, pred) {
+  let it = iter(enum)
+  _find(it, it(), pred)
+}
+
+let _find = fn(it, next, pred) {
+  match next {
+    nil -> nil
+    (_, x) if pred(x) -> x
+    _ -> _find(it, it(), pred)
+  }
+}
