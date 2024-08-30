@@ -826,6 +826,9 @@ fn matches() {
                   }
                   s
                 }
+                [] -> 0
+                [x] -> x
+                [a, b] -> a + b
                 r -> r
             }
         }
@@ -837,6 +840,9 @@ fn matches() {
         assert(m((:abs, -5)) == 5)
         assert(m((:abs, 0)) == 0)
         assert(m((:complex, 2, (1, 3))) == 4)
+        assert(m([]) == 0)
+        assert(m([5]) == 5)
+        assert(m([2, 3]) == 5)
         "#
     }
 }

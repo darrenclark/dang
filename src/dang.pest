@@ -87,7 +87,8 @@ field_assignment_path = {
 pattern = {
   pattern_constant |
   pattern_identifier |
-  pattern_tuple
+  pattern_tuple |
+  pattern_list
 }
 pattern_constant = {
   nil_literal |
@@ -172,6 +173,11 @@ pattern_tuple = {
 list_literal = {
   "[" ~ nl ~ "]" |
   "[" ~ nl ~ expr ~ nl ~ ("," ~ nl ~ expr ~ nl)* ~ ","? ~ nl ~ "]"
+}
+
+pattern_list = {
+  "[" ~ nl ~ "]" |
+  "[" ~ nl ~ pattern ~ nl ~ ("," ~ nl ~ pattern ~ nl)* ~ ","? ~ nl ~ "]"
 }
 
 dict_literal = {

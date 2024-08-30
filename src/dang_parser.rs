@@ -265,6 +265,10 @@ impl ToAst {
                     pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
                 self.new_node(loc, NodeKind::PatternTuple { elements })
             }
+            Rule::pattern_list => {
+                let items: Vec<Node> = pair.into_inner().filter_map(|p| self.to_ast(p)).collect();
+                self.new_node(loc, NodeKind::PatternList { items })
+            }
             Rule::expr => {
                 self.pratt
                     .map_primary(|primary| self.to_ast(primary))

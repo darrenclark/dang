@@ -153,6 +153,17 @@ impl PatternNode {
                     .collect();
                 PatternNode::Tuple(patterns)
             }
+            NodeKind::PatternList { items } => {
+                let start = items
+                    .iter()
+                    .map(|item| PatternNode::from_ast(item, top_stack_slot))
+                    .collect();
+                PatternNode::List {
+                    start,
+                    rest: None,
+                    end: vec![],
+                }
+            }
             NodeKind::PatternWildcard => PatternNode::Wildcard,
             _ => unreachable!("only expected pattern nodes, got: {:?}", node.kind),
         }
