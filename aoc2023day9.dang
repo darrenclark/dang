@@ -1,0 +1,61 @@
+import AocLib/Parse
+
+let parse = fn(input) {
+  input
+  |> Parse.lines()
+  |> map(fn (l) { Parse.list_of_numbers(l, " ") })
+}
+
+let part1 = fn(parsed) {
+  parsed |> map(predict_next) |> sum()
+}
+
+let part2 = fn(parsed) {
+  parsed |> map(predict_prev) |> sum()
+}
+
+let predict_next = fn(numbers) {
+  numbers
+  |> expand()
+  |> map(last)
+  |> sum()
+}
+
+let predict_prev = fn(numbers) {
+  numbers
+  |> expand()
+  |> map(first)
+  |> reverse()
+  |> fold(fn (a, b) {
+    a - b
+  })
+}
+
+let expand = fn(numbers) {
+  let rest = Stream.unfold(numbers, fn (numbers) {
+    if all?(numbers, fn (n) { n == 0 }) {
+      nil
+    } else {
+      let d = differences(numbers)
+      (d, d)
+    }
+  })
+
+  Stream.concat([numbers], rest) |> to_list()
+}
+
+let differences = fn(numbers) {
+  Stream.zip(numbers, drop(numbers, 1))
+  |> map(fn (t) { t[1] - t[0] })
+}
+
+// --------------
+
+let input_path = first(argv())
+if input_path == nil { raise("Expected path to input as first arg") }
+let input = readfile(input_path)
+
+let parsed = parse(input)
+
+println("Part one: ", part1(parsed))
+println("Part two: ", part2(parsed))
