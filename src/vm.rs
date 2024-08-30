@@ -742,6 +742,14 @@ impl VM {
                 }
             }
             Value::Closure(closure) => {
+                if args.len() != closure.function().arity() {
+                    exception!(
+                        "expected {} arguments, got {}",
+                        closure.function().arity(),
+                        args.len()
+                    );
+                }
+
                 self.frames
                     .push(Frame::new_closure(closure, self.stack.len()));
                 // TODO: Optimize this, so that we don't split_off args on this code
