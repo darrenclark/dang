@@ -1,0 +1,117 @@
+import AocLib/Parse
+import AocLib/Grid
+
+let parse = fn(input) {
+  Grid.parse(input)
+}
+
+let part1 = fn(parsed) {
+  let l = path_length(parsed)
+  l / 2 + Math.rem(l, 2)
+}
+
+let part2 = fn(parsed) {
+  // get a new grid with only the path
+  var grid = Grid.new(" ", parsed.width, parsed.height)
+  for (x, y) in path_iter(parsed) {
+    grid = Grid.put(grid, x, y, Grid.at(parsed, x, y))
+  }
+
+  var count = 0
+
+  for y in range(0, parsed.height) {
+    var inside = false
+
+    for x in range(0, parsed.width) {
+      match Grid.at(grid, x, y) {
+        "|" -> { inside = !inside }
+        "L" -> { inside = !inside }
+        "J" -> { inside = !inside }
+        " " if inside -> { count = count + 1 }
+        _ -> ()
+      }
+    }
+
+    assert(!inside)
+  }
+
+  count
+}
+
+let path_length = fn(grid) {
+  path_iter(grid) |> count()
+}
+
+let path_iter = fn(grid) {
+  var current = Grid.find(grid, "S")
+  var previous = nil
+  var steps = 0
+
+  fn () {
+    let (x, y) = current
+    let cell = Grid.at(grid, x, y)
+
+    if cell == "S" && steps > 0 {
+      // returned to start
+      nil
+    } else if cell == "S" {
+      let next =
+        grid
+        |> Grid.neighbor_coords(x, y)
+        |> find(fn(coord) {
+          let (cx, cy) = coord
+          let c = Grid.at(grid, cx, cy)
+          exits(c)
+          |> map(fn (d) { add_coords(coord, d) })
+          |> any?(fn (c) { c == current })
+        })
+
+      previous = current
+      current = next
+      steps = steps + 1
+
+      (:item, next)
+    } else {
+      let next =
+        exits(cell)
+        |> map(fn (d) { add_coords(current, d) })
+        |> find(fn (c) { c != previous })
+
+      previous = current
+      current = next
+      steps = steps + 1
+
+      (:item, next)
+    }
+  }
+}
+
+let exits = fn(cell) {
+  match cell {
+    "|" -> [(0, -1), (0, 1)]
+    "-" -> [(-1, 0), (1, 0)]
+    "L" -> [(0, -1), (1, 0)]
+    "J" -> [(0, -1), (-1, 0)]
+    "7" -> [(0, 1), (-1, 0)]
+    "F" -> [(0, 1), (1, 0)]
+    _ -> []
+  }
+}
+
+let add_coords = fn(a, b) {
+  let (ax, ay) = a
+  let (bx, by) = b
+  (ax + bx, ay + by)
+}
+
+
+// --------------
+
+let input_path = first(argv())
+if input_path == nil { raise("Expected path to input as first arg") }
+let input = readfile(input_path)
+
+let parsed = parse(input)
+
+println("Part one: ", part1(parsed))
+println("Part two: ", part2(parsed))

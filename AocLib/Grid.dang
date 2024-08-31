@@ -1,5 +1,7 @@
 module AocLib/Grid
 
+import Std/Enum
+
 struct {
   rows,
   width,
@@ -20,6 +22,18 @@ let parse = fn(input) {
   for row in rows {
     assert(len(row) == width)
   }
+
+  Grid{rows: rows, width: width, height: height}
+}
+
+/// Creates a new grid filled with `element`
+let new = fn(element, width, height) {
+  let rows =
+    range(0, height)
+    |> map(fn (_) {
+      range(0, width)
+      |> map(fn (_) { element })
+    })
 
   Grid{rows: rows, width: width, height: height}
 }
@@ -46,6 +60,22 @@ let at = fn(grid, x, y) {
 let try_at = fn(grid, x, y) {
   if check_bounds(grid, x, y) {
     grid.rows[y][x]
+  }
+}
+
+/// Puts a value at (x, y) and returns a new grid
+let put = fn (grid, x, y, value) {
+  var g = grid
+  ensure_bounds(g, x, y)
+  g.rows[y][x] = value
+  g
+}
+
+/// Finds the first cell with value `target` and returns its coordinates
+let find = fn(grid, target) {
+  match Enum.find(grid, fn (x) { x[2] == target }) {
+    (x, y, _) -> (x, y)
+    nil -> nil
   }
 }
 
@@ -134,12 +164,15 @@ let tests = fn() {
   // try_at
   assert(try_at(grid, 3, 0) == nil)
 
+  // find
+  assert(find(grid, "b") == (1, 0))
+  assert(find(grid, "z") == nil)
+
   // neighbors
   assert(neighbors(grid, 1, 1) == ["a", "b", "c", "f", "i", "h", "g", "d"])
   assert(neighbors(grid, 0, 0) == ["b", "e", "d"])
 
   // neighbor_coords
   assert(neighbor_coords(grid, 0, 0) == [(1, 0), (1, 1), (0, 1)])
-
 }
 tests()

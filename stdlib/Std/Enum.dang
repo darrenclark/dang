@@ -101,6 +101,17 @@ let all? = fn(enum, func) {
   result
 }
 
+let any? = fn(enum, func) {
+  var result = false
+  // TODO: break out of iteration early
+  for x in enum {
+    if !result && func(x) {
+      result = true
+    }
+  }
+  result
+}
+
 let min = fn(enum) {
   var result = first(enum)
   for x in enum {
