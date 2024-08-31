@@ -1,6 +1,7 @@
 use std::fs::{File, OpenOptions, Permissions};
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
+use std::time::{Duration, Instant};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -12,16 +13,33 @@ use super::function::Function;
 static FLAMEGRAPH_PL: &str = include_str!("../../vendor/flamegraph.pl");
 static FLAMEGRAPH_PL_PATH: &str = "/tmp/dang-flamegraph.pl";
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[allow(dead_code)]
 pub struct Flamegraph {
     counts: HashMap<Vec<Function>, usize>,
+    interval: Duration,
+    last: Instant,
 }
 
 #[allow(dead_code)]
 impl Flamegraph {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(interval: Duration) -> Self {
+        Self {
+            counts: HashMap::new(),
+            interval,
+            last: Instant::now(),
+        }
+    }
+
+    pub fn check_if_time_for_measurement(&mut self) -> bool {
+        let now = Instant::now();
+        let time_since_last = now.duration_since(self.last);
+        if time_since_last > self.interval {
+            self.last = now;
+            true
+        } else {
+            false
+        }
     }
 
     pub fn increment(&mut self, stack: Vec<Function>) {

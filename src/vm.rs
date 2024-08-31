@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::HashMap, path::PathBuf, rc::Rc};
+use std::{cmp::min, collections::HashMap, path::PathBuf, rc::Rc, time::Duration};
 
 use chunk::Chunk;
 use closure::Closure;
@@ -74,7 +74,7 @@ impl VM {
             open_upvalues: Vec::new(),
             argv: Value::Nil,
             stats: StatsCollector::new(),
-            flamegraph: Flamegraph::new(),
+            flamegraph: Flamegraph::new(Duration::from_millis(1)),
         }
     }
 
@@ -91,8 +91,10 @@ impl VM {
                 result
             } else if cfg!(feature = "flamegraph") {
                 let result = self.run_n(100);
-                let stack = self.frames.iter().map(|f| f.function.clone()).collect();
-                self.flamegraph.increment(stack);
+                if self.flamegraph.check_if_time_for_measurement() {
+                    let stack = self.frames.iter().map(|f| f.function.clone()).collect();
+                    self.flamegraph.increment(stack);
+                }
                 result
             } else {
                 self.run_n(usize::MAX)
