@@ -6,43 +6,48 @@ let parse = fn(input) {
 }
 
 let part1 = fn(parsed) {
+  let expansions = expand(parsed)
+
   parsed
-  |> expand()
   |> galaxy_pairs()
   |> Stream.map(fn (pair) {
-    distance(parsed, pair[0], pair[1])
+    distance(parsed, expansions, 1, pair[0], pair[1])
   })
   |> sum()
 }
 
 let part2 = fn(parsed) {
-  ""
+  let expansions = expand(parsed)
+
+  parsed
+  |> galaxy_pairs()
+  |> Stream.map(fn (pair) {
+    distance(parsed, expansions, 999999, pair[0], pair[1])
+  })
+  |> sum()
 }
 
 let expand = fn(grid) {
-  var g = grid
+  var expansions = {rows: {}, cols: {}}
 
-  println("expanding rows...")
   for x in range(0, grid.width) |> to_list() |> reverse() {
-    let col = Grid.column_at(g, x)
+    let col = Grid.column_at(grid, x)
     if unique(col) == ["."] {
-      g = Grid.insert_column(g, x, col)
+      expansions.cols[x] = true
     }
   }
 
-  println("expanding columns...")
   for y in range(0, grid.height) |> to_list() |> reverse() {
-    let row = Grid.row_at(g, y)
+    let row = Grid.row_at(grid, y)
     if unique(row) == ["."] {
-      g = Grid.insert_row(g, y, row)
+      expansions.rows[y] = true
     }
   }
 
-  g
+  expansions
 }
 
 let galaxy_pairs = fn(grid) {
-  println("generating pairs...")
   let galaxies =
     grid
     |> filter(fn(x) { x[2] == "#" })
@@ -55,8 +60,33 @@ let galaxy_pairs = fn(grid) {
   })
 }
 
-let distance = fn(grid, a, b) {
-  Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1])
+let distance = fn(grid, expansions, expansion_size, a, b) {
+  var dx = Math.abs(a[0] - b[0])
+  var dy = Math.abs(a[1] - b[1])
+
+  if dx != 0 {
+    let left = Math.min(a[0], b[0])
+    let right = Math.max(a[0], b[0])
+    dx = dx + expansions_between(expansions.cols, left, right) * expansion_size
+  }
+
+  if dy != 0 {
+    let top = Math.min(a[1], b[1])
+    let bottom = Math.max(a[1], b[1])
+    dy = dy + expansions_between(expansions.rows, top, bottom) * expansion_size
+  }
+
+  dx + dy
+}
+
+let expansions_between = fn(expansions, a, b) {
+  var extra = 0
+  for x in range(a + 1, b) {
+    if expansions[x] {
+      extra = extra + 1
+    }
+  }
+  extra
 }
 
 // --------------

@@ -12,6 +12,24 @@ let abs = fn(x) {
     }
 }
 
+/// Minimum of two values
+let min = fn(a, b) {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+/// Maximum of two values
+let max = fn(a, b) {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+
 /// Greatest common divisor of two integers
 let gcd = fn(a, b) {
     if b == 0 {
