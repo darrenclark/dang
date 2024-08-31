@@ -1,5 +1,6 @@
-use std::fs::File;
+use std::fs::{File, OpenOptions, Permissions};
 use std::io::Write;
+use std::os::unix::fs::OpenOptionsExt;
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -7,6 +8,9 @@ use std::{
 };
 
 use super::function::Function;
+
+static FLAMEGRAPH_PL: &str = include_str!("../../vendor/flamegraph.pl");
+static FLAMEGRAPH_PL_PATH: &str = "/tmp/dang-flamegraph.pl";
 
 #[derive(Debug, Default)]
 #[allow(dead_code)]
@@ -25,7 +29,9 @@ impl Flamegraph {
     }
 
     pub fn write(&self, path: &PathBuf) -> std::io::Result<()> {
-        let mut child = Command::new("/Users/darren/Projects/FlameGraph/flamegraph.pl")
+        Self::create_flamegraph_pl().expect("Failed to write /tmp/dang-flamegraph.pl");
+
+        let mut child = Command::new(FLAMEGRAPH_PL_PATH)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?;
@@ -59,6 +65,18 @@ impl Flamegraph {
             ));
         }
 
+        Ok(())
+    }
+
+    fn create_flamegraph_pl() -> std::io::Result<()> {
+        let mut open_opts = OpenOptions::new();
+        open_opts.write(true).create(true).truncate(true);
+        if cfg!(unix) {
+            open_opts.mode(0o755);
+        }
+
+        let mut file = open_opts.open(FLAMEGRAPH_PL_PATH)?;
+        file.write_all(FLAMEGRAPH_PL.as_bytes())?;
         Ok(())
     }
 }
