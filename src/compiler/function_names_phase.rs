@@ -4,7 +4,7 @@ use crate::{
     program::Program,
 };
 
-use super::{CompilationState, Compiler};
+use super::{variable::VariableRef, CompilationState, Compiler};
 
 #[derive(Debug)]
 pub struct FunctionName {
@@ -32,6 +32,13 @@ struct FunctionNamesPhase<'a> {
 impl FunctionNamesPhase<'_> {
     fn namespaced(&self, name: &str) -> String {
         format!("{}.{}", self.compilation_state.module_name.0, name)
+    }
+
+    fn local(&self, name: &str, line: usize) -> String {
+        format!(
+            "{} - {} (at line {})",
+            self.compilation_state.module_name.0, name, line
+        )
     }
 }
 
@@ -63,12 +70,21 @@ impl<'a> AstWalker for FunctionNamesPhase<'a> {
                 ref expr,
             } => match (&pattern.kind, &expr.kind) {
                 (NodeKind::PatternIdentifier { identifier }, NodeKind::FunctionLiteral { .. }) => {
-                    self.compilation_state.tags.insert(
-                        expr.id,
-                        FunctionName {
-                            name: self.namespaced(identifier.unwrap_identifier()),
-                        },
-                    );
+                    let name = if self
+                        .compilation_state
+                        .tags
+                        .get::<VariableRef>(pattern.id)
+                        .unwrap()
+                        .allocation
+                        .is_global()
+                    {
+                        self.namespaced(identifier.unwrap_identifier())
+                    } else {
+                        self.local(identifier.unwrap_identifier(), identifier.source.start.line)
+                    };
+                    self.compilation_state
+                        .tags
+                        .insert(expr.id, FunctionName { name });
                 }
                 _ => (),
             },

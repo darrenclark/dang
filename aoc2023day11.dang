@@ -9,7 +9,7 @@ let part1 = fn(parsed) {
   parsed
   |> expand()
   |> galaxy_pairs()
-  |> map(fn (pair) {
+  |> Stream.map(fn (pair) {
     distance(parsed, pair[0], pair[1])
   })
   |> sum()

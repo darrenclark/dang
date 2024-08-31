@@ -52,12 +52,9 @@ let map = fn(iterable, f) {
   let inner = Builtins.iter(iterable)
 
   let it = fn () {
-    let next = inner()
-    if is_tuple(next, 2) {
-      let (_, x) = next
-      (some, f(x))
-    } else {
-      nil
+    match inner() {
+      (_, x) -> (:some, f(x))
+      nil -> nil
     }
   }
 
