@@ -24,5 +24,6 @@ strum_macros = "0.26"
 
 [features]
 stats = []
+flamegraph = []
 
 [[tests]]

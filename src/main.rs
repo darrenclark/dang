@@ -38,6 +38,10 @@ struct Cli {
     /// path to .dang file to execute
     path: Option<std::path::PathBuf>,
 
+    /// output path for flamegraph (requires the flamegraph feature)
+    #[arg(long)]
+    flamegraph: Option<std::path::PathBuf>,
+
     /// args passed to the dang program
     #[arg(last(false))]
     args: Vec<String>,
@@ -104,8 +108,16 @@ fn run_file(args: &Cli, path: &std::path::PathBuf) -> Result<()> {
                             .unwrap();
                         println!();
 
-                        #[cfg(feature = "stats")]
-                        vm.print_stats();
+                        if cfg!(feature = "stats") {
+                            vm.print_stats();
+                        }
+                        if let Some(f) = &args.flamegraph {
+                            if cfg!(feature = "flamegraph") {
+                                vm.write_flamegraph(f).expect("Failed to write flamegraph:");
+                            } else {
+                                println!("ERROR: flamegraph output requested but flamegraph feature is not enabled");
+                            }
+                        }
                     }
                     Err(e) => {
                         if args.debug {

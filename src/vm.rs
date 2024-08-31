@@ -1,7 +1,8 @@
-use std::{cmp::min, collections::HashMap, rc::Rc};
+use std::{cmp::min, collections::HashMap, path::PathBuf, rc::Rc};
 
 use chunk::Chunk;
 use closure::Closure;
+use flamegraph::Flamegraph;
 use function::Function;
 use inst::{Instr, OpCode};
 use stats::StatsCollector;
@@ -19,6 +20,7 @@ use crate::{
 pub mod chunk;
 pub mod closure;
 pub mod disassembler;
+mod flamegraph;
 pub mod function;
 pub mod inst;
 pub mod pattern;
@@ -32,6 +34,7 @@ pub struct VM {
     open_upvalues: Vec<(usize, Upvalue)>,
     argv: Value,
     stats: StatsCollector,
+    flamegraph: Flamegraph,
 }
 
 struct Frame {
@@ -71,6 +74,7 @@ impl VM {
             open_upvalues: Vec::new(),
             argv: Value::Nil,
             stats: StatsCollector::new(),
+            flamegraph: Flamegraph::new(),
         }
     }
 
@@ -84,6 +88,11 @@ impl VM {
                 let mut timer = stats::InstructionTimer::new(self.chunk().code[self.ip()].op);
                 let result = self.run_n(1);
                 timer.stop(&mut self.stats);
+                result
+            } else if cfg!(feature = "flamegraph") {
+                let result = self.run_n(100);
+                let stack = self.frames.iter().map(|f| f.function.clone()).collect();
+                self.flamegraph.increment(stack);
                 result
             } else {
                 self.run_n(usize::MAX)
@@ -719,6 +728,10 @@ impl VM {
 
     pub fn print_stats(&self) {
         self.stats.print();
+    }
+
+    pub fn write_flamegraph(&self, path: &PathBuf) -> std::io::Result<()> {
+        self.flamegraph.write(path)
     }
 
     fn chunk(&self) -> &Chunk {
