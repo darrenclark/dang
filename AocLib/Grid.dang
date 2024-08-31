@@ -63,12 +63,43 @@ let try_at = fn(grid, x, y) {
   }
 }
 
+/// Returns a row of the grid
+let row_at = fn(grid, y) {
+  grid.rows[y]
+}
+
+/// Returns a column of the grid
+let column_at = fn(grid, x) {
+  range(0, grid.height) |> map(fn (y) { grid.rows[y][x] })
+}
+
 /// Puts a value at (x, y) and returns a new grid
 let put = fn (grid, x, y, value) {
   var g = grid
   ensure_bounds(g, x, y)
   g.rows[y][x] = value
   g
+}
+
+/// Insert a row at position `y` and returns a new grid
+let insert_row = fn(grid, y, row) {
+  assert(len(row) == grid.width)
+  assert(y >= 0 && y <= grid.height)
+  let new_rows = take(grid.rows, y) + [row] + drop(grid.rows, y)
+  Grid{rows: new_rows, width: grid.width, height: grid.height + 1}
+}
+
+/// Inserts a new column at position `x` and returns a new grid
+let insert_column = fn(grid, x, column) {
+  assert(len(column) == grid.height)
+  assert(x >= 0 && x <= grid.width)
+  let new_rows =
+    range(0, grid.height)
+    |> map(fn (y) {
+      let row = grid.rows[y]
+      take(row, x) + [column[y]] + drop(row, x)
+    })
+  Grid{rows: new_rows, width: grid.width + 1, height: grid.height}
 }
 
 /// Finds the first cell with value `target` and returns its coordinates
@@ -164,6 +195,10 @@ let tests = fn() {
   // try_at
   assert(try_at(grid, 3, 0) == nil)
 
+  // row_at & column_at
+  assert(row_at(grid, 1) == ["d", "e", "f"])
+  assert(column_at(grid, 1) == ["b", "e", "h"])
+
   // find
   assert(find(grid, "b") == (1, 0))
   assert(find(grid, "z") == nil)
@@ -174,5 +209,15 @@ let tests = fn() {
 
   // neighbor_coords
   assert(neighbor_coords(grid, 0, 0) == [(1, 0), (1, 1), (0, 1)])
+
+  // mutations
+  var grid2 =
+    Grid.parse("d\n")
+    |> Grid.insert_row(0, ["a"])
+    |> Grid.insert_column(1, ["b", "e"])
+    |> Grid.insert_column(2, ["c", "f"])
+    |> Grid.insert_row(2, ["g", "h", "i"])
+
+  assert(grid2 == grid)
 }
 tests()

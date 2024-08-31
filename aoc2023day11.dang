@@ -1,0 +1,71 @@
+import AocLib/Parse
+import AocLib/Grid
+
+let parse = fn(input) {
+  Grid.parse(input)
+}
+
+let part1 = fn(parsed) {
+  parsed
+  |> expand()
+  |> galaxy_pairs()
+  |> map(fn (pair) {
+    distance(parsed, pair[0], pair[1])
+  })
+  |> sum()
+}
+
+let part2 = fn(parsed) {
+  ""
+}
+
+let expand = fn(grid) {
+  var g = grid
+
+  println("expanding rows...")
+  for x in range(0, grid.width) |> to_list() |> reverse() {
+    let col = Grid.column_at(g, x)
+    if unique(col) == ["."] {
+      g = Grid.insert_column(g, x, col)
+    }
+  }
+
+  println("expanding columns...")
+  for y in range(0, grid.height) |> to_list() |> reverse() {
+    let row = Grid.row_at(g, y)
+    if unique(row) == ["."] {
+      g = Grid.insert_row(g, y, row)
+    }
+  }
+
+  g
+}
+
+let galaxy_pairs = fn(grid) {
+  println("generating pairs...")
+  let galaxies =
+    grid
+    |> filter(fn(x) { x[2] == "#" })
+    |> map(fn(x) { (x[0], x[1]) })
+
+  range(0, len(galaxies))
+  |> Stream.flat_map(fn (i) {
+    range(i + 1, len(galaxies))
+    |> Stream.map(fn (j) { (galaxies[i], galaxies[j]) })
+  })
+}
+
+let distance = fn(grid, a, b) {
+  Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1])
+}
+
+// --------------
+
+let input_path = first(argv())
+if input_path == nil { raise("Expected path to input as first arg") }
+let input = readfile(input_path)
+
+let parsed = parse(input)
+
+println("Part one: ", part1(parsed))
+println("Part two: ", part2(parsed))

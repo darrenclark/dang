@@ -30,6 +30,23 @@ let cycle = fn(ls) {
   |> flat_map(fn(x) { x })
 }
 
+/// Filter a stream based on a predicate
+let filter = fn(iterable, f) {
+  let inner = Builtins.iter(iterable)
+  let it = fn () {
+    _filter(inner, f)
+  }
+  Stream{_iter: it}
+}
+
+let _filter = fn(it, f) {
+  match it() {
+    (some, x) if f(x) -> (some, x),
+    (some, _) -> _filter(it, f),
+    nil -> nil
+  }
+}
+
 /// Map a function over a stream
 let map = fn(iterable, f) {
   let inner = Builtins.iter(iterable)
@@ -79,6 +96,52 @@ let _flat_map = fn (source, current, f) {
       _flat_map(source, nil, f)
     }
   }
+}
+
+/// Emits (index, item) pair for each item in the stream
+let enumerate = fn(iterable) {
+  let inner = Builtins.iter(iterable)
+  var index = 0
+  let it = fn () {
+    match inner() {
+      (_, x) -> {
+        let res = (index, x)
+        index = index + 1
+        (:item, res)
+      }
+      nil -> nil
+    }
+  }
+  Stream{_iter: it}
+}
+
+/// Skip the first n elements of a stream
+let drop = fn(iterable, n) {
+  let inner = Builtins.iter(iterable)
+  var count = 0
+
+  filter(iterable, fn(x) {
+    if count < n {
+      count = count + 1
+      false
+    } else {
+      true
+    }
+  })
+}
+
+/// Takes the first n elements of a stream
+let take = fn(iterable, n) {
+  let inner = Builtins.iter(iterable)
+  var count = 0
+  take_while(iterable, fn(x) {
+    if count < n {
+      count = count + 1
+      true
+    } else {
+      false
+    }
+  })
 }
 
 /// Takes elements from a stream while the predicate returns true

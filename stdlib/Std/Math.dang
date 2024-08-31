@@ -3,6 +3,15 @@ module Std/Math
 /// rem(a, b) - remainder of dividing a by b
 __builtin rem
 
+/// Absolute value
+let abs = fn(x) {
+    if x < 0 {
+        -x
+    } else {
+        x
+    }
+}
+
 /// Greatest common divisor of two integers
 let gcd = fn(a, b) {
     if b == 0 {

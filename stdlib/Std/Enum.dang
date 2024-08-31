@@ -86,6 +86,14 @@ let drop = fn (enum, n) {
   result
 }
 
+let take = fn (enum, n) {
+  var result = []
+  for i in range(0, n) {
+    result = result + [get(enum, i)]
+  }
+  result
+}
+
 let sum = fn(enum) {
   reduce(enum, 0, fn(x, acc) { acc + x })
 }
