@@ -80,11 +80,27 @@ impl VM {
 
     pub fn run(&mut self) -> Result<Value, Exception> {
         loop {
+            let result = if cfg!(feature = "stats") {
+                let mut timer = stats::InstructionTimer::new(self.chunk().code[self.ip()].op);
+                let result = self.run_n(1);
+                timer.stop(&mut self.stats);
+                result
+            } else {
+                self.run_n(usize::MAX)
+            };
+
+            match result {
+                Ok(Some(value)) => return Ok(value),
+                Ok(None) => {}
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    fn run_n(&mut self, n: usize) -> Result<Option<Value>, Exception> {
+        for _ in 0..n {
             let ip = self.ip();
             let instr = self.chunk().code[ip];
-
-            #[cfg(feature = "stats")]
-            let _ = stats::InstructionTimer::new(&mut self.stats, instr.op);
 
             /*print!("> ");
             disassembler::disassemble_instruction(self.chunk(), ip);
@@ -238,7 +254,7 @@ impl VM {
                     op: OpCode::Return, ..
                 } => {
                     if self.frames.len() == 1 {
-                        return Ok(self.stack.pop().unwrap());
+                        return Ok(Some(self.stack.pop().unwrap()));
                     } else {
                         let res = self.stack.pop().unwrap();
                         let frame = self.frames.pop().unwrap();
@@ -643,6 +659,8 @@ impl VM {
             //println!("stack: {:?}", self.stack);
             //println!("=====================");
         }
+
+        Ok(None)
     }
 
     pub fn read_symbol(&self, index: u8) -> Ustr {

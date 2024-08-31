@@ -60,29 +60,23 @@ impl StatsCollector {
 }
 
 #[derive(Debug)]
-pub struct InstructionTimer<'a> {
-    stats: &'a mut StatsCollector,
+#[allow(dead_code)]
+pub struct InstructionTimer {
     start: std::time::Instant,
     op: OpCode,
 }
 
-impl<'a> InstructionTimer<'a> {
-    #[allow(dead_code)]
-    pub fn new(stats: &'a mut StatsCollector, op: OpCode) -> Self {
+#[allow(dead_code)]
+impl InstructionTimer {
+    pub fn new(op: OpCode) -> Self {
         Self {
-            stats,
             start: std::time::Instant::now(),
             op,
         }
     }
-    pub fn stop(&mut self) {
-        let elapsed = self.start.elapsed().as_nanos();
-        self.stats.record(self.op, elapsed as i64);
-    }
-}
 
-impl Drop for InstructionTimer<'_> {
-    fn drop(&mut self) {
-        self.stop();
+    pub fn stop(&mut self, stats: &mut StatsCollector) {
+        let elapsed = self.start.elapsed().as_nanos();
+        stats.record(self.op, elapsed as i64);
     }
 }
